@@ -33,16 +33,6 @@ export function buildClaudeEnv(
   return env;
 }
 
-export function hasExplicitResumeArgument(args: readonly string[]): boolean {
-  return (
-    args.includes("--resume") ||
-    args.includes("-r") ||
-    args.includes("--continue") ||
-    args.includes("-c") ||
-    args.includes("--session-id")
-  );
-}
-
 export function findConflictingAuthEnv(
   env: NodeJS.ProcessEnv,
 ): readonly string[] {

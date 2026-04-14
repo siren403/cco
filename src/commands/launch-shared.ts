@@ -3,17 +3,14 @@ import type { AppContext } from "../context.ts";
 import { buildLaunchPlan } from "../core/services/build-launch-plan.ts";
 import { listProfiles } from "../core/services/list-profiles.ts";
 import { resolveProfile } from "../core/services/resolve-profile.ts";
-import { ensureSessionBinding } from "../core/services/session-binding.ts";
 import type { OverlayProfile, Profile } from "../core/model/profile.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
-import { projectKey } from "../infra/fs/path-utils.ts";
-import { acquireSessionLock } from "../infra/fs/session-lock.ts";
 import { spawnClaudeInteractive } from "../infra/bun/spawn-claude.ts";
 import { promptForProfile } from "../ui/prompts/profile-picker.ts";
 
 export interface LaunchProfileOptions {
   readonly requestedProfileId?: string;
-  readonly fresh?: boolean;
+  readonly claudeArgs?: readonly string[];
 }
 
 export async function launchClaudeForProfile(
@@ -26,57 +23,28 @@ export async function launchClaudeForProfile(
     : await chooseProfile(profiles);
 
   const token = await resolveToken(context, profile);
-  const key = projectKey(context.process.cwd());
-  const now = context.runtime.now().toISOString();
-  const sessionLock = await acquireSessionLock({
-    locksDir: context.runtime.paths.locksDir,
-    pid: context.process.pid,
-    projectKey: key,
-    profileId: profile.id,
-    now,
+  const plan = buildLaunchPlan({
+    profile,
+    binary: context.runtime.resolveClaudeBinary(),
+    cwd: context.process.cwd(),
+    parentEnv: context.process.env,
+    token: token ?? undefined,
+    explicitArgs: options.claudeArgs,
   });
 
-  try {
-    const session = await ensureSessionBinding({
-      store: context.runtime.sessionStore,
-      projectKey: key,
-      profileId: profile.id,
-      now,
-      fresh: options.fresh,
-    });
+  intro(`cco ${profile.id}`);
 
-    const plan = buildLaunchPlan({
-      profile,
-      binary: context.runtime.resolveClaudeBinary(),
-      cwd: context.process.cwd(),
-      parentEnv: context.process.env,
-      token: token ?? undefined,
-      fresh: options.fresh,
-      sessionId: session.mode === "new" ? session.binding.sessionId : undefined,
-      resumeSessionId:
-        session.mode === "resume" ? session.binding.sessionId : undefined,
-    });
+  const exitCode = await spawnClaudeInteractive(plan);
 
-    intro(`cco ${profile.id}`);
-
-    const exitCode = await spawnClaudeInteractive(plan);
-
-    if (profile.kind === "overlay") {
-      await touchOverlayProfile(context, profile);
-    }
-
-    if (exitCode !== 0) {
-      context.process.exitCode = exitCode;
-    }
-
-    outro(
-      session.mode === "resume"
-        ? `Claude exited. Resumed session: ${session.binding.sessionId}`
-        : `Claude exited. New session: ${session.binding.sessionId}`,
-    );
-  } finally {
-    await sessionLock.release();
+  if (profile.kind === "overlay") {
+    await touchOverlayProfile(context, profile);
   }
+
+  if (exitCode !== 0) {
+    context.process.exitCode = exitCode;
+  }
+
+  outro("Claude exited.");
 }
 
 async function chooseProfile(profiles: readonly Profile[]): Promise<Profile> {

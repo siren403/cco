@@ -6,7 +6,6 @@ export interface LaunchPlan {
   readonly args: readonly string[];
   readonly cwd: string;
   readonly env: Record<string, string>;
-  readonly resumeSessionId?: string;
 }
 
 export interface BuildLaunchPlanInput {
@@ -16,7 +15,4 @@ export interface BuildLaunchPlanInput {
   readonly parentEnv: NodeJS.ProcessEnv;
   readonly token?: string;
   readonly explicitArgs?: readonly string[];
-  readonly fresh?: boolean;
-  readonly sessionId?: string;
-  readonly resumeSessionId?: string;
 }

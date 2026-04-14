@@ -9,6 +9,7 @@
 - host `~/.claude` preserved
 - runtime auth overlay via `CLAUDE_CODE_OAUTH_TOKEN`
 - no ambient global profile state
+- no custom session manager in MVP
 
 It does not become:
 
@@ -35,12 +36,13 @@ It does not become:
 3. Spawn Claude with host login or overlay token
 4. Keep stdin/stdout/stderr inherited so the Claude UX stays native
 5. Do not persist a global "current profile" across terminals
+6. Let Claude-native flags such as `-c` continue to work through direct pass-through
 
 ### Explicit launch flow
 
 - `cco host`
 - `cco work`
-- `cco personal --fresh`
+- `cco work -c`
 
 ## Information Architecture
 
@@ -56,7 +58,7 @@ It does not become:
 
 ### Deferred commands
 
-- automatic session capture and binding
+- custom session capture and binding
 - usage tracking
 - token rotation UX
 - cross-machine profile sync
@@ -80,23 +82,11 @@ That means:
 - host login remains the default when `cco` is not involved
 - two terminals running `cco work` and `cco personal` must not interfere
 
-### Session isolation
+### Session behavior
 
-Session continuity should be keyed by at least:
-
-- `projectKey`
-- `profileId`
-
-Future refinement if needed:
-
-- optional `slot` or explicit binding name for parallel same-profile workflows
-
-MVP policy:
-
-- different profiles in the same project never share session state
-- direct user CLI args beat auto-resume logic
-- `--fresh` must bypass any saved binding
-- same `projectKey + profileId` launches are lock-guarded and currently cannot run concurrently
+- `cco` does not choose, create, or track Claude sessions in MVP
+- users rely on Claude's own native flags such as `-c`, `--continue`, or `--resume`
+- `cco` only changes auth at launch time and passes the remaining args through
 
 ## Technical Architecture
 
@@ -126,7 +116,7 @@ MVP policy:
 - accidental token logging
 - assuming setup-token can support full-scope Claude features
 - platform-specific terminal quirks around hidden input
-- cross-terminal session leakage through overly broad binding keys
+- overreaching into Claude-specific session management too early
 
 ### Safeguards
 
@@ -136,12 +126,11 @@ MVP policy:
 4. Keep `CLAUDE_CONFIG_DIR` out of child env
 5. Keep token verification in `auth add`
 6. Never implement a global active-profile toggle
-7. Key session bindings by project and profile, not by a single global state
-8. Use per-binding runtime locks so same-profile launches do not silently interleave across terminals
+7. Keep session behavior Claude-native until a real need for custom session policy is proven
 
 ## Next Build Steps
 
-1. Add explicit session binding commands and optional `--slot` support for parallel same-profile workflows
-2. Add fake-claude integration tests for spawn/env behavior
-3. Upgrade token storage from plain files to OS-backed secret storage
-4. Add structured diagnostics for resume readiness and invalid tokens
+1. Add fake-claude integration tests for direct launch and env overlay behavior
+2. Upgrade token storage from plain files to OS-backed secret storage
+3. Improve help/examples around `cco work -c` and `cco host --resume ...`
+4. Add structured diagnostics for invalid tokens and missing Claude binary

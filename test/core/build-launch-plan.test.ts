@@ -45,54 +45,14 @@ test("host launch does not inject oauth token", () => {
   expect(plan.binary).toBe("claude");
 });
 
-test("resume flag is injected only when absent", () => {
+test("explicit Claude args are passed through unchanged", () => {
   const plan = buildLaunchPlan({
     profile: HOST_PROFILE,
     binary: "claude",
     cwd: "/tmp/example",
     parentEnv: baseEnv,
-    resumeSessionId: "session-123",
+    explicitArgs: ["-c", "--verbose"],
   });
 
-  expect(plan.args).toEqual(["--resume", "session-123"]);
-
-  const explicit = buildLaunchPlan({
-    profile: HOST_PROFILE,
-    binary: "claude",
-    cwd: "/tmp/example",
-    parentEnv: baseEnv,
-    resumeSessionId: "session-123",
-    explicitArgs: ["--resume", "manual-session"],
-  });
-
-  expect(explicit.args).toEqual(["--resume", "manual-session"]);
-});
-
-test("new session ids are injected when no explicit session argument is present", () => {
-  const plan = buildLaunchPlan({
-    profile: HOST_PROFILE,
-    binary: "claude",
-    cwd: "/tmp/example",
-    parentEnv: baseEnv,
-    sessionId: "550e8400-e29b-41d4-a716-446655440000",
-  });
-
-  expect(plan.args).toEqual([
-    "--session-id",
-    "550e8400-e29b-41d4-a716-446655440000",
-  ]);
-
-  const explicit = buildLaunchPlan({
-    profile: HOST_PROFILE,
-    binary: "claude",
-    cwd: "/tmp/example",
-    parentEnv: baseEnv,
-    sessionId: "550e8400-e29b-41d4-a716-446655440000",
-    explicitArgs: ["--session-id", "12345678-1234-4234-8234-1234567890ab"],
-  });
-
-  expect(explicit.args).toEqual([
-    "--session-id",
-    "12345678-1234-4234-8234-1234567890ab",
-  ]);
+  expect(plan.args).toEqual(["-c", "--verbose"]);
 });
