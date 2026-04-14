@@ -2,7 +2,10 @@ import { intro, outro } from "@clack/prompts";
 import type { AppContext } from "../context.ts";
 import { buildLaunchPlan } from "../core/services/build-launch-plan.ts";
 import { listProfiles } from "../core/services/list-profiles.ts";
-import { requestsBypassPermissions } from "../core/services/permission-mode.ts";
+import {
+  requestsBypassPermissions,
+  resolveBypassPermissionsPolicy,
+} from "../core/services/permission-mode.ts";
 import { resolveProfile } from "../core/services/resolve-profile.ts";
 import {
   resolveSubprocessEnvScrubMode,
@@ -128,6 +131,29 @@ async function maybeResolvePermissionModeOverride(
 
   if (resolveSubprocessEnvScrubMode(profile) === "0") {
     return undefined;
+  }
+
+  const policy = resolveBypassPermissionsPolicy(context.process.env);
+
+  if (policy === "compat") {
+    context.process.stdout.write(
+      `${renderPermissionModeDecision("compat", renderOptions)}\n\n`,
+    );
+    return "0";
+  }
+
+  if (policy === "safe") {
+    context.process.stdout.write(
+      `${renderPermissionModeDecision("safe", renderOptions)}\n\n`,
+    );
+    return "1";
+  }
+
+  if (!context.process.stdin.isTTY || !context.process.stdout.isTTY) {
+    throw new DomainError(
+      "PERMISSION_OVERRIDE_POLICY_REQUIRED",
+      text.errors.permissionPolicyRequiredTitle,
+    );
   }
 
   context.process.stdout.write(

@@ -1,5 +1,6 @@
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
+import { resolveBypassPermissionsPolicy } from "../core/services/permission-mode.ts";
 import { getStaticUiText } from "../i18n/index.ts";
 import { findConflictingAuthEnv } from "../infra/bun/env.ts";
 import { resolveAnsiColor } from "../ui/theme.ts";
@@ -15,6 +16,7 @@ export const doctorCommand = buildCommand<{}, [], AppContext>({
     const claudeBinary = this.runtime.resolveClaudeBinary();
     const hostConfigDir =
       this.process.env.CLAUDE_CONFIG_DIR ?? text.doctor.defaultHostConfig;
+    const bypassPermissionsPolicy = resolveBypassPermissionsPolicy(this.process.env);
 
     const report = renderDoctorPage(
       {
@@ -24,6 +26,7 @@ export const doctorCommand = buildCommand<{}, [], AppContext>({
         hostConfigDir,
         conflicts,
         launchMode: text.doctor.launchMode,
+        bypassPermissionsPolicy,
       },
       { ansiColor, locale: this.runtime.locale },
     );

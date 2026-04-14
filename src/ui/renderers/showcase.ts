@@ -120,6 +120,7 @@ function buildSections(options: RenderOptions): readonly ShowcaseSection[] {
           hostConfigDir: "C:\\Users\\you\\.claude",
           conflicts: [],
           launchMode: text.doctor.launchMode,
+          bypassPermissionsPolicy: "ask",
         },
         options,
       ),
@@ -148,6 +149,11 @@ function buildSections(options: RenderOptions): readonly ShowcaseSection[] {
               {
                 command: `${APP_NAME} host --resume abc123`,
                 description: text.showcase.flowHostDescription,
+              },
+              {
+                command:
+                  "$env:CCO_BYPASS_PERMISSIONS_POLICY='compat'; cco work --permission-mode bypassPermissions -c",
+                description: text.rootHelp.envOverridesCompatDescription,
               },
             ],
             options,

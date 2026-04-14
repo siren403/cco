@@ -132,6 +132,26 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
           },
           options,
         );
+      case "PERMISSION_OVERRIDE_POLICY_REQUIRED":
+        return renderErrorPage(
+          {
+            title: text.errors.permissionPolicyRequiredTitle,
+            summary: text.errors.permissionPolicyRequiredSummary,
+            commands: [
+              {
+                command:
+                  "$env:CCO_BYPASS_PERMISSIONS_POLICY='compat'; cco <profile> --permission-mode bypassPermissions ...",
+                description: text.errors.permissionPolicyCompatDescription,
+              },
+              {
+                command:
+                  "$env:CCO_BYPASS_PERMISSIONS_POLICY='safe'; cco <profile> --permission-mode bypassPermissions ...",
+                description: text.errors.permissionPolicySafeDescription,
+              },
+            ],
+          },
+          options,
+        );
       default:
         return renderErrorPage(
           {

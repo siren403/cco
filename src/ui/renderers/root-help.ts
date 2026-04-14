@@ -76,5 +76,28 @@ export function renderRootHelp(options: RenderOptions = {}): string {
       },
       options,
     ),
+    renderPanel(
+      {
+        title: text.rootHelp.envOverridesTitle,
+        tone: "warn",
+        badge: { label: text.rootHelp.envOverridesBadge, tone: "warn" },
+        body: renderCommandList(
+          [
+            {
+              command:
+                "$env:CCO_BYPASS_PERMISSIONS_POLICY='compat'; cco work --permission-mode bypassPermissions -c",
+              description: text.rootHelp.envOverridesCompatDescription,
+            },
+            {
+              command:
+                "$env:CCO_BYPASS_PERMISSIONS_POLICY='safe'; cco work --permission-mode bypassPermissions -c",
+              description: text.rootHelp.envOverridesSafeDescription,
+            },
+          ],
+          options,
+        ),
+      },
+      options,
+    ),
   ]);
 }

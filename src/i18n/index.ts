@@ -34,6 +34,10 @@ export interface UiText {
     readonly commandSurfaceShowcase: string;
     readonly localAliasBadge: string;
     readonly localAliasSummary: string;
+    readonly envOverridesTitle: string;
+    readonly envOverridesBadge: string;
+    readonly envOverridesCompatDescription: string;
+    readonly envOverridesSafeDescription: string;
   };
   readonly prompts: {
     readonly pickProfile: string;
@@ -120,6 +124,7 @@ export interface UiText {
     readonly defaultHostConfig: string;
     readonly launchMode: string;
     readonly noneDetected: string;
+    readonly bypassPolicyLabel: string;
   };
   readonly permissionMode: {
     readonly safeMode: string;
@@ -162,6 +167,10 @@ export interface UiText {
     readonly missingBinarySummary: string;
     readonly doctorDescription: string;
     readonly previewOnboardingDescription: string;
+    readonly permissionPolicyRequiredTitle: string;
+    readonly permissionPolicyRequiredSummary: string;
+    readonly permissionPolicyCompatDescription: string;
+    readonly permissionPolicySafeDescription: string;
     readonly unexpectedError: string;
     readonly unknownShowcaseTopic: (topic: string) => string;
   };
@@ -224,6 +233,12 @@ const KO_TEXT: UiText = {
     localAliasBadge: "로컬 별칭",
     localAliasSummary:
       "프로필은 사용자가 정하는 이름입니다. 예: `work`, `backup`",
+    envOverridesTitle: "환경 변수 오버라이드",
+    envOverridesBadge: "비대화형 제어",
+    envOverridesCompatDescription:
+      "프롬프트 없이 이번 실행만 compat mode로 내려 bypassPermissions 또는 dangerously-skip-permissions를 유지합니다.",
+    envOverridesSafeDescription:
+      "프롬프트 없이 safe mode를 유지합니다.",
   },
   prompts: {
     pickProfile: "실행할 Claude 프로필을 선택하세요",
@@ -311,12 +326,14 @@ const KO_TEXT: UiText = {
     defaultHostConfig: "(기본 Claude 호스트 구성)",
     launchMode: "호스트 구성 + 프로세스 로컬 인증 오버레이",
     noneDetected: "감지되지 않음",
+    bypassPolicyLabel: "bypass-policy",
   },
   permissionMode: {
     safeMode: "safe mode",
     compatMode: "compat mode",
     warningTitle: "권한 모드 경고",
-    warningLine1: "`--permission-mode bypassPermissions`는 현재 프로필의 safe mode env 정책과 충돌합니다.",
+    warningLine1:
+      "`--permission-mode bypassPermissions` 또는 `--dangerously-skip-permissions`는 현재 프로필의 safe mode env 정책과 충돌합니다.",
     warningLine2: "safe mode를 유지하면 Claude가 permission mode를 default로 되돌릴 가능성이 높습니다.",
     choicesTitle: "선택지",
     choiceCompat: "이번 실행만 compat mode로 내려 bypassPermissions를 유지합니다.",
@@ -353,6 +370,14 @@ const KO_TEXT: UiText = {
     missingBinarySummary: "설정되었거나 자동 탐지된 Claude 실행 파일이 현재 환경에 없습니다.",
     doctorDescription: "실행 파일 탐지, host config, env 우선순위를 확인합니다.",
     previewOnboardingDescription: "Claude를 실행하지 않고 온보딩 흐름을 미리 봅니다.",
+    permissionPolicyRequiredTitle:
+      "비대화형 실행에서는 bypassPermissions override 정책을 명시해야 합니다.",
+    permissionPolicyRequiredSummary:
+      "현재 프로필은 safe mode이고 `--permission-mode bypassPermissions` 또는 `--dangerously-skip-permissions`가 전달되었습니다. TTY가 없어서 확인 프롬프트를 띄울 수 없습니다.",
+    permissionPolicyCompatDescription:
+      "`CCO_BYPASS_PERMISSIONS_POLICY=compat`를 설정하면 이번 실행에서만 compat mode로 진행합니다.",
+    permissionPolicySafeDescription:
+      "`CCO_BYPASS_PERMISSIONS_POLICY=safe`를 설정하면 프롬프트 없이 safe mode를 유지합니다.",
     unexpectedError: "예상하지 못한 오류입니다.",
     unknownShowcaseTopic: (topic) =>
       `알 수 없는 showcase 주제 "${topic}". 사용 가능: all, auth, help, profiles, errors, doctor, flows`,
@@ -415,6 +440,12 @@ const EN_TEXT: UiText = {
     commandSurfaceShowcase: "`cco showcase [topic]` previews the CLI surface without launching Claude.",
     localAliasBadge: "local alias",
     localAliasSummary: "Profiles are names you choose, such as `work` or `backup`.",
+    envOverridesTitle: "Env Overrides",
+    envOverridesBadge: "non-interactive",
+    envOverridesCompatDescription:
+      "Skip the prompt and allow compat mode for this launch only when bypassPermissions or dangerously-skip-permissions is requested.",
+    envOverridesSafeDescription:
+      "Skip the prompt and keep safe mode.",
   },
   prompts: {
     pickProfile: "Pick the Claude profile to launch",
@@ -502,12 +533,14 @@ const EN_TEXT: UiText = {
     defaultHostConfig: "(default Claude host config)",
     launchMode: "host config + process-local auth overlay",
     noneDetected: "none detected",
+    bypassPolicyLabel: "bypass-policy",
   },
   permissionMode: {
     safeMode: "safe mode",
     compatMode: "compat mode",
     warningTitle: "Permission Mode Warning",
-    warningLine1: "`--permission-mode bypassPermissions` conflicts with this profile's safe-mode env policy.",
+    warningLine1:
+      "`--permission-mode bypassPermissions` or `--dangerously-skip-permissions` conflicts with this profile's safe-mode env policy.",
     warningLine2: "If you keep safe mode, Claude will usually force permission mode back to default.",
     choicesTitle: "Choices",
     choiceCompat: "Allow compat mode for this launch only to keep bypassPermissions intact.",
@@ -544,6 +577,14 @@ const EN_TEXT: UiText = {
     missingBinarySummary: "The configured or discovered Claude executable is missing from the current environment.",
     doctorDescription: "Inspect binary resolution, host config, and env precedence.",
     previewOnboardingDescription: "Preview the onboarding flow without launching Claude.",
+    permissionPolicyRequiredTitle:
+      "A bypassPermissions override policy is required for non-interactive launches.",
+    permissionPolicyRequiredSummary:
+      "The current profile is still in safe mode and `--permission-mode bypassPermissions` or `--dangerously-skip-permissions` was requested, but no TTY is available for an interactive confirmation.",
+    permissionPolicyCompatDescription:
+      "Set `CCO_BYPASS_PERMISSIONS_POLICY=compat` to allow compat mode for this launch.",
+    permissionPolicySafeDescription:
+      "Set `CCO_BYPASS_PERMISSIONS_POLICY=safe` to keep safe mode without prompting.",
     unexpectedError: "Unexpected error.",
     unknownShowcaseTopic: (topic) =>
       `Unknown showcase topic "${topic}". Use one of: all, auth, help, profiles, errors, doctor, flows.`,

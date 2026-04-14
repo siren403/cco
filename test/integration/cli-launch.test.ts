@@ -40,6 +40,58 @@ test("overlay launch respects per-profile subprocess env policy", async () => {
   expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
 });
 
+test("non-interactive compat policy can override safe mode for bypassPermissions", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
+
+  const result = await runCli(
+    ["work", "--permission-mode", "bypassPermissions", "-c"],
+    sandbox,
+    {
+      CCO_BYPASS_PERMISSIONS_POLICY: "compat",
+    },
+  );
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.args).toEqual(["--permission-mode", "bypassPermissions", "-c"]);
+  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
+});
+
+test("non-interactive compat policy also covers dangerously-skip-permissions", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
+
+  const result = await runCli(
+    ["work", "--dangerously-skip-permissions", "-c"],
+    sandbox,
+    {
+      CCO_BYPASS_PERMISSIONS_POLICY: "compat",
+    },
+  );
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.args).toEqual(["--dangerously-skip-permissions", "-c"]);
+  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
+});
+
+test("non-interactive safe profile with bypassPermissions errors without explicit policy", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
+
+  const result = await runCli(
+    ["work", "--permission-mode", "bypassPermissions", "-c"],
+    sandbox,
+    {},
+  );
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("CCO_BYPASS_PERMISSIONS_POLICY");
+});
+
 test("host launch omits overlay token and still preserves host config env", async () => {
   const sandbox = await createSandbox();
 

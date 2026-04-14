@@ -34,8 +34,19 @@
 - `cco auth add <profile>` also lets you choose the profile's subprocess auth-env policy.
 - `cco auth list` and `cco auth remove <profile>` manage local profiles with dashboard-style terminal output.
 - If a launch passes `--permission-mode bypassPermissions` while the profile is still in safe mode, `cco` now warns and can temporarily relax `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` for that launch only.
+- For non-interactive launches, set `CCO_BYPASS_PERMISSIONS_POLICY=compat` or `CCO_BYPASS_PERMISSIONS_POLICY=safe` to skip the prompt.
 - `cco doctor` checks binary resolution, env conflicts, and local storage layout with a structured diagnostics screen.
 - `cco showcase [topic]` previews the CLI's help, doctor, profile inventory, and recovery states without launching Claude.
+
+## Non-interactive bypassPermissions
+
+```powershell
+$env:CCO_BYPASS_PERMISSIONS_POLICY='compat'
+cco work --permission-mode bypassPermissions -c
+
+$env:CCO_BYPASS_PERMISSIONS_POLICY='safe'
+cco work --permission-mode bypassPermissions -c
+```
 
 ## Dev
 

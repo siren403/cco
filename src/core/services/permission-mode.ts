@@ -1,3 +1,5 @@
+export type BypassPermissionsPolicy = "ask" | "compat" | "safe";
+
 export function requestsBypassPermissions(
   claudeArgs: readonly string[] | undefined,
 ): boolean {
@@ -19,7 +21,30 @@ export function requestsBypassPermissions(
     if (arg === "--permission-mode=bypassPermissions") {
       return true;
     }
+
+    if (arg === "--dangerously-skip-permissions") {
+      return true;
+    }
   }
 
   return false;
+}
+
+export function resolveBypassPermissionsPolicy(
+  env: NodeJS.ProcessEnv,
+): BypassPermissionsPolicy {
+  const raw = env.CCO_BYPASS_PERMISSIONS_POLICY?.trim().toLowerCase();
+
+  switch (raw) {
+    case undefined:
+    case "":
+    case "ask":
+      return "ask";
+    case "compat":
+      return "compat";
+    case "safe":
+      return "safe";
+    default:
+      return "ask";
+  }
 }

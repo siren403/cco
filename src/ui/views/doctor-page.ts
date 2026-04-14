@@ -15,6 +15,7 @@ export interface DoctorPageData {
   readonly hostConfigDir: string;
   readonly conflicts: readonly string[];
   readonly launchMode: string;
+  readonly bypassPermissionsPolicy: string;
 }
 
 export function renderDoctorPage(
@@ -49,6 +50,10 @@ export function renderDoctorPage(
             { label: "cco-home", value: data.ccoHome },
             { label: "profiles", value: String(data.profiles) },
             { label: "host-config-dir", value: data.hostConfigDir },
+            {
+              label: text.doctor.bypassPolicyLabel,
+              value: data.bypassPermissionsPolicy,
+            },
             {
               label: "env-conflicts",
               value:
