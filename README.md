@@ -16,6 +16,7 @@
 - `cco` never rewrites vendor credential storage or `CLAUDE_CONFIG_DIR`.
 - Different terminals can run different profiles concurrently without sharing a global auth state.
 - Session bindings are keyed by project and profile. They must never be keyed by a single global "current account".
+- Same `project + profile` launches are lock-guarded so two terminals do not silently interleave the same session.
 
 ## Stack
 
@@ -50,6 +51,7 @@ bun run build
 ## Notes
 
 - Tokens are currently stored locally in plain text under `~/.cco/tokens/` for MVP simplicity.
-- Automatic session capture and usage tracking are intentionally deferred.
+- Session binding now uses `projectKey + profileId` and runtime lock files under `~/.cco/locks/`.
+- Same-profile parallel sessions in the same project are blocked for now instead of being auto-forked.
 - `CLAUDE_CONFIG_DIR` is scrubbed from the child process to preserve host config behavior.
 - Cross-terminal isolation is a hard requirement for future session binding work.

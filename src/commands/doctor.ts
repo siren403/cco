@@ -13,11 +13,12 @@ export const doctorCommand = buildCommand<{}, [], AppContext>({
       ["claude-binary", claudeBinary],
       ["cco-home", this.runtime.paths.root],
       ["profiles", String(profiles.length)],
+      ["locks-dir", this.runtime.paths.locksDir],
       [
         "env-conflicts",
         conflicts.length > 0 ? conflicts.join(", ") : "none detected",
       ],
-      ["session-binding", "storage scaffolded; auto-capture deferred"],
+      ["session-binding", "project+profile keyed with runtime locks"],
     ]);
 
     this.process.stdout.write(`${report}\n`);

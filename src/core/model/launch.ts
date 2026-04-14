@@ -17,5 +17,6 @@ export interface BuildLaunchPlanInput {
   readonly token?: string;
   readonly explicitArgs?: readonly string[];
   readonly fresh?: boolean;
+  readonly sessionId?: string;
   readonly resumeSessionId?: string;
 }

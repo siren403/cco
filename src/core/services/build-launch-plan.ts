@@ -7,10 +7,16 @@ export function buildLaunchPlan(input: BuildLaunchPlanInput): LaunchPlan {
     !input.fresh &&
     !!input.resumeSessionId &&
     !hasExplicitResumeArgument(explicitArgs);
+  const shouldInjectSessionId =
+    !shouldInjectResume &&
+    !!input.sessionId &&
+    !hasExplicitResumeArgument(explicitArgs);
 
   const args = shouldInjectResume
     ? ["--resume", input.resumeSessionId!, ...explicitArgs]
-    : explicitArgs;
+    : shouldInjectSessionId
+      ? ["--session-id", input.sessionId!, ...explicitArgs]
+      : explicitArgs;
 
   return {
     profile: input.profile,

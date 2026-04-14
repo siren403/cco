@@ -7,6 +7,7 @@ export interface CcoPaths {
   readonly profilesFile: string;
   readonly sessionsFile: string;
   readonly tokensDir: string;
+  readonly locksDir: string;
 }
 
 export function resolveCcoPaths(env: NodeJS.ProcessEnv): CcoPaths {
@@ -17,12 +18,14 @@ export function resolveCcoPaths(env: NodeJS.ProcessEnv): CcoPaths {
     profilesFile: join(baseDir, "profiles.json"),
     sessionsFile: join(baseDir, "sessions.json"),
     tokensDir: join(baseDir, "tokens"),
+    locksDir: join(baseDir, "locks"),
   };
 }
 
 export function ensureCcoLayout(paths: CcoPaths): void {
   mkdirSync(paths.root, { recursive: true });
   mkdirSync(paths.tokensDir, { recursive: true });
+  mkdirSync(paths.locksDir, { recursive: true });
 }
 
 export function projectKey(cwd: string): string {

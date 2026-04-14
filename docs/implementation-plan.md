@@ -96,6 +96,7 @@ MVP policy:
 - different profiles in the same project never share session state
 - direct user CLI args beat auto-resume logic
 - `--fresh` must bypass any saved binding
+- same `projectKey + profileId` launches are lock-guarded and currently cannot run concurrently
 
 ## Technical Architecture
 
@@ -136,10 +137,11 @@ MVP policy:
 5. Keep token verification in `auth add`
 6. Never implement a global active-profile toggle
 7. Key session bindings by project and profile, not by a single global state
+8. Use per-binding runtime locks so same-profile launches do not silently interleave across terminals
 
 ## Next Build Steps
 
-1. Add explicit session binding commands and auto-resume policy with cross-terminal isolation
+1. Add explicit session binding commands and optional `--slot` support for parallel same-profile workflows
 2. Add fake-claude integration tests for spawn/env behavior
 3. Upgrade token storage from plain files to OS-backed secret storage
 4. Add structured diagnostics for resume readiness and invalid tokens
