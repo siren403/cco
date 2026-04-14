@@ -1,8 +1,11 @@
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
+import { getStaticUiText } from "../i18n/index.ts";
 import { findConflictingAuthEnv } from "../infra/bun/env.ts";
 import { resolveAnsiColor } from "../ui/theme.ts";
 import { renderDoctorPage } from "../ui/views/doctor-page.ts";
+
+const text = getStaticUiText();
 
 export const doctorCommand = buildCommand<{}, [], AppContext>({
   async func(this: AppContext) {
@@ -10,7 +13,8 @@ export const doctorCommand = buildCommand<{}, [], AppContext>({
     const profiles = await this.runtime.profileStore.list();
     const conflicts = findConflictingAuthEnv(this.process.env);
     const claudeBinary = this.runtime.resolveClaudeBinary();
-    const hostConfigDir = this.process.env.CLAUDE_CONFIG_DIR ?? "(default Claude host config)";
+    const hostConfigDir =
+      this.process.env.CLAUDE_CONFIG_DIR ?? text.doctor.defaultHostConfig;
 
     const report = renderDoctorPage(
       {
@@ -19,9 +23,9 @@ export const doctorCommand = buildCommand<{}, [], AppContext>({
         profiles: profiles.length,
         hostConfigDir,
         conflicts,
-        launchMode: "host config + process-local auth overlay",
+        launchMode: text.doctor.launchMode,
       },
-      { ansiColor },
+      { ansiColor, locale: this.runtime.locale },
     );
 
     this.process.stdout.write(`${report}\n`);
@@ -33,6 +37,6 @@ export const doctorCommand = buildCommand<{}, [], AppContext>({
     },
   },
   docs: {
-    brief: "Check local storage, env precedence, and Claude binary resolution",
+    brief: text.commandBriefs.doctor,
   },
 });

@@ -1,3 +1,4 @@
+import { getUiText } from "../../i18n/index.ts";
 import { joinBlocks, renderCommandList, renderPanel } from "../layout/primitives.ts";
 import type { RenderOptions } from "../theme.ts";
 
@@ -5,32 +6,37 @@ export function renderAuthAddIntro(
   profileId: string,
   options: RenderOptions = {},
 ): string {
+  const text = getUiText(options.locale);
   return joinBlocks([
     renderPanel(
       {
-        title: "Add Overlay Profile",
+        title: text.authAdd.introTitle,
         tone: "accent",
         badge: { label: profileId, tone: "accent" },
         body: [
-          "This flow keeps the host Claude Code config intact.",
-          "Only a verified setup-token for this local alias will be stored under cco's local home.",
+          text.authAdd.introLine1,
+          text.authAdd.introLine2,
         ],
       },
       options,
     ),
     renderPanel(
       {
-        title: "What Happens Next",
+        title: text.authAdd.nextTitle,
         tone: "ok",
         body: renderCommandList(
           [
             {
-              command: "claude setup-token",
-              description: "Runs the official Claude token flow in the current terminal/browser context.",
+              command: text.authAdd.nextPickMode,
+              description: text.authAdd.nextPickModeDescription,
             },
             {
-              command: `paste token for ${profileId}`,
-              description: "The token is captured with hidden input and verified before it is saved.",
+              command: text.authAdd.nextSetupToken,
+              description: text.authAdd.nextSetupTokenDescription,
+            },
+            {
+              command: text.authAdd.nextPasteToken(profileId),
+              description: text.authAdd.nextPasteTokenDescription,
             },
           ],
           options,
@@ -43,30 +49,41 @@ export function renderAuthAddIntro(
 
 export function renderAuthAddSuccess(
   profileId: string,
+  modeLabel: string,
+  profilesFile: string,
   options: RenderOptions = {},
 ): string {
+  const text = getUiText(options.locale);
   return renderPanel(
     {
-      title: "Overlay Ready",
+      title: text.authAdd.successTitle,
       tone: "ok",
       badge: { label: profileId, tone: "ok" },
-      body: renderCommandList(
-        [
-          {
-            command: `cco ${profileId}`,
-            description: "Launch Claude with this overlay token and the host config.",
-          },
-          {
-            command: `cco ${profileId} -c`,
-            description: "Use the same overlay and pass Claude's native continue flag through unchanged.",
-          },
-          {
-            command: "cco auth list",
-            description: "Inspect saved profiles and token presence.",
-          },
-        ],
-        options,
-      ),
+      body: [
+        text.authAdd.successRuntimePolicy(modeLabel),
+        "",
+        renderCommandList(
+          [
+            {
+              command: text.authAdd.successLaunch(profileId),
+              description: text.authAdd.successLaunchDescription,
+            },
+            {
+              command: text.authAdd.successContinue(profileId),
+              description: text.authAdd.successContinueDescription,
+            },
+            {
+              command: text.authAdd.successList,
+              description: text.authAdd.successListDescription,
+            },
+            {
+              command: profilesFile,
+              description: text.authAdd.successEditProfiles,
+            },
+          ],
+          options,
+        ),
+      ],
     },
     options,
   );

@@ -12,9 +12,10 @@ import { resolveAnsiColor } from "./ui/theme.ts";
 const context = buildContext(process);
 const argv = process.argv.slice(2);
 const ansiColor = resolveAnsiColor(context.process.stdout, context.process.env);
+const renderOptions = { ansiColor, locale: context.runtime.locale } as const;
 
 if (isRootHelpRequest(argv)) {
-  context.process.stdout.write(`${renderRootHelp({ ansiColor })}\n`);
+  context.process.stdout.write(`${renderRootHelp(renderOptions)}\n`);
 } else if (isRootVersionRequest(argv)) {
   context.process.stdout.write(`${APP_VERSION}\n`);
 } else {
@@ -30,7 +31,7 @@ if (isRootHelpRequest(argv)) {
       await run(app, argv, context);
     }
   } catch (error) {
-    context.process.stderr.write(`${renderCliError(error, { ansiColor })}\n`);
+    context.process.stderr.write(`${renderCliError(error, renderOptions)}\n`);
     context.process.exitCode = 1;
   }
 }

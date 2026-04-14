@@ -1,8 +1,11 @@
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { listProfiles } from "../core/services/list-profiles.ts";
+import { getStaticUiText } from "../i18n/index.ts";
 import { renderProfilesPage } from "../ui/views/profiles-page.ts";
 import { resolveAnsiColor } from "../ui/theme.ts";
+
+const text = getStaticUiText();
 
 export const authListCommand = buildCommand<{}, [], AppContext>({
   async func(this: AppContext) {
@@ -21,7 +24,12 @@ export const authListCommand = buildCommand<{}, [], AppContext>({
     );
 
     this.process.stdout.write(
-      `${renderProfilesPage(profiles, tokenPresence, { ansiColor })}\n`,
+      `${renderProfilesPage(
+        profiles,
+        tokenPresence,
+        this.runtime.paths.profilesFile,
+        { ansiColor, locale: this.runtime.locale },
+      )}\n`,
     );
   },
   parameters: {
@@ -31,6 +39,6 @@ export const authListCommand = buildCommand<{}, [], AppContext>({
     },
   },
   docs: {
-    brief: "List local overlay profiles and token presence",
+    brief: text.commandBriefs.authList,
   },
 });

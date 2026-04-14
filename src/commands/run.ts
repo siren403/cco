@@ -1,6 +1,9 @@
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
+import { getStaticUiText } from "../i18n/index.ts";
 import { launchClaudeForProfile } from "./launch-shared.ts";
+
+const text = getStaticUiText();
 
 export const runCommand = buildCommand<{}, [profileId?: string], AppContext>({
   async func(this: AppContext, _flags, profileId) {
@@ -13,7 +16,7 @@ export const runCommand = buildCommand<{}, [profileId?: string], AppContext>({
       kind: "tuple",
       parameters: [
         {
-          brief: "Overlay profile id to use, or omit for profile picker",
+          brief: text.commandBriefs.runArgProfile,
           parse: String,
           optional: true,
           placeholder: "profile",
@@ -22,6 +25,6 @@ export const runCommand = buildCommand<{}, [profileId?: string], AppContext>({
     },
   },
   docs: {
-    brief: "Launch Claude with the host login or a selected overlay profile",
+    brief: text.commandBriefs.run,
   },
 });

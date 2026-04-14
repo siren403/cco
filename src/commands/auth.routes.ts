@@ -1,7 +1,10 @@
 import { buildRouteMap } from "@stricli/core";
+import { getStaticUiText } from "../i18n/index.ts";
 import { authAddCommand } from "./auth.add.ts";
 import { authListCommand } from "./auth.list.ts";
 import { authRemoveCommand } from "./auth.remove.ts";
+
+const text = getStaticUiText();
 
 export const authRoutes = buildRouteMap({
   routes: {
@@ -10,6 +13,6 @@ export const authRoutes = buildRouteMap({
     remove: authRemoveCommand,
   },
   docs: {
-    brief: "Manage overlay profile tokens",
+    brief: text.commandBriefs.auth,
   },
 });

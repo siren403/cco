@@ -7,9 +7,9 @@ import { renderRootHelp } from "../../src/ui/renderers/root-help.ts";
 test("root help uses panel-based sections", () => {
   const output = renderRootHelp();
 
-  expect(output).toContain("Quick Start");
-  expect(output).toContain("Command Surface");
-  expect(output).toContain("auth overlay");
+  expect(output).toContain("빠른 시작");
+  expect(output).toContain("명령 표면");
+  expect(output).toContain("인증 오버레이");
 });
 
 test("profiles page shows inventory and next step", () => {
@@ -23,14 +23,19 @@ test("profiles page shows inventory and next step", () => {
         tokenRef: "work",
         createdAt: "2026-04-14T00:00:00.000Z",
         updatedAt: "2026-04-14T00:00:00.000Z",
+        env: {
+          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "0",
+        },
       },
     ],
     new Map([["work", true]]),
+    "/tmp/.cco/profiles.json",
   );
 
-  expect(output).toContain("Inventory");
-  expect(output).toContain("Next Step");
-  expect(output).toContain("[stored]");
+  expect(output).toContain("목록");
+  expect(output).toContain("다음 단계");
+  expect(output).toContain("[저장됨]");
+  expect(output).toContain("[compat mode]");
 });
 
 test("doctor page shows runtime snapshot and suggested action", () => {
@@ -40,10 +45,10 @@ test("doctor page shows runtime snapshot and suggested action", () => {
     profiles: 1,
     hostConfigDir: "/tmp/.claude",
     conflicts: [],
-    launchMode: "host config + process-local auth overlay",
+    launchMode: "호스트 구성 + 프로세스 로컬 인증 오버레이",
   });
 
-  expect(output).toContain("Runtime Snapshot");
-  expect(output).toContain("Suggested Next Step");
-  expect(output).toContain("[ready]");
+  expect(output).toContain("런타임 스냅샷");
+  expect(output).toContain("추천 다음 단계");
+  expect(output).toContain("[준비됨]");
 });

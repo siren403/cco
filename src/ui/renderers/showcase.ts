@@ -1,5 +1,6 @@
 import { DomainError } from "../../core/errors/domain-error.ts";
 import { HOST_PROFILE, type Profile } from "../../core/model/profile.ts";
+import { getUiText } from "../../i18n/index.ts";
 import { APP_NAME } from "../../meta.ts";
 import { createTheme, type RenderOptions } from "../theme.ts";
 import { renderCliError } from "./error-message.ts";
@@ -26,6 +27,7 @@ export function renderShowcase(
   options: RenderOptions = {},
 ): string {
   const theme = createTheme(options);
+  const text = getUiText(options.locale);
   const sections = buildSections(options);
   const visibleSections =
     topic === "all"
@@ -41,35 +43,46 @@ export function renderShowcase(
 }
 
 function buildSections(options: RenderOptions): readonly ShowcaseSection[] {
+  const text = getUiText(options.locale);
   return [
     {
       topic: "auth",
-      title: "Auth Add Intro",
+      title: text.showcase.authIntro,
       body: renderAuthAddIntro("work", options),
     },
     {
       topic: "auth",
-      title: "Auth Add Success",
-      body: renderAuthAddSuccess("work", options),
+      title: text.showcase.authSuccess,
+      body: renderAuthAddSuccess(
+        "work",
+        text.permissionMode.safeMode,
+        "C:\\Users\\you\\.cco\\profiles.json",
+        options,
+      ),
     },
     {
       topic: "help",
-      title: "Root Help",
+      title: text.showcase.rootHelp,
       body: renderRootHelp(options),
     },
     {
       topic: "profiles",
-      title: "Saved Profiles",
+      title: text.showcase.savedProfiles,
       body: renderSavedProfilesDemo(options),
     },
     {
       topic: "profiles",
-      title: "First Run Empty State",
-      body: renderProfilesPage([HOST_PROFILE], new Map<string, boolean>(), options),
+      title: text.showcase.firstRun,
+      body: renderProfilesPage(
+        [HOST_PROFILE],
+        new Map<string, boolean>(),
+        "C:\\Users\\you\\.cco\\profiles.json",
+        options,
+      ),
     },
     {
       topic: "errors",
-      title: "Unknown Profile Error",
+      title: text.showcase.unknownProfileError,
       body: renderCliError(
         new DomainError(
           "PROFILE_NOT_FOUND",
@@ -81,7 +94,7 @@ function buildSections(options: RenderOptions): readonly ShowcaseSection[] {
     },
     {
       topic: "errors",
-      title: "Reserved Profile Error",
+      title: text.showcase.reservedProfileError,
       body: renderCliError(
         new DomainError(
           "RESERVED_PROFILE_ID",
@@ -93,12 +106,12 @@ function buildSections(options: RenderOptions): readonly ShowcaseSection[] {
     },
     {
       topic: "errors",
-      title: "Missing Claude Binary Error",
+      title: text.showcase.missingBinaryError,
       body: renderCliError({ code: "ENOENT" }, options),
     },
     {
       topic: "doctor",
-      title: "Doctor Output",
+      title: text.showcase.doctorOutput,
       body: renderDoctorPage(
         {
           claudeBinary: "C:\\Program Files\\Claude\\claude.exe",
@@ -106,39 +119,35 @@ function buildSections(options: RenderOptions): readonly ShowcaseSection[] {
           profiles: 2,
           hostConfigDir: "C:\\Users\\you\\.claude",
           conflicts: [],
-          launchMode: "host config + process-local auth overlay",
+          launchMode: text.doctor.launchMode,
         },
         options,
       ),
     },
     {
       topic: "flows",
-      title: "Command Flows",
+      title: text.showcase.commandFlows,
       body: renderPanel(
         {
-          title: "Flow Examples",
+          title: text.showcase.flowExamples,
           tone: "accent",
           body: renderCommandList(
             [
               {
                 command: `${APP_NAME} auth add work`,
-                description:
-                  "Starts the official setup-token flow, then captures and verifies the copied token.",
+                description: text.showcase.flowAddDescription,
               },
               {
                 command: `${APP_NAME} work`,
-                description:
-                  "Launches Claude with host config intact and injects only the work OAuth token into the child process.",
+                description: text.showcase.flowLaunchDescription,
               },
               {
                 command: `${APP_NAME} work -c`,
-                description:
-                  "Uses the same auth overlay while passing Claude's native continue flag through unchanged.",
+                description: text.showcase.flowContinueDescription,
               },
               {
                 command: `${APP_NAME} host --resume abc123`,
-                description:
-                  "Keeps the host login and passes native resume arguments through unchanged.",
+                description: text.showcase.flowHostDescription,
               },
             ],
             options,
@@ -161,6 +170,9 @@ function renderSavedProfilesDemo(options: RenderOptions): string {
       createdAt: "2026-04-14T00:00:00.000Z",
       updatedAt: "2026-04-14T00:00:00.000Z",
       lastUsedAt: "2026-04-14T13:15:00.000Z",
+      env: {
+        CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1",
+      },
     },
     {
       id: "backup",
@@ -169,6 +181,9 @@ function renderSavedProfilesDemo(options: RenderOptions): string {
       tokenRef: "backup",
       createdAt: "2026-04-14T00:00:00.000Z",
       updatedAt: "2026-04-14T00:00:00.000Z",
+      env: {
+        CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "0",
+      },
     },
   ];
   const tokenPresence = new Map<string, boolean>([
@@ -176,7 +191,12 @@ function renderSavedProfilesDemo(options: RenderOptions): string {
     ["backup", false],
   ]);
 
-  return renderProfilesPage(profiles, tokenPresence, options);
+  return renderProfilesPage(
+    profiles,
+    tokenPresence,
+    "C:\\Users\\you\\.cco\\profiles.json",
+    options,
+  );
 }
 
 interface ShowcaseSection {

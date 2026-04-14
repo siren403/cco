@@ -1,13 +1,15 @@
 import { cancel, isCancel, password } from "@clack/prompts";
 import { DomainError } from "../../core/errors/domain-error.ts";
+import { getStaticUiText } from "../../i18n/index.ts";
 
 export async function promptForToken(profileId: string): Promise<string> {
+  const text = getStaticUiText();
   const value = await password({
-    message: `Paste the verified setup token for "${profileId}"`,
+    message: text.prompts.pasteToken(profileId),
     mask: "*",
     validate(input) {
       if (!input || !input.trim()) {
-        return "Token is required.";
+        return text.prompts.tokenRequired;
       }
 
       return undefined;
@@ -15,8 +17,8 @@ export async function promptForToken(profileId: string): Promise<string> {
   });
 
   if (isCancel(value)) {
-    cancel("Token capture cancelled.");
-    throw new DomainError("PROMPT_CANCELLED", "Token capture cancelled.");
+    cancel(text.prompts.tokenCancelled);
+    throw new DomainError("PROMPT_CANCELLED", text.prompts.tokenCancelled);
   }
 
   return value.trim();

@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { JsonProfileStore } from "../../src/infra/fs/json-profile-store.ts";
@@ -25,6 +25,9 @@ test("concurrent writers do not clobber each other's profiles", async () => {
       tokenRef: "alpha",
       createdAt: "2026-04-14T00:00:00.000Z",
       updatedAt: "2026-04-14T00:00:00.000Z",
+      env: {
+        CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1",
+      },
     }),
     storeB.put({
       id: "beta",
@@ -33,9 +36,47 @@ test("concurrent writers do not clobber each other's profiles", async () => {
       tokenRef: "beta",
       createdAt: "2026-04-14T00:00:00.000Z",
       updatedAt: "2026-04-14T00:00:00.000Z",
+      env: {
+        CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "0",
+      },
     }),
   ]);
 
   const profiles = await storeA.list();
   expect(profiles.map((profile) => profile.id)).toEqual(["alpha", "beta"]);
+});
+
+test("store normalizes manual env edits from profiles.json", async () => {
+  const root = await mkdtemp(join(tmpdir(), "cco-profiles-"));
+  createdDirs.push(root);
+
+  const filePath = join(root, "profiles.json");
+  await writeFile(
+    filePath,
+    JSON.stringify(
+      {
+        profiles: [
+          {
+            id: "compat",
+            label: "compat",
+            kind: "overlay",
+            tokenRef: "compat",
+            createdAt: "2026-04-14T00:00:00.000Z",
+            updatedAt: "2026-04-14T00:00:00.000Z",
+            env: {
+              CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "0",
+            },
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+
+  const store = new JsonProfileStore(filePath);
+  const profile = await store.get("compat");
+
+  expect(profile?.env?.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
 });

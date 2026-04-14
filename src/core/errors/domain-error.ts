@@ -1,6 +1,7 @@
 export interface DomainErrorDetails {
   readonly exitCode?: number;
   readonly profileId?: string;
+  readonly topic?: string;
 }
 
 export class DomainError extends Error {

@@ -1,4 +1,5 @@
-import { APP_DESCRIPTION, APP_NAME, APP_VERSION } from "../../meta.ts";
+import { getUiText } from "../../i18n/index.ts";
+import { APP_NAME, APP_VERSION } from "../../meta.ts";
 import {
   joinBlocks,
   renderBadge,
@@ -10,43 +11,44 @@ import { createTheme, type RenderOptions } from "../theme.ts";
 
 export function renderRootHelp(options: RenderOptions = {}): string {
   const theme = createTheme(options);
+  const text = getUiText(options.locale);
 
   return joinBlocks([
     renderPanel(
       {
         title: `${APP_NAME} ${APP_VERSION}`,
         tone: "accent",
-        badge: { label: "auth overlay", tone: "accent" },
+        badge: { label: text.rootHelp.badge, tone: "accent" },
         body: [
-          theme.dim(APP_DESCRIPTION),
+          theme.dim(text.appDescription),
           "",
-          "Keep the host Claude Code config intact and swap only the child-process auth token per launch.",
+          text.rootHelp.summary,
         ],
       },
       options,
     ),
     renderPanel(
       {
-        title: "Quick Start",
+        title: text.rootHelp.quickStartTitle,
         tone: "ok",
-        badge: { label: "primary path", tone: "ok" },
+        badge: { label: text.rootHelp.quickStartBadge, tone: "ok" },
         body: renderCommandList(
           [
             {
               command: `${APP_NAME} auth add work`,
-              description: "Create a local alias for an official Claude setup-token.",
+              description: text.rootHelp.quickStartAuthAdd,
             },
             {
               command: `${APP_NAME} work`,
-              description: "Launch Claude with the work overlay token while keeping host config intact.",
+              description: text.rootHelp.quickStartLaunch,
             },
             {
               command: `${APP_NAME} work -c`,
-              description: "Pass Claude's native continue flag through unchanged.",
+              description: text.rootHelp.quickStartContinue,
             },
             {
               command: `${APP_NAME} showcase auth`,
-              description: "Preview the onboarding panels without launching Claude.",
+              description: text.rootHelp.quickStartShowcase,
             },
           ],
           options,
@@ -56,20 +58,20 @@ export function renderRootHelp(options: RenderOptions = {}): string {
     ),
     renderPanel(
       {
-        title: "Command Surface",
+        title: text.rootHelp.commandSurfaceTitle,
         tone: "dim",
         body: [
           renderBulletList(
             [
-              `${theme.code(`${APP_NAME} <profile>`)} launches Claude with an overlay token.`,
-              `${theme.code(`${APP_NAME} host`)} launches with the host Claude login.`,
-              `${theme.code(`${APP_NAME} doctor`)} inspects runtime wiring and env precedence.`,
-              `${theme.code(`${APP_NAME} showcase [topic]`)} previews the CLI surface without launching Claude.`,
+              `${theme.code(`${APP_NAME} <profile>`)} ${text.rootHelp.commandSurfaceProfile.replace("`cco <profile>`", "")}`.trim(),
+              `${theme.code(`${APP_NAME} host`)} ${text.rootHelp.commandSurfaceHost.replace("`cco host`", "")}`.trim(),
+              `${theme.code(`${APP_NAME} doctor`)} ${text.rootHelp.commandSurfaceDoctor.replace("`cco doctor`", "")}`.trim(),
+              `${theme.code(`${APP_NAME} showcase [topic]`)} ${text.rootHelp.commandSurfaceShowcase.replace("`cco showcase [topic]`", "")}`.trim(),
             ],
             options,
           ),
           "",
-          `${renderBadge({ label: "local alias", tone: "accent" }, options)} profiles are names you choose, such as ${theme.code("work")} or ${theme.code("backup")}.`,
+          `${renderBadge({ label: text.rootHelp.localAliasBadge, tone: "accent" }, options)} ${text.rootHelp.localAliasSummary.replace("`work`", theme.code("work")).replace("`backup`", theme.code("backup"))}`,
         ],
       },
       options,

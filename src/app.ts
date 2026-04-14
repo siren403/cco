@@ -1,11 +1,14 @@
-import { buildApplication, buildRouteMap, text_en } from "@stricli/core";
-import { APP_DESCRIPTION, APP_NAME, APP_VERSION } from "./meta.ts";
+import { buildApplication, buildRouteMap } from "@stricli/core";
+import { APP_NAME, APP_VERSION } from "./meta.ts";
 import { authRoutes } from "./commands/auth.routes.ts";
 import { doctorCommand } from "./commands/doctor.ts";
 import { hostCommand } from "./commands/host.ts";
 import { runCommand } from "./commands/run.ts";
 import { showcaseCommand } from "./commands/showcase.ts";
+import { getStaticUiText, getStricliText } from "./i18n/index.ts";
 import { renderCliError } from "./ui/renderers/error-message.ts";
+
+const text = getStaticUiText();
 
 const routes = buildRouteMap({
   routes: {
@@ -17,7 +20,7 @@ const routes = buildRouteMap({
   },
   defaultCommand: "run",
   docs: {
-    brief: APP_DESCRIPTION,
+    brief: text.appDescription,
     hideRoute: {
       run: true,
     },
@@ -30,13 +33,15 @@ export const app = buildApplication(routes, {
     currentVersion: APP_VERSION,
   },
   localization: {
-    loadText() {
+    defaultLocale: "ko",
+    loadText(locale) {
+      const appLocale = locale?.toLowerCase().startsWith("en") ? "en" : "ko";
       return {
-        ...text_en,
+        ...getStricliText(locale),
         exceptionWhileRunningCommand: (exc, ansiColor) =>
-          renderCliError(exc, { ansiColor }),
+          renderCliError(exc, { ansiColor, locale: appLocale }),
         commandErrorResult: (err, ansiColor) =>
-          renderCliError(err, { ansiColor }),
+          renderCliError(err, { ansiColor, locale: appLocale }),
       };
     },
   },

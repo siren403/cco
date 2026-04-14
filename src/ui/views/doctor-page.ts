@@ -1,3 +1,4 @@
+import { getUiText } from "../../i18n/index.ts";
 import {
   joinBlocks,
   renderBulletList,
@@ -20,29 +21,27 @@ export function renderDoctorPage(
   data: DoctorPageData,
   options: RenderOptions = {},
 ): string {
+  const text = getUiText(options.locale);
   const ready = data.conflicts.length === 0;
 
   return joinBlocks([
     renderPanel(
       {
-        title: "Doctor",
+        title: text.doctor.title,
         tone: ready ? "ok" : "warn",
-        badge: { label: ready ? "ready" : "check env", tone: ready ? "ok" : "warn" },
+        badge: {
+          label: ready ? text.doctor.readyBadge : text.doctor.checkEnvBadge,
+          tone: ready ? "ok" : "warn",
+        },
         body: ready
-          ? [
-              "Runtime looks ready for host launches and process-local auth overlays.",
-              "No conflicting auth environment variables were detected in the current shell.",
-            ]
-          : [
-              "Runtime is launchable, but the current shell has competing auth environment variables.",
-              "Review the conflicting variables below before trusting an overlay launch.",
-            ],
+          ? [text.doctor.readyLine1, text.doctor.readyLine2]
+          : [text.doctor.conflictLine1, text.doctor.conflictLine2],
       },
       options,
     ),
     renderPanel(
       {
-        title: "Runtime Snapshot",
+        title: text.doctor.snapshotTitle,
         tone: "dim",
         body: renderKeyValueList(
           [
@@ -52,7 +51,10 @@ export function renderDoctorPage(
             { label: "host-config-dir", value: data.hostConfigDir },
             {
               label: "env-conflicts",
-              value: data.conflicts.length > 0 ? data.conflicts.join(", ") : "none detected",
+              value:
+                data.conflicts.length > 0
+                  ? data.conflicts.join(", ")
+                  : text.doctor.noneDetected,
               tone: data.conflicts.length > 0 ? "warn" : "ok",
             },
             { label: "launch-mode", value: data.launchMode },
@@ -65,17 +67,17 @@ export function renderDoctorPage(
     ready
       ? renderPanel(
           {
-            title: "Suggested Next Step",
+            title: text.doctor.suggestedNextStepTitle,
             tone: "ok",
             body: renderCommandList(
               [
                 {
                   command: "cco work",
-                  description: "Launch Claude with a saved overlay profile.",
+                  description: text.doctor.launchDescription,
                 },
                 {
                   command: "cco host -c",
-                  description: "Keep the host login and pass Claude's native continue flag through unchanged.",
+                  description: text.doctor.hostContinueDescription,
                 },
               ],
               options,
@@ -85,13 +87,13 @@ export function renderDoctorPage(
         )
       : renderPanel(
           {
-            title: "Suggested Cleanup",
+            title: text.doctor.suggestedCleanupTitle,
             tone: "warn",
             body: renderBulletList(
               [
-                "Unset the competing auth variables or start a clean shell.",
-                "Run `cco doctor` again to confirm the env snapshot is clean.",
-                "Prefer `cco auth add <profile>` plus `cco <profile>` over mixing API and OAuth env vars.",
+                text.doctor.cleanup1,
+                text.doctor.cleanup2,
+                text.doctor.cleanup3,
               ],
               options,
             ),

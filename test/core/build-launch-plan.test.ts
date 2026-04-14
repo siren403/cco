@@ -19,6 +19,9 @@ test("overlay launch injects token and scrubs conflicting auth env", () => {
       tokenRef: "work",
       createdAt: "",
       updatedAt: "",
+      env: {
+        CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1",
+      },
     },
     binary: "claude",
     cwd: "/tmp/example",
@@ -31,6 +34,51 @@ test("overlay launch injects token and scrubs conflicting auth env", () => {
   expect(plan.env.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
   expect(plan.env.CLAUDE_CONFIG_DIR).toBe("/tmp/override");
   expect(plan.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("1");
+});
+
+test("overlay launch can opt out of subprocess env scrubbing per profile", () => {
+  const plan = buildLaunchPlan({
+    profile: {
+      id: "work",
+      label: "work",
+      kind: "overlay",
+      tokenRef: "work",
+      createdAt: "",
+      updatedAt: "",
+      env: {
+        CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "0",
+      },
+    },
+    binary: "claude",
+    cwd: "/tmp/example",
+    parentEnv: baseEnv,
+    token: "new-token",
+  });
+
+  expect(plan.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
+});
+
+test("explicit launch override wins over the stored profile env policy", () => {
+  const plan = buildLaunchPlan({
+    profile: {
+      id: "work",
+      label: "work",
+      kind: "overlay",
+      tokenRef: "work",
+      createdAt: "",
+      updatedAt: "",
+      env: {
+        CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1",
+      },
+    },
+    binary: "claude",
+    cwd: "/tmp/example",
+    parentEnv: baseEnv,
+    token: "new-token",
+    subprocessEnvScrubOverride: "0",
+  });
+
+  expect(plan.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
 });
 
 test("host launch does not inject oauth token", () => {

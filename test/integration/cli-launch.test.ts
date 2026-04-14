@@ -28,6 +28,18 @@ test("overlay launch injects overlay token and preserves host config env", async
   expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("1");
 });
 
+test("overlay launch respects per-profile subprocess env policy", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "compat", "overlay-token", "0");
+
+  const result = await runCli(["compat", "-c"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
+});
+
 test("host launch omits overlay token and still preserves host config env", async () => {
   const sandbox = await createSandbox();
 
@@ -72,6 +84,7 @@ async function seedOverlayProfile(
   ccoHome: string,
   profileId: string,
   token: string,
+  subprocessEnvScrub: "0" | "1" = "1",
 ): Promise<void> {
   await writeFile(
     join(ccoHome, "profiles.json"),
@@ -85,6 +98,9 @@ async function seedOverlayProfile(
             tokenRef: profileId,
             createdAt: "2026-04-14T00:00:00.000Z",
             updatedAt: "2026-04-14T00:00:00.000Z",
+            env: {
+              CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: subprocessEnvScrub,
+            },
           },
         ],
       },

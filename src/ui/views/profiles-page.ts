@@ -1,4 +1,9 @@
-import type { Profile } from "../../core/model/profile.ts";
+import {
+  describeSubprocessEnvScrubMode,
+  resolveSubprocessEnvScrubMode,
+  type Profile,
+} from "../../core/model/profile.ts";
+import { getUiText } from "../../i18n/index.ts";
 import {
   joinBlocks,
   renderBadge,
@@ -12,30 +17,32 @@ import { createTheme, type RenderOptions } from "../theme.ts";
 export function renderProfilesPage(
   profiles: readonly Profile[],
   tokenPresence: ReadonlyMap<string, boolean>,
+  profilesFile: string | undefined,
   options: RenderOptions = {},
 ): string {
+  const text = getUiText(options.locale);
   const overlays = profiles.filter((profile) => profile.kind === "overlay");
   const storedCount = overlays.filter((profile) => tokenPresence.get(profile.id)).length;
 
   return joinBlocks([
     renderPanel(
       {
-        title: "Profiles",
+        title: text.profiles.title,
         tone: overlays.length === 0 ? "warn" : "accent",
         badge: {
-          label: `${overlays.length} overlay`,
+          label: text.profiles.overlayCount(overlays.length),
           tone: overlays.length === 0 ? "warn" : "accent",
         },
         body: [
-          "Local aliases for official Claude setup-token values.",
-          "Host launches keep the host login; overlay launches swap only the child-process OAuth token.",
+          text.profiles.introLine1,
+          text.profiles.introLine2,
         ],
       },
       options,
     ),
     renderPanel(
       {
-        title: "Inventory",
+        title: text.profiles.inventoryTitle,
         tone: "dim",
         body: profiles.map((profile) =>
           renderProfileRow(profile, tokenPresence, options),
@@ -46,22 +53,30 @@ export function renderProfilesPage(
     overlays.length === 0
       ? renderPanel(
           {
-            title: "Next Step",
+            title: text.profiles.nextStepTitle,
             tone: "warn",
-            badge: { label: "create overlay", tone: "warn" },
+            badge: { label: text.profiles.createOverlayBadge, tone: "warn" },
             body: [
-              "No overlay profiles are stored yet.",
+              text.profiles.noOverlay,
               "",
               renderCommandList(
                 [
                   {
                     command: "cco auth add work",
-                    description: "Create a local alias and save a verified setup-token.",
+                    description: text.profiles.createOverlayDescription,
                   },
                   {
                     command: "cco work",
-                    description: "Launch Claude with the work overlay once the token is saved.",
+                    description: text.profiles.launchAfterSaveDescription,
                   },
+                  ...(profilesFile
+                    ? [
+                        {
+                          command: profilesFile,
+                          description: text.profiles.editProfilesDescription,
+                        },
+                      ]
+                    : []),
                 ],
                 options,
               ),
@@ -71,15 +86,18 @@ export function renderProfilesPage(
         )
       : renderPanel(
           {
-            title: "Next Step",
+            title: text.profiles.nextStepTitle,
             tone: "ok",
-            badge: { label: `${storedCount} ready`, tone: "ok" },
+            badge: { label: text.profiles.readyBadge(storedCount), tone: "ok" },
             body: [
               renderBulletList(
                 [
-                  "Use `cco <profile>` to launch with an overlay token.",
-                  "Use `cco host` to launch with the host Claude login.",
-                  "Use `cco auth remove <profile>` to delete a local alias.",
+                  text.profiles.nextBulletLaunch,
+                  text.profiles.nextBulletHost,
+                  text.profiles.nextBulletRemove,
+                  profilesFile
+                    ? text.profiles.nextBulletEditProfiles(profilesFile)
+                    : text.profiles.nextBulletProfilesStored,
                 ],
                 options,
               ),
@@ -96,22 +114,29 @@ function renderProfileRow(
   options: RenderOptions,
 ): string {
   const theme = createTheme(options);
+  const text = getUiText(options.locale);
   const kindBadge: BadgeDefinition =
     profile.kind === "host"
-      ? { label: "host", tone: "accent" }
-      : { label: "overlay", tone: "dim" };
+      ? { label: text.profiles.hostBadge, tone: "accent" }
+      : { label: text.profiles.overlayBadge, tone: "dim" };
   const tokenBadge: BadgeDefinition =
     profile.kind === "host"
-      ? { label: "host login", tone: "accent" }
+      ? { label: text.profiles.hostLoginBadge, tone: "accent" }
       : tokenPresence.get(profile.id)
-        ? { label: "stored", tone: "ok" }
-        : { label: "missing", tone: "warn" };
+        ? { label: text.profiles.storedBadge, tone: "ok" }
+        : { label: text.profiles.missingBadge, tone: "warn" };
+  const envBadge: BadgeDefinition | null =
+    profile.kind === "host"
+      ? null
+      : resolveSubprocessEnvScrubMode(profile) === "0"
+        ? { label: describeSubprocessEnvScrubMode("0"), tone: "warn" }
+        : { label: describeSubprocessEnvScrubMode("1"), tone: "ok" };
   const suffix =
     profile.kind === "overlay" && profile.lastUsedAt
-      ? ` last used ${theme.dim(profile.lastUsedAt)}`
+      ? ` ${text.profiles.lastUsedPrefix} ${theme.dim(profile.lastUsedAt)}`
       : "";
 
   return [
-    `${theme.code(profile.id)} ${renderBadge(kindBadge, options)} ${renderBadge(tokenBadge, options)}${suffix}`,
+    `${theme.code(profile.id)} ${renderBadge(kindBadge, options)} ${renderBadge(tokenBadge, options)}${envBadge ? ` ${renderBadge(envBadge, options)}` : ""}${suffix}`,
   ].join("");
 }

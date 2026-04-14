@@ -1,6 +1,9 @@
 import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import type { OverlayProfile } from "../../core/model/profile.ts";
+import type {
+  OverlayProfile,
+  OverlayProfileEnv,
+} from "../../core/model/profile.ts";
 import type { ProfileStore } from "../../core/ports/profile-store.ts";
 
 interface ProfileFileShape {
@@ -48,7 +51,11 @@ export class JsonProfileStore implements ProfileStore {
       const content = await readFile(this.filePath, "utf8");
       const parsed = JSON.parse(content) as Partial<ProfileFileShape>;
       return {
-        profiles: Array.isArray(parsed.profiles) ? parsed.profiles : [],
+        profiles: Array.isArray(parsed.profiles)
+          ? parsed.profiles
+              .map((profile) => normalizeProfile(profile))
+              .filter((profile): profile is OverlayProfile => profile != null)
+          : [],
       };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
@@ -74,6 +81,54 @@ export class JsonProfileStore implements ProfileStore {
       await rm(this.lockPath, { recursive: true, force: true });
     }
   }
+}
+
+function normalizeProfile(value: unknown): OverlayProfile | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const profile = value as Partial<OverlayProfile>;
+  if (
+    typeof profile.id !== "string" ||
+    typeof profile.label !== "string" ||
+    profile.kind !== "overlay" ||
+    typeof profile.tokenRef !== "string" ||
+    typeof profile.createdAt !== "string" ||
+    typeof profile.updatedAt !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    id: profile.id,
+    label: profile.label,
+    kind: "overlay",
+    tokenRef: profile.tokenRef,
+    createdAt: profile.createdAt,
+    updatedAt: profile.updatedAt,
+    lastUsedAt:
+      typeof profile.lastUsedAt === "string" ? profile.lastUsedAt : undefined,
+    env: normalizeProfileEnv(profile.env),
+  };
+}
+
+function normalizeProfileEnv(value: unknown): OverlayProfileEnv | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const env = value as Partial<OverlayProfileEnv>;
+  if (
+    env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB !== "0" &&
+    env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB !== "1"
+  ) {
+    return undefined;
+  }
+
+  return {
+    CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB,
+  };
 }
 
 const LOCK_WAIT_MS = 25;

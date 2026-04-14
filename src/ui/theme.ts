@@ -1,5 +1,8 @@
+import type { AppLocale } from "../i18n/index.ts";
+
 export interface RenderOptions {
   readonly ansiColor?: boolean;
+  readonly locale?: AppLocale;
 }
 
 export function stripAnsi(text: string): string {

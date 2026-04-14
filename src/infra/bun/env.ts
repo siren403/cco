@@ -10,6 +10,7 @@ const SCRUBBED_ENV_KEYS = [
 export function buildClaudeEnv(
   parentEnv: NodeJS.ProcessEnv,
   token?: string,
+  subprocessEnvScrub: "0" | "1" = "1",
 ): Record<string, string> {
   const env: Record<string, string> = {};
 
@@ -23,7 +24,7 @@ export function buildClaudeEnv(
     delete env[key];
   }
 
-  env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB = "1";
+  env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB = subprocessEnvScrub;
 
   if (token) {
     env.CLAUDE_CODE_OAUTH_TOKEN = token;

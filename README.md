@@ -31,7 +31,9 @@
 - `cco <profile> [claude args...]` passes trailing Claude args through unchanged.
 - `cco host` launches with host auth explicitly.
 - `cco auth add <profile>` guides setup-token capture and verifies the token.
+- `cco auth add <profile>` also lets you choose the profile's subprocess auth-env policy.
 - `cco auth list` and `cco auth remove <profile>` manage local profiles with dashboard-style terminal output.
+- If a launch passes `--permission-mode bypassPermissions` while the profile is still in safe mode, `cco` now warns and can temporarily relax `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` for that launch only.
 - `cco doctor` checks binary resolution, env conflicts, and local storage layout with a structured diagnostics screen.
 - `cco showcase [topic]` previews the CLI's help, doctor, profile inventory, and recovery states without launching Claude.
 
@@ -104,6 +106,8 @@ Typical screens now render as structured terminal panels instead of flat line li
 ## Notes
 
 - Tokens are currently stored locally in plain text under `~/.cco/tokens/` for MVP simplicity.
+- Overlay runtime policy is stored in `~/.cco/profiles.json`, including per-profile `env` values such as `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`.
+- That means you can adjust a saved profile later by editing `profiles.json` directly.
 - Session management is intentionally left to Claude Code itself in MVP.
 - If the host shell already sets `CLAUDE_CONFIG_DIR`, `cco` preserves it and only swaps auth for the spawned Claude process.
 - Cross-terminal isolation is a hard requirement for future session binding work.

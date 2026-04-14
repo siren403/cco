@@ -1,11 +1,16 @@
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
-import type { OverlayProfile } from "../core/model/profile.ts";
+import {
+  describeSubprocessEnvScrubMode,
+  type OverlayProfile,
+} from "../core/model/profile.ts";
 import { buildLaunchPlan } from "../core/services/build-launch-plan.ts";
 import { HOST_PROFILE } from "../core/model/profile.ts";
 import { assertProfileIdUsable } from "../core/services/profile-id.ts";
+import { getStaticUiText } from "../i18n/index.ts";
 import { spawnClaudeCapture, spawnClaudeInteractive } from "../infra/bun/spawn-claude.ts";
+import { promptForProfileEnvMode } from "../ui/prompts/profile-env-mode.ts";
 import { promptForToken } from "../ui/prompts/token-entry.ts";
 import { resolveAnsiColor } from "../ui/theme.ts";
 import {
@@ -13,12 +18,22 @@ import {
   renderAuthAddSuccess,
 } from "../ui/views/auth-add-page.ts";
 
+const text = getStaticUiText();
+
 export const authAddCommand = buildCommand<{}, [profileId: string], AppContext>({
   async func(this: AppContext, _flags, profileId) {
     assertProfileIdUsable(profileId);
+    const existingProfile = await this.runtime.profileStore.get(profileId);
     const ansiColor = resolveAnsiColor(this.process.stdout, this.process.env);
 
-    this.process.stdout.write(`${renderAuthAddIntro(profileId, { ansiColor })}\n\n`);
+    this.process.stdout.write(
+      `${renderAuthAddIntro(profileId, {
+        ansiColor,
+        locale: this.runtime.locale,
+      })}\n\n`,
+    );
+
+    const subprocessEnvScrub = await promptForProfileEnvMode(profileId, existingProfile);
 
     const setupPlan = buildLaunchPlan({
       profile: HOST_PROFILE,
@@ -46,21 +61,32 @@ export const authAddCommand = buildCommand<{}, [profileId: string], AppContext>(
       label: profileId,
       kind: "overlay",
       tokenRef: profileId,
-      createdAt: now,
+      createdAt: existingProfile?.createdAt ?? now,
       updatedAt: now,
+      lastUsedAt: existingProfile?.lastUsedAt,
+      env: {
+        CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: subprocessEnvScrub,
+      },
     };
 
     await this.runtime.profileStore.put(profile);
     await this.runtime.tokenStore.put(profileId, token);
 
-    this.process.stdout.write(`${renderAuthAddSuccess(profileId, { ansiColor })}\n`);
+    this.process.stdout.write(
+      `${renderAuthAddSuccess(
+        profileId,
+        describeSubprocessEnvScrubMode(subprocessEnvScrub),
+        this.runtime.paths.profilesFile,
+        { ansiColor, locale: this.runtime.locale },
+      )}\n`,
+    );
   },
   parameters: {
     positional: {
       kind: "tuple",
       parameters: [
         {
-          brief: "Profile id to save, such as work or backup",
+          brief: text.commandBriefs.authAddArgProfile,
           parse: String,
           placeholder: "profile",
         },
@@ -68,7 +94,7 @@ export const authAddCommand = buildCommand<{}, [profileId: string], AppContext>(
     },
   },
   docs: {
-    brief: "Create or replace an overlay profile using the official setup-token flow",
+    brief: text.commandBriefs.authAdd,
   },
 });
 

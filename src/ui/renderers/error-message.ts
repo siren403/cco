@@ -1,8 +1,10 @@
 import { DomainError } from "../../core/errors/domain-error.ts";
+import { getUiText } from "../../i18n/index.ts";
 import { renderErrorPage } from "../views/error-page.ts";
 import type { RenderOptions } from "../theme.ts";
 
 export function renderCliError(error: unknown, options: RenderOptions = {}): string {
+  const text = getUiText(options.locale);
   if (error instanceof DomainError) {
     const profileId = error.details.profileId;
 
@@ -10,16 +12,16 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
       case "PROFILE_NOT_FOUND":
         return renderErrorPage(
           {
-            title: `Unknown profile: ${profileId ?? "unknown"}`,
-            summary: "Create the local alias first, or inspect the saved overlay profiles.",
+            title: text.errors.unknownProfileTitle(profileId ?? "unknown"),
+            summary: text.errors.unknownProfileSummary,
             commands: [
               {
                 command: `cco auth add ${profileId ?? "work"}`,
-                description: "Create and verify a new overlay profile.",
+                description: text.errors.createOverlayDescription,
               },
               {
                 command: "cco auth list",
-                description: "Inspect the saved host and overlay profiles.",
+                description: text.errors.inspectProfilesDescription,
               },
             ],
           },
@@ -29,11 +31,11 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
         return renderErrorPage(
           {
             title: error.message,
-            summary: "The local alias exists, but its token file is missing or unreadable.",
+            summary: text.errors.tokenMissingSummary,
             commands: [
               {
                 command: `cco auth add ${profileId ?? "work"}`,
-                description: "Re-run the official setup-token flow and save a fresh token.",
+                description: text.errors.tokenMissingDescription,
               },
             ],
           },
@@ -42,12 +44,12 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
       case "INVALID_PROFILE_ID":
         return renderErrorPage(
           {
-            title: error.message,
+            title: text.errors.invalidProfileTitle,
             tone: "warn",
             commands: [
               {
                 command: "cco auth add work",
-                description: "Use lowercase letters, numbers, hyphens, or underscores only.",
+                description: text.errors.invalidProfileDescription,
               },
             ],
           },
@@ -56,13 +58,13 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
       case "RESERVED_PROFILE_ID":
         return renderErrorPage(
           {
-            title: error.message,
+            title: text.errors.reservedProfileTitle,
             tone: "warn",
-            summary: "Reserved names map to built-in cco commands and cannot be reused as local aliases.",
+            summary: text.errors.reservedProfileSummary,
             commands: [
               {
                 command: "cco auth add work",
-                description: "Choose a different local alias for the setup-token.",
+                description: text.errors.reservedProfileDescription,
               },
             ],
           },
@@ -71,12 +73,14 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
       case "SETUP_TOKEN_FAILED":
         return renderErrorPage(
           {
-            title: "The official `claude setup-token` flow did not complete successfully.",
-            summary: `Exit code: ${String(error.details.exitCode ?? "unknown")}`,
+            title: text.errors.setupTokenFailedTitle,
+            summary: text.errors.exitCodeSummary(
+              String(error.details.exitCode ?? "unknown"),
+            ),
             commands: [
               {
                 command: `cco auth add ${profileId ?? "work"}`,
-                description: "Retry the setup-token flow for this local alias.",
+                description: text.errors.setupTokenRetryDescription,
               },
             ],
           },
@@ -85,12 +89,12 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
       case "TOKEN_VERIFY_FAILED":
         return renderErrorPage(
           {
-            title: "Token verification failed.",
+            title: text.errors.tokenVerifyFailedTitle,
             summary: error.message,
             commands: [
               {
                 command: `cco auth add ${profileId ?? "work"}`,
-                description: "Capture a fresh setup-token and verify it again.",
+                description: text.errors.tokenVerifyRetryDescription,
               },
             ],
           },
@@ -107,20 +111,22 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
       case "INVALID_SHOWCASE_TOPIC":
         return renderErrorPage(
           {
-            title: error.message,
+            title: text.errors.unknownShowcaseTopic(
+              String(error.details.topic ?? "unknown"),
+            ),
             tone: "warn",
             commands: [
               {
                 command: "cco showcase all",
-                description: "Preview the full UI surface.",
+                description: text.errors.showcaseAllDescription,
               },
               {
                 command: "cco showcase auth",
-                description: "Preview the token onboarding panels.",
+                description: text.errors.showcaseAuthDescription,
               },
               {
                 command: "cco showcase errors",
-                description: "Preview the recovery/error states only.",
+                description: text.errors.showcaseErrorsDescription,
               },
             ],
           },
@@ -139,16 +145,16 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
   if (isErrnoException(error) && error.code === "ENOENT") {
     return renderErrorPage(
       {
-        title: "Could not launch Claude because the binary was not found.",
-        summary: "The configured or discovered Claude executable is missing from the current environment.",
+        title: text.errors.missingBinaryTitle,
+        summary: text.errors.missingBinarySummary,
         commands: [
           {
             command: "cco doctor",
-            description: "Inspect binary resolution, host config, and env precedence.",
+            description: text.errors.doctorDescription,
           },
           {
             command: "cco showcase auth",
-            description: "Preview the onboarding flow without launching Claude.",
+            description: text.errors.previewOnboardingDescription,
           },
         ],
       },
@@ -167,7 +173,7 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
 
   return renderErrorPage(
     {
-      title: "Unexpected error.",
+      title: text.errors.unexpectedError,
     },
     options,
   );
