@@ -3,6 +3,7 @@ import { HOST_PROFILE } from "../../src/core/model/profile.ts";
 import { renderDoctorPage } from "../../src/ui/views/doctor-page.ts";
 import { renderProfilesPage } from "../../src/ui/views/profiles-page.ts";
 import { renderRootHelp } from "../../src/ui/renderers/root-help.ts";
+import { visibleLength } from "../../src/ui/theme.ts";
 
 test("root help uses panel-based sections", () => {
   const output = renderRootHelp();
@@ -55,4 +56,12 @@ test("doctor page shows runtime snapshot and suggested action", () => {
   expect(output).toContain("[준비됨]");
   expect(output).toContain("shell-scrub");
   expect(output).toContain("상속 없음");
+});
+
+test("root help wraps within narrow terminal widths", () => {
+  const output = renderRootHelp({ width: 52 });
+
+  for (const line of output.split("\n")) {
+    expect(visibleLength(line)).toBeLessThanOrEqual(52);
+  }
 });

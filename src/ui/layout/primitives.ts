@@ -1,7 +1,9 @@
 import {
   createTheme,
   padVisible,
+  resolveRenderWidth,
   visibleLength,
+  wrapVisibleText,
   type RenderOptions,
   type Theme,
 } from "../theme.ts";
@@ -41,15 +43,23 @@ export function renderPanel(
 ): string {
   const theme = createTheme(options);
   const borderPaint = tonePainter(theme, definition.tone ?? "accent");
-  const bodyLines = normalizeLines(definition.body);
+  const maxRenderWidth = resolveRenderWidth(options);
   const badge = definition.badge ? renderBadge(definition.badge, options) : "";
   const plainHeader = `${definition.title}${badge ? ` ${visibleLabel(badge)}` : ""}`;
-  const panelWidth = Math.max(
+  const preferredWidth = Math.max(
     plainHeader.length + 1,
-    ...bodyLines.map((line) => visibleLength(line)),
+    ...normalizeLines(definition.body).map((line) => visibleLength(line)),
   );
-  const displayHeader = `${theme.heading(definition.title)}${badge ? ` ${badge}` : ""}`;
-  const topLine = `┌─ ${displayHeader} ${borderPaint("─".repeat(Math.max(0, panelWidth - plainHeader.length - 1)))}┐`;
+  const panelWidth = Math.max(
+    20,
+    maxRenderWidth ? Math.min(preferredWidth, maxRenderWidth - 4) : preferredWidth,
+  );
+  const bodyLines = normalizeLines(definition.body).flatMap((line) =>
+    visibleLength(line) > panelWidth ? wrapVisibleText(line, panelWidth) : [line],
+  );
+  const displayHeader = renderHeader(definition.title, badge, theme, panelWidth);
+  const displayHeaderWidth = visibleLength(displayHeader);
+  const topLine = `┌─ ${displayHeader} ${borderPaint("─".repeat(Math.max(0, panelWidth - displayHeaderWidth - 1)))}┐`;
   const renderedLines = bodyLines.map(
     (line) => `${borderPaint("│")} ${padVisible(line, panelWidth)} ${borderPaint("│")}`,
   );
@@ -72,12 +82,24 @@ export function renderKeyValueList(
   options: RenderOptions = {},
 ): string {
   const theme = createTheme(options);
+  const contentWidth = resolveContentWidth(options);
   const width = Math.max(...entries.map((entry) => entry.label.length), 4);
 
   return entries
     .map((entry) => {
       const paint = tonePainter(theme, entry.tone ?? "dim");
-      return `${theme.dim(entry.label.padEnd(width))}  ${paint(entry.value)}`;
+      const prefix = `${theme.dim(entry.label.padEnd(width))}  `;
+      const wrapped = contentWidth
+        ? wrapVisibleText(paint(entry.value), Math.max(12, contentWidth - width - 2))
+        : [paint(entry.value)];
+
+      return wrapped
+        .map((line, index) =>
+          index === 0
+            ? `${prefix}${line}`
+            : `${" ".repeat(width)}  ${line}`,
+        )
+        .join("\n");
     })
     .join("\n");
 }
@@ -87,14 +109,30 @@ export function renderCommandList(
   options: RenderOptions = {},
 ): string {
   const theme = createTheme(options);
+  const contentWidth = resolveContentWidth(options);
 
   return entries
     .map((entry) => {
       if (!entry.description) {
-        return `  ${theme.code(entry.command)}`;
+        const wrappedCommand = contentWidth
+          ? wrapVisibleText(theme.code(entry.command), Math.max(12, contentWidth - 2))
+          : [theme.code(entry.command)];
+        return wrappedCommand
+          .map((line) => `  ${line}`)
+          .join("\n");
       }
 
-      return `  ${theme.code(entry.command)}\n    ${theme.dim(entry.description)}`;
+      const wrappedCommand = contentWidth
+        ? wrapVisibleText(theme.code(entry.command), Math.max(12, contentWidth - 2))
+        : [theme.code(entry.command)];
+      const wrappedDescription = contentWidth
+        ? wrapVisibleText(theme.dim(entry.description), Math.max(12, contentWidth - 4))
+        : [theme.dim(entry.description)];
+
+      return [
+        ...wrappedCommand.map((line) => `  ${line}`),
+        ...wrappedDescription.map((line) => `    ${line}`),
+      ].join("\n");
     })
     .join("\n");
 }
@@ -104,7 +142,21 @@ export function renderBulletList(
   options: RenderOptions = {},
 ): string {
   const theme = createTheme(options);
-  return items.map((item) => `  ${theme.accent("•")} ${item}`).join("\n");
+  const contentWidth = resolveContentWidth(options);
+
+  return items
+    .map((item) => {
+      const wrapped = contentWidth
+        ? wrapVisibleText(item, Math.max(12, contentWidth - 4))
+        : [item];
+
+      return wrapped
+        .map((line, index) =>
+          index === 0 ? `  ${theme.accent("•")} ${line}` : "    " + line,
+        )
+        .join("\n");
+    })
+    .join("\n");
 }
 
 function normalizeLines(input: string | readonly string[]): string[] {
@@ -133,4 +185,30 @@ function tonePainter(theme: Theme, tone: Tone): (text: string) => string {
 
 function visibleLabel(rendered: string): string {
   return rendered.replace(/\u001B\[[0-9;]*m/g, "");
+}
+
+function resolveContentWidth(options: RenderOptions): number | undefined {
+  const width = resolveRenderWidth(options);
+  if (!width) {
+    return undefined;
+  }
+
+  return Math.max(20, width - 4);
+}
+
+function renderHeader(
+  title: string,
+  badge: string,
+  theme: Theme,
+  panelWidth: number,
+): string {
+  const plain = `${title}${badge ? ` ${visibleLabel(badge)}` : ""}`;
+  if (plain.length + 1 <= panelWidth) {
+    return `${theme.heading(title)}${badge ? ` ${badge}` : ""}`;
+  }
+
+  const available = Math.max(8, panelWidth - 1);
+  const truncated =
+    plain.length > available ? `${plain.slice(0, available - 1)}…` : plain;
+  return theme.heading(truncated);
 }
