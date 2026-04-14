@@ -5,6 +5,7 @@ import { assertProfileIdUsable } from "../../src/core/services/profile-id.ts";
 test("profile ids reject reserved names", () => {
   expect(() => assertProfileIdUsable("host")).toThrowError(DomainError);
   expect(() => assertProfileIdUsable("auth")).toThrowError(DomainError);
+  expect(() => assertProfileIdUsable("showcase")).toThrowError(DomainError);
 });
 
 test("profile ids reject invalid characters", () => {

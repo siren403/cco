@@ -31,8 +31,9 @@
 - `cco <profile> [claude args...]` passes trailing Claude args through unchanged.
 - `cco host` launches with host auth explicitly.
 - `cco auth add <profile>` guides setup-token capture and verifies the token.
-- `cco auth list` and `cco auth remove <profile>` manage local profiles.
-- `cco doctor` checks binary resolution, env conflicts, and local storage layout.
+- `cco auth list` and `cco auth remove <profile>` manage local profiles with dashboard-style terminal output.
+- `cco doctor` checks binary resolution, env conflicts, and local storage layout with a structured diagnostics screen.
+- `cco showcase [topic]` previews the CLI's help, doctor, profile inventory, and recovery states without launching Claude.
 
 ## Dev
 
@@ -41,6 +42,7 @@ bun install
 bun run check
 bun test
 bun run dev -- --help
+bun run dev -- showcase
 ```
 
 ## Build

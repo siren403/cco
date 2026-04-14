@@ -1,10 +1,12 @@
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { listProfiles } from "../core/services/list-profiles.ts";
-import { renderProfileTable } from "../ui/renderers/profile-table.ts";
+import { renderProfilesPage } from "../ui/views/profiles-page.ts";
+import { resolveAnsiColor } from "../ui/theme.ts";
 
 export const authListCommand = buildCommand<{}, [], AppContext>({
   async func(this: AppContext) {
+    const ansiColor = resolveAnsiColor(this.process.stdout, this.process.env);
     const profiles = await listProfiles(this.runtime.profileStore);
     const tokenPresence = new Map<string, boolean>();
 
@@ -18,20 +20,9 @@ export const authListCommand = buildCommand<{}, [], AppContext>({
       }),
     );
 
-    const overlays = profiles.filter((profile) => profile.kind === "overlay");
-    const lines = [renderProfileTable(profiles, tokenPresence)];
-
-    if (overlays.length === 0) {
-      lines.push(
-        "",
-        "No overlay profiles saved yet.",
-        "",
-        "Create one with:",
-        "  cco auth add work",
-      );
-    }
-
-    this.process.stdout.write(`${lines.join("\n")}\n`);
+    this.process.stdout.write(
+      `${renderProfilesPage(profiles, tokenPresence, { ansiColor })}\n`,
+    );
   },
   parameters: {
     positional: {

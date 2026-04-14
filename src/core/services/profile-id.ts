@@ -8,6 +8,7 @@ export const RESERVED_PROFILE_IDS = new Set([
   "help",
   "host",
   "run",
+  "showcase",
   "version",
 ]);
 

@@ -1,26 +1,74 @@
 import { APP_DESCRIPTION, APP_NAME, APP_VERSION } from "../../meta.ts";
+import {
+  joinBlocks,
+  renderBadge,
+  renderBulletList,
+  renderCommandList,
+  renderPanel,
+} from "../layout/primitives.ts";
+import { createTheme, type RenderOptions } from "../theme.ts";
 
-export function renderRootHelp(): string {
-  return [
-    `${APP_NAME} ${APP_VERSION}`,
-    APP_DESCRIPTION,
-    "",
-    "Usage",
-    `  ${APP_NAME} [profile] [claude args...]`,
-    `  ${APP_NAME} host [claude args...]`,
-    `  ${APP_NAME} auth add <profile>`,
-    `  ${APP_NAME} auth list`,
-    `  ${APP_NAME} auth remove <profile>`,
-    `  ${APP_NAME} doctor`,
-    "",
-    "Profiles",
-    "  A profile is a local alias you choose for a Claude setup-token, such as work or backup.",
-    "",
-    "Examples",
-    `  ${APP_NAME} auth add work`,
-    `  ${APP_NAME} work`,
-    `  ${APP_NAME} work -c`,
-    `  ${APP_NAME} host -c`,
-    `  ${APP_NAME} auth list`,
-  ].join("\n");
+export function renderRootHelp(options: RenderOptions = {}): string {
+  const theme = createTheme(options);
+
+  return joinBlocks([
+    renderPanel(
+      {
+        title: `${APP_NAME} ${APP_VERSION}`,
+        tone: "accent",
+        badge: { label: "auth overlay", tone: "accent" },
+        body: [
+          theme.dim(APP_DESCRIPTION),
+          "",
+          "Keep the host Claude Code config intact and swap only the child-process auth token per launch.",
+        ],
+      },
+      options,
+    ),
+    renderPanel(
+      {
+        title: "Quick Start",
+        tone: "ok",
+        badge: { label: "primary path", tone: "ok" },
+        body: renderCommandList(
+          [
+            {
+              command: `${APP_NAME} auth add work`,
+              description: "Create a local alias for an official Claude setup-token.",
+            },
+            {
+              command: `${APP_NAME} work`,
+              description: "Launch Claude with the work overlay token while keeping host config intact.",
+            },
+            {
+              command: `${APP_NAME} work -c`,
+              description: "Pass Claude's native continue flag through unchanged.",
+            },
+          ],
+          options,
+        ),
+      },
+      options,
+    ),
+    renderPanel(
+      {
+        title: "Command Surface",
+        tone: "dim",
+        body: [
+          renderBulletList(
+            [
+              `${theme.code(`${APP_NAME} <profile>`)} launches Claude with an overlay token.`,
+              `${theme.code(`${APP_NAME} host`)} launches with the host Claude login.`,
+              `${theme.code(`${APP_NAME} doctor`)} inspects runtime wiring and env precedence.`,
+              `${theme.code(`${APP_NAME} showcase [topic]`)} previews the CLI surface without launching Claude.`,
+            ],
+            options,
+          ),
+          "",
+          `${renderBadge({ label: "local alias", tone: "accent" }, options)} profiles are names you choose, such as ${theme.code("work")} or ${theme.code("backup")}.`,
+        ],
+      },
+      options,
+    ),
+  ]);
 }

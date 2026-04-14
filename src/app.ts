@@ -4,6 +4,7 @@ import { authRoutes } from "./commands/auth.routes.ts";
 import { doctorCommand } from "./commands/doctor.ts";
 import { hostCommand } from "./commands/host.ts";
 import { runCommand } from "./commands/run.ts";
+import { showcaseCommand } from "./commands/showcase.ts";
 import { renderCliError } from "./ui/renderers/error-message.ts";
 
 const routes = buildRouteMap({
@@ -12,6 +13,7 @@ const routes = buildRouteMap({
     host: hostCommand,
     auth: authRoutes,
     doctor: doctorCommand,
+    showcase: showcaseCommand,
   },
   defaultCommand: "run",
   docs: {
@@ -31,8 +33,10 @@ export const app = buildApplication(routes, {
     loadText() {
       return {
         ...text_en,
-        exceptionWhileRunningCommand: (exc) => renderCliError(exc),
-        commandErrorResult: (err) => renderCliError(err),
+        exceptionWhileRunningCommand: (exc, ansiColor) =>
+          renderCliError(exc, { ansiColor }),
+        commandErrorResult: (err, ansiColor) =>
+          renderCliError(err, { ansiColor }),
       };
     },
   },

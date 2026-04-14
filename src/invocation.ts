@@ -14,7 +14,14 @@ export type Invocation = DirectLaunchInvocation | StricliInvocation;
 
 const ROOT_HELP_FLAGS = new Set(["--help", "-h", "help"]);
 const ROOT_VERSION_FLAGS = new Set(["--version", "-v", "version"]);
-const STRICT_CLI_COMMANDS = new Set(["auth", "doctor", "run", ...ROOT_HELP_FLAGS, ...ROOT_VERSION_FLAGS]);
+const STRICT_CLI_COMMANDS = new Set([
+  "auth",
+  "doctor",
+  "run",
+  "showcase",
+  ...ROOT_HELP_FLAGS,
+  ...ROOT_VERSION_FLAGS,
+]);
 
 export function isRootHelpRequest(argv: readonly string[]): boolean {
   return argv.length === 1 && ROOT_HELP_FLAGS.has(argv[0]!);
