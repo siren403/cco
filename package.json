@@ -1,0 +1,24 @@
+{
+  "name": "cco",
+  "version": "0.1.0",
+  "description": "Claude Code OAuth overlay launcher for local multi-profile switching",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "cco": "./src/cli.ts"
+  },
+  "scripts": {
+    "dev": "bun run ./src/cli.ts",
+    "check": "tsc --noEmit",
+    "test": "bun test",
+    "build": "bun build ./src/cli.ts --compile --outfile ./dist/cco"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.2.0",
+    "@stricli/core": "^1.2.6"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^6.0.2"
+  }
+}
