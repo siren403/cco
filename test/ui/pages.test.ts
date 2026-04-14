@@ -10,7 +10,7 @@ test("root help uses panel-based sections", () => {
   expect(output).toContain("빠른 시작");
   expect(output).toContain("명령 표면");
   expect(output).toContain("인증 오버레이");
-  expect(output).toContain("CCO_BYPASS_PERMISSIONS_POLICY");
+  expect(output).toContain("CLAUDE_CODE_SUBPROCESS_ENV_SCRUB");
 });
 
 test("profiles page shows inventory and next step", () => {
@@ -47,12 +47,12 @@ test("doctor page shows runtime snapshot and suggested action", () => {
     hostConfigDir: "/tmp/.claude",
     conflicts: [],
     launchMode: "호스트 구성 + 프로세스 로컬 인증 오버레이",
-    bypassPermissionsPolicy: "ask",
+    shellSubprocessEnvScrub: undefined,
   });
 
   expect(output).toContain("런타임 스냅샷");
   expect(output).toContain("추천 다음 단계");
   expect(output).toContain("[준비됨]");
-  expect(output).toContain("bypass-policy");
-  expect(output).toContain("ask");
+  expect(output).toContain("shell-scrub");
+  expect(output).toContain("상속 없음");
 });

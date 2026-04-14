@@ -15,7 +15,7 @@ export interface DoctorPageData {
   readonly hostConfigDir: string;
   readonly conflicts: readonly string[];
   readonly launchMode: string;
-  readonly bypassPermissionsPolicy: string;
+  readonly shellSubprocessEnvScrub?: "0" | "1";
 }
 
 export function renderDoctorPage(
@@ -51,8 +51,13 @@ export function renderDoctorPage(
             { label: "profiles", value: String(data.profiles) },
             { label: "host-config-dir", value: data.hostConfigDir },
             {
-              label: text.doctor.bypassPolicyLabel,
-              value: data.bypassPermissionsPolicy,
+              label: text.doctor.shellScrubLabel,
+              value:
+                data.shellSubprocessEnvScrub === "0"
+                  ? text.doctor.shellScrubCompat
+                  : data.shellSubprocessEnvScrub === "1"
+                    ? text.doctor.shellScrubSafe
+                    : text.doctor.shellScrubInherit,
             },
             {
               label: "env-conflicts",

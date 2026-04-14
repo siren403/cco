@@ -1,6 +1,7 @@
 import { buildApplication, buildRouteMap } from "@stricli/core";
 import { APP_NAME, APP_VERSION } from "./meta.ts";
 import { authRoutes } from "./commands/auth.routes.ts";
+import { configRoutes } from "./commands/config.routes.ts";
 import { doctorCommand } from "./commands/doctor.ts";
 import { hostCommand } from "./commands/host.ts";
 import { runCommand } from "./commands/run.ts";
@@ -15,6 +16,7 @@ const routes = buildRouteMap({
     run: runCommand,
     host: hostCommand,
     auth: authRoutes,
+    config: configRoutes,
     doctor: doctorCommand,
     showcase: showcaseCommand,
   },

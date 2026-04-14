@@ -1,4 +1,4 @@
-export type BypassPermissionsPolicy = "ask" | "compat" | "safe";
+import type { SubprocessEnvScrubMode } from "../model/profile.ts";
 
 export function requestsBypassPermissions(
   claudeArgs: readonly string[] | undefined,
@@ -30,21 +30,13 @@ export function requestsBypassPermissions(
   return false;
 }
 
-export function resolveBypassPermissionsPolicy(
+export function resolveShellSubprocessEnvScrubMode(
   env: NodeJS.ProcessEnv,
-): BypassPermissionsPolicy {
-  const raw = env.CCO_BYPASS_PERMISSIONS_POLICY?.trim().toLowerCase();
-
-  switch (raw) {
-    case undefined:
-    case "":
-    case "ask":
-      return "ask";
-    case "compat":
-      return "compat";
-    case "safe":
-      return "safe";
-    default:
-      return "ask";
+): SubprocessEnvScrubMode | undefined {
+  const raw = env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB?.trim();
+  if (raw === "0" || raw === "1") {
+    return raw;
   }
+
+  return undefined;
 }

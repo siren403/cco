@@ -14,6 +14,12 @@ export interface UiText {
     readonly authList: string;
     readonly authRemoveArgProfile: string;
     readonly authRemove: string;
+    readonly config: string;
+    readonly configGetFlagProfile: string;
+    readonly configGet: string;
+    readonly configSetFlagProfile: string;
+    readonly configSetArgAssignment: string;
+    readonly configSet: string;
     readonly doctor: string;
     readonly showcaseArgTopic: string;
     readonly showcase: string;
@@ -30,14 +36,16 @@ export interface UiText {
     readonly commandSurfaceTitle: string;
     readonly commandSurfaceProfile: string;
     readonly commandSurfaceHost: string;
+    readonly commandSurfaceConfig: string;
     readonly commandSurfaceDoctor: string;
     readonly commandSurfaceShowcase: string;
     readonly localAliasBadge: string;
     readonly localAliasSummary: string;
-    readonly envOverridesTitle: string;
-    readonly envOverridesBadge: string;
-    readonly envOverridesCompatDescription: string;
-    readonly envOverridesSafeDescription: string;
+    readonly permissionScrubTitle: string;
+    readonly permissionScrubBadge: string;
+    readonly permissionScrubSummary: string;
+    readonly permissionScrubCompatDescription: string;
+    readonly permissionScrubPersistDescription: string;
   };
   readonly prompts: {
     readonly pickProfile: string;
@@ -56,8 +64,12 @@ export interface UiText {
     readonly profileEnvCompatHint: string;
     readonly profileEnvCancelled: string;
     readonly permissionOverride: (profileId: string) => string;
-    readonly permissionOverrideYes: string;
-    readonly permissionOverrideNo: string;
+    readonly permissionOverrideCompatLabel: string;
+    readonly permissionOverrideCompatHint: string;
+    readonly permissionOverrideSafeLabel: string;
+    readonly permissionOverrideSafeHint: string;
+    readonly permissionOverrideGuideLabel: string;
+    readonly permissionOverrideGuideHint: string;
   };
   readonly authAdd: {
     readonly introTitle: string;
@@ -78,7 +90,14 @@ export interface UiText {
     readonly successContinueDescription: string;
     readonly successList: string;
     readonly successListDescription: string;
+    readonly successConfigGet: (profileId: string) => string;
+    readonly successConfigGetDescription: string;
     readonly successEditProfiles: string;
+  };
+  readonly config: {
+    readonly getTitle: string;
+    readonly setSuccessTitle: string;
+    readonly setSuccessSummary: (modeLabel: string) => string;
   };
   readonly profiles: {
     readonly title: string;
@@ -95,6 +114,7 @@ export interface UiText {
     readonly readyBadge: (count: number) => string;
     readonly nextBulletLaunch: string;
     readonly nextBulletHost: string;
+    readonly nextBulletConfig: string;
     readonly nextBulletRemove: string;
     readonly nextBulletEditProfiles: (profilesFile: string) => string;
     readonly nextBulletProfilesStored: string;
@@ -124,7 +144,10 @@ export interface UiText {
     readonly defaultHostConfig: string;
     readonly launchMode: string;
     readonly noneDetected: string;
-    readonly bypassPolicyLabel: string;
+    readonly shellScrubLabel: string;
+    readonly shellScrubInherit: string;
+    readonly shellScrubCompat: string;
+    readonly shellScrubSafe: string;
   };
   readonly permissionMode: {
     readonly safeMode: string;
@@ -135,11 +158,19 @@ export interface UiText {
     readonly choicesTitle: string;
     readonly choiceCompat: string;
     readonly choiceSafe: string;
+    readonly choiceGuide: string;
     readonly launchPolicyTitle: string;
     readonly compatLine1: string;
     readonly compatLine2: string;
     readonly safeLine1: string;
     readonly safeLine2: string;
+    readonly guidanceTitle: string;
+    readonly guidanceLine1: string;
+    readonly guidanceLine2: string;
+    readonly guidanceNextTitle: string;
+    readonly guidanceCompatDescription: string;
+    readonly guidanceSafeDescription: string;
+    readonly guidancePersistDescription: string;
   };
   readonly errors: {
     readonly problemTitle: string;
@@ -160,6 +191,14 @@ export interface UiText {
     readonly setupTokenRetryDescription: string;
     readonly tokenVerifyFailedTitle: string;
     readonly tokenVerifyRetryDescription: string;
+    readonly hostConfigNotSupportedTitle: string;
+    readonly hostConfigNotSupportedDescription: string;
+    readonly invalidConfigAssignmentTitle: string;
+    readonly invalidConfigAssignmentDescription: string;
+    readonly unknownConfigKeyTitle: string;
+    readonly unknownConfigKeyDescription: string;
+    readonly invalidConfigValueTitle: string;
+    readonly invalidConfigValueDescription: string;
     readonly showcaseAllDescription: string;
     readonly showcaseAuthDescription: string;
     readonly showcaseErrorsDescription: string;
@@ -167,10 +206,10 @@ export interface UiText {
     readonly missingBinarySummary: string;
     readonly doctorDescription: string;
     readonly previewOnboardingDescription: string;
-    readonly permissionPolicyRequiredTitle: string;
-    readonly permissionPolicyRequiredSummary: string;
-    readonly permissionPolicyCompatDescription: string;
-    readonly permissionPolicySafeDescription: string;
+    readonly subprocessEnvScrubRequiredTitle: string;
+    readonly subprocessEnvScrubRequiredSummary: string;
+    readonly subprocessEnvScrubCompatDescription: string;
+    readonly subprocessEnvScrubPersistDescription: string;
     readonly unexpectedError: string;
     readonly unknownShowcaseTopic: (topic: string) => string;
   };
@@ -212,6 +251,13 @@ const KO_TEXT: UiText = {
     authList: "로컬 오버레이 프로필과 토큰 존재 여부를 표시합니다",
     authRemoveArgProfile: "삭제할 프로필 ID",
     authRemove: "저장된 오버레이 프로필과 로컬 토큰 파일을 삭제합니다",
+    config: "저장된 오버레이 프로필 설정을 조회하거나 변경합니다",
+    configGetFlagProfile: "조회할 오버레이 프로필 ID",
+    configGet: "저장된 오버레이 프로필 설정을 표시합니다",
+    configSetFlagProfile: "변경할 오버레이 프로필 ID",
+    configSetArgAssignment:
+      "설정 항목. 예: env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0",
+    configSet: "저장된 오버레이 프로필 설정을 변경합니다",
     doctor: "로컬 저장소, 환경변수 우선순위, Claude 실행 파일 탐지를 점검합니다",
     showcaseArgTopic: "선택 사항: all, auth, help, profiles, errors, doctor, flows",
     showcase: "Claude를 실행하지 않고 cco의 도움말, 오류, 흐름 화면을 미리 봅니다",
@@ -228,17 +274,21 @@ const KO_TEXT: UiText = {
     commandSurfaceTitle: "명령 표면",
     commandSurfaceProfile: "`cco <profile>`은 오버레이 토큰으로 Claude를 실행합니다.",
     commandSurfaceHost: "`cco host`는 호스트 Claude 로그인으로 실행합니다.",
+    commandSurfaceConfig:
+      "`cco config get -p <profile>`은 저장된 오버레이 프로필 설정을 확인합니다.",
     commandSurfaceDoctor: "`cco doctor`는 런타임 연결 상태와 환경변수 우선순위를 점검합니다.",
     commandSurfaceShowcase: "`cco showcase [topic]`은 Claude를 실행하지 않고 CLI 화면을 미리 봅니다.",
     localAliasBadge: "로컬 별칭",
     localAliasSummary:
       "프로필은 사용자가 정하는 이름입니다. 예: `work`, `backup`",
-    envOverridesTitle: "환경 변수 오버라이드",
-    envOverridesBadge: "비대화형 제어",
-    envOverridesCompatDescription:
-      "프롬프트 없이 이번 실행만 compat mode로 내려 bypassPermissions 또는 dangerously-skip-permissions를 유지합니다.",
-    envOverridesSafeDescription:
-      "프롬프트 없이 safe mode를 유지합니다.",
+    permissionScrubTitle: "권한 우회와 scrub",
+    permissionScrubBadge: "safe profile",
+    permissionScrubSummary:
+      "safe mode 프로필에서 `--permission-mode bypassPermissions` 또는 `--dangerously-skip-permissions`를 쓰면 확인이 필요합니다.",
+    permissionScrubCompatDescription:
+      "이번 실행만 compat mode로 재실행합니다. 비대화형 셸에서도 그대로 사용할 수 있습니다.",
+    permissionScrubPersistDescription:
+      "저장된 프로필을 영구 compat mode로 바꿉니다.",
   },
   prompts: {
     pickProfile: "실행할 Claude 프로필을 선택하세요",
@@ -257,9 +307,16 @@ const KO_TEXT: UiText = {
     profileEnvCompatHint: "bypassPermissions 같은 동작이 필요한 신뢰된 로컬 환경에서만 사용하세요.",
     profileEnvCancelled: "프로필 설정을 취소했습니다.",
     permissionOverride: (profileId) =>
-      `"${profileId}" 실행에서만 하위 프로세스 인증 env 차단을 해제할까요?`,
-    permissionOverrideYes: "이번 실행만 compat mode 허용",
-    permissionOverrideNo: "safe mode 유지",
+      `"${profileId}"는 현재 safe mode입니다. bypassPermissions 계열 요청을 어떻게 처리할까요?`,
+    permissionOverrideCompatLabel: "이번 실행만 compat mode로 진행",
+    permissionOverrideCompatHint:
+      "이번 실행에서만 `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0`을 사용합니다.",
+    permissionOverrideSafeLabel: "safe mode 유지하고 계속",
+    permissionOverrideSafeHint:
+      "하위 프로세스는 계속 토큰을 읽지 못하지만 Claude가 권한 모드를 default로 강등할 수 있습니다.",
+    permissionOverrideGuideLabel: "종료하고 재실행 방법 보기",
+    permissionOverrideGuideHint:
+      "scrub env 예시와 profiles.json 수정 위치를 출력하고 실행하지 않습니다.",
   },
   authAdd: {
     introTitle: "오버레이 프로필 추가",
@@ -280,7 +337,14 @@ const KO_TEXT: UiText = {
     successContinueDescription: "같은 오버레이 상태에서 Claude의 continue 플래그를 그대로 전달합니다.",
     successList: "cco auth list",
     successListDescription: "저장된 프로필, 토큰 존재 여부, 실행 정책을 확인합니다.",
+    successConfigGet: (profileId) => `cco config get -p ${profileId}`,
+    successConfigGetDescription: "저장된 프로필 설정과 현재 scrub 모드를 확인합니다.",
     successEditProfiles: "나중에 profiles.json을 직접 수정해 저장된 env 정책을 바꿀 수 있습니다.",
+  },
+  config: {
+    getTitle: "프로필 설정",
+    setSuccessTitle: "프로필 설정 저장됨",
+    setSuccessSummary: (modeLabel) => `저장된 하위 프로세스 정책이 ${modeLabel}(으)로 바뀌었습니다.`,
   },
   profiles: {
     title: "프로필",
@@ -297,6 +361,8 @@ const KO_TEXT: UiText = {
     readyBadge: (count) => `${count}개 준비됨`,
     nextBulletLaunch: "`cco <profile>`로 오버레이 토큰을 사용해 실행합니다.",
     nextBulletHost: "`cco host`로 호스트 Claude 로그인을 그대로 사용합니다.",
+    nextBulletConfig:
+      "`cco config get -p <profile>`와 `cco config set ... -p <profile>`로 저장된 프로필 설정을 확인하거나 바꿉니다.",
     nextBulletRemove: "`cco auth remove <profile>`로 로컬 별칭을 삭제합니다.",
     nextBulletEditProfiles: (profilesFile) => `${profilesFile} 파일을 직접 수정해 저장된 env 정책을 조정할 수 있습니다.`,
     nextBulletProfilesStored: "프로필은 cco의 로컬 profiles.json 파일에 저장됩니다.",
@@ -326,7 +392,10 @@ const KO_TEXT: UiText = {
     defaultHostConfig: "(기본 Claude 호스트 구성)",
     launchMode: "호스트 구성 + 프로세스 로컬 인증 오버레이",
     noneDetected: "감지되지 않음",
-    bypassPolicyLabel: "bypass-policy",
+    shellScrubLabel: "shell-scrub",
+    shellScrubInherit: "상속 없음 (저장된 프로필/기본값 사용)",
+    shellScrubCompat: "0 (이번 실행만 compat)",
+    shellScrubSafe: "1 (이번 실행만 safe 유지)",
   },
   permissionMode: {
     safeMode: "safe mode",
@@ -338,11 +407,24 @@ const KO_TEXT: UiText = {
     choicesTitle: "선택지",
     choiceCompat: "이번 실행만 compat mode로 내려 bypassPermissions를 유지합니다.",
     choiceSafe: "하위 프로세스가 오버레이 인증 env를 읽지 못하게 하려면 safe mode를 유지합니다.",
+    choiceGuide: "지금은 종료하고, scrub 환경변수나 profiles.json으로 다시 실행할 방법을 봅니다.",
     launchPolicyTitle: "이번 실행 정책",
     compatLine1: "이번 실행에서는 `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0`을 임시로 사용합니다.",
     compatLine2: "저장된 프로필 값은 바뀌지 않습니다.",
     safeLine1: "이번 실행에서는 `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`을 유지합니다.",
     safeLine2: "Claude가 `bypassPermissions`를 기본 권한 모드로 강등할 수 있습니다.",
+    guidanceTitle: "재실행 방법",
+    guidanceLine1:
+      "지금 실행은 중단합니다. safe mode 프로필에서 bypassPermissions 계열 플래그를 유지하려면 scrub 값을 먼저 정한 뒤 다시 실행하세요.",
+    guidanceLine2:
+      "아래 예시는 이번 실행만 compat로 돌리거나, 저장된 프로필을 영구 compat로 바꾸는 방법입니다.",
+    guidanceNextTitle: "시도해볼 방법",
+    guidanceCompatDescription:
+      "이번 실행만 compat mode로 재실행합니다.",
+    guidanceSafeDescription:
+      "safe mode를 유지하려면 bypassPermissions 계열 플래그 없이 다시 실행하세요.",
+    guidancePersistDescription:
+      "저장된 프로필을 영구 compat mode로 바꿉니다.",
   },
   errors: {
     problemTitle: "문제",
@@ -363,6 +445,19 @@ const KO_TEXT: UiText = {
     setupTokenRetryDescription: "이 로컬 별칭에 대해 setup-token 흐름을 다시 시도하세요.",
     tokenVerifyFailedTitle: "토큰 검증에 실패했습니다.",
     tokenVerifyRetryDescription: "새 setup-token을 받아 다시 검증하세요.",
+    hostConfigNotSupportedTitle:
+      "host 프로필에는 편집 가능한 오버레이 설정이 없습니다.",
+    hostConfigNotSupportedDescription:
+      "config get/set은 저장된 overlay 프로필에만 적용됩니다.",
+    invalidConfigAssignmentTitle: "설정 형식이 올바르지 않습니다.",
+    invalidConfigAssignmentDescription:
+      "`key=value` 형식으로 입력하세요. 예: env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0",
+    unknownConfigKeyTitle: "지원하지 않는 설정 키입니다.",
+    unknownConfigKeyDescription:
+      "현재는 env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB만 변경할 수 있습니다.",
+    invalidConfigValueTitle: "설정 값이 올바르지 않습니다.",
+    invalidConfigValueDescription:
+      "env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB는 `0` 또는 `1`만 허용합니다.",
     showcaseAllDescription: "전체 UI 표면을 미리 봅니다.",
     showcaseAuthDescription: "토큰 온보딩 패널만 미리 봅니다.",
     showcaseErrorsDescription: "복구/오류 상태만 미리 봅니다.",
@@ -370,14 +465,14 @@ const KO_TEXT: UiText = {
     missingBinarySummary: "설정되었거나 자동 탐지된 Claude 실행 파일이 현재 환경에 없습니다.",
     doctorDescription: "실행 파일 탐지, host config, env 우선순위를 확인합니다.",
     previewOnboardingDescription: "Claude를 실행하지 않고 온보딩 흐름을 미리 봅니다.",
-    permissionPolicyRequiredTitle:
-      "비대화형 실행에서는 bypassPermissions override 정책을 명시해야 합니다.",
-    permissionPolicyRequiredSummary:
+    subprocessEnvScrubRequiredTitle:
+      "비대화형 실행에서는 CLAUDE_CODE_SUBPROCESS_ENV_SCRUB 값을 먼저 정해야 합니다.",
+    subprocessEnvScrubRequiredSummary:
       "현재 프로필은 safe mode이고 `--permission-mode bypassPermissions` 또는 `--dangerously-skip-permissions`가 전달되었습니다. TTY가 없어서 확인 프롬프트를 띄울 수 없습니다.",
-    permissionPolicyCompatDescription:
-      "`CCO_BYPASS_PERMISSIONS_POLICY=compat`를 설정하면 이번 실행에서만 compat mode로 진행합니다.",
-    permissionPolicySafeDescription:
-      "`CCO_BYPASS_PERMISSIONS_POLICY=safe`를 설정하면 프롬프트 없이 safe mode를 유지합니다.",
+    subprocessEnvScrubCompatDescription:
+      "`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0`으로 재실행하면 이번 실행만 compat mode로 진행합니다.",
+    subprocessEnvScrubPersistDescription:
+      "`cco config set env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 -p <profile>`로 저장된 프로필을 영구 compat mode로 바꿀 수 있습니다.",
     unexpectedError: "예상하지 못한 오류입니다.",
     unknownShowcaseTopic: (topic) =>
       `알 수 없는 showcase 주제 "${topic}". 사용 가능: all, auth, help, profiles, errors, doctor, flows`,
@@ -420,6 +515,13 @@ const EN_TEXT: UiText = {
     authList: "List local overlay profiles and token presence",
     authRemoveArgProfile: "Profile id to delete",
     authRemove: "Delete a saved overlay profile and its local token file",
+    config: "Inspect or update saved overlay profile settings",
+    configGetFlagProfile: "Overlay profile id to inspect",
+    configGet: "Show saved overlay profile settings",
+    configSetFlagProfile: "Overlay profile id to update",
+    configSetArgAssignment:
+      "Setting assignment such as env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0",
+    configSet: "Update a saved overlay profile setting",
     doctor: "Check local storage, env precedence, and Claude binary resolution",
     showcaseArgTopic: "Optional showcase topic: all, auth, help, profiles, errors, doctor, or flows",
     showcase: "Preview cco help, errors, and flow output without launching Claude",
@@ -436,16 +538,20 @@ const EN_TEXT: UiText = {
     commandSurfaceTitle: "Command Surface",
     commandSurfaceProfile: "`cco <profile>` launches Claude with an overlay token.",
     commandSurfaceHost: "`cco host` launches with the host Claude login.",
+    commandSurfaceConfig:
+      "`cco config get -p <profile>` inspects saved overlay profile settings.",
     commandSurfaceDoctor: "`cco doctor` inspects runtime wiring and env precedence.",
     commandSurfaceShowcase: "`cco showcase [topic]` previews the CLI surface without launching Claude.",
     localAliasBadge: "local alias",
     localAliasSummary: "Profiles are names you choose, such as `work` or `backup`.",
-    envOverridesTitle: "Env Overrides",
-    envOverridesBadge: "non-interactive",
-    envOverridesCompatDescription:
-      "Skip the prompt and allow compat mode for this launch only when bypassPermissions or dangerously-skip-permissions is requested.",
-    envOverridesSafeDescription:
-      "Skip the prompt and keep safe mode.",
+    permissionScrubTitle: "Bypass Flags and Scrub",
+    permissionScrubBadge: "safe profile",
+    permissionScrubSummary:
+      "If a safe-mode profile uses `--permission-mode bypassPermissions` or `--dangerously-skip-permissions`, cco needs an explicit decision.",
+    permissionScrubCompatDescription:
+      "Re-run once in compat mode. This works in non-interactive shells too.",
+    permissionScrubPersistDescription:
+      "Make the saved profile persistently compat.",
   },
   prompts: {
     pickProfile: "Pick the Claude profile to launch",
@@ -464,9 +570,16 @@ const EN_TEXT: UiText = {
     profileEnvCompatHint: "Use only for trusted local workflows that need bypassPermissions-like behavior.",
     profileEnvCancelled: "Profile configuration cancelled.",
     permissionOverride: (profileId) =>
-      `Allow "${profileId}" to disable subprocess auth-env scrubbing for this launch?`,
-    permissionOverrideYes: "Temporarily allow compat mode",
-    permissionOverrideNo: "Keep safe mode",
+      `"${profileId}" is still in safe mode. How should this bypass-permission request be handled?`,
+    permissionOverrideCompatLabel: "Use compat mode for this launch only",
+    permissionOverrideCompatHint:
+      "Applies `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0` for this launch only.",
+    permissionOverrideSafeLabel: "Keep safe mode and continue",
+    permissionOverrideSafeHint:
+      "Child subprocesses still cannot read the token, but Claude may downgrade the permission mode back to default.",
+    permissionOverrideGuideLabel: "Exit and show re-run options",
+    permissionOverrideGuideHint:
+      "Print scrub env examples and the profiles.json edit path without launching Claude.",
   },
   authAdd: {
     introTitle: "Add Overlay Profile",
@@ -487,7 +600,15 @@ const EN_TEXT: UiText = {
     successContinueDescription: "Use the same overlay and pass Claude's native continue flag through unchanged.",
     successList: "cco auth list",
     successListDescription: "Inspect saved profiles, token presence, and runtime policy.",
+    successConfigGet: (profileId) => `cco config get -p ${profileId}`,
+    successConfigGetDescription: "Inspect the saved profile settings and current scrub mode.",
     successEditProfiles: "Edit profiles.json directly later to adjust the stored env policy.",
+  },
+  config: {
+    getTitle: "Profile Config",
+    setSuccessTitle: "Profile Config Saved",
+    setSuccessSummary: (modeLabel) =>
+      `Saved subprocess policy now resolves to ${modeLabel}.`,
   },
   profiles: {
     title: "Profiles",
@@ -504,6 +625,8 @@ const EN_TEXT: UiText = {
     readyBadge: (count) => `${count} ready`,
     nextBulletLaunch: "Use `cco <profile>` to launch with an overlay token.",
     nextBulletHost: "Use `cco host` to launch with the host Claude login.",
+    nextBulletConfig:
+      "Use `cco config get -p <profile>` and `cco config set ... -p <profile>` to inspect or update saved profile settings.",
     nextBulletRemove: "Use `cco auth remove <profile>` to delete a local alias.",
     nextBulletEditProfiles: (profilesFile) => `Edit ${profilesFile} directly if you want to tune a saved profile's env policy.`,
     nextBulletProfilesStored: "Profiles are stored in cco's local profiles.json file.",
@@ -533,7 +656,10 @@ const EN_TEXT: UiText = {
     defaultHostConfig: "(default Claude host config)",
     launchMode: "host config + process-local auth overlay",
     noneDetected: "none detected",
-    bypassPolicyLabel: "bypass-policy",
+    shellScrubLabel: "shell-scrub",
+    shellScrubInherit: "no override (use saved profile/default)",
+    shellScrubCompat: "0 (compat for this launch)",
+    shellScrubSafe: "1 (keep safe for this launch)",
   },
   permissionMode: {
     safeMode: "safe mode",
@@ -545,11 +671,24 @@ const EN_TEXT: UiText = {
     choicesTitle: "Choices",
     choiceCompat: "Allow compat mode for this launch only to keep bypassPermissions intact.",
     choiceSafe: "Keep safe mode if you do not want child subprocesses to read the overlay auth env.",
+    choiceGuide: "Exit now and view re-run guidance based on scrub env or profiles.json.",
     launchPolicyTitle: "Launch Policy",
     compatLine1: "This launch will set `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0` temporarily.",
     compatLine2: "The saved profile stays unchanged.",
     safeLine1: "This launch will keep `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`.",
     safeLine2: "Claude may downgrade `bypassPermissions` to the default permission mode.",
+    guidanceTitle: "How to Re-run",
+    guidanceLine1:
+      "This launch is stopping here. If you want to keep bypass-permission flags on a safe-mode profile, decide the scrub value before re-running.",
+    guidanceLine2:
+      "Use the examples below to re-run once in compat mode, or to make the profile persistently compat.",
+    guidanceNextTitle: "Try One of These",
+    guidanceCompatDescription:
+      "Re-run once in compat mode.",
+    guidanceSafeDescription:
+      "Keep safe mode by re-running without bypass-permission flags.",
+    guidancePersistDescription:
+      "Make the saved profile persistently compat.",
   },
   errors: {
     problemTitle: "Problem",
@@ -570,6 +709,19 @@ const EN_TEXT: UiText = {
     setupTokenRetryDescription: "Retry the setup-token flow for this local alias.",
     tokenVerifyFailedTitle: "Token verification failed.",
     tokenVerifyRetryDescription: "Capture a fresh setup-token and verify it again.",
+    hostConfigNotSupportedTitle:
+      "The host profile does not have editable overlay config.",
+    hostConfigNotSupportedDescription:
+      "config get/set only applies to saved overlay profiles.",
+    invalidConfigAssignmentTitle: "Invalid config assignment.",
+    invalidConfigAssignmentDescription:
+      "Use key=value format, for example env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0.",
+    unknownConfigKeyTitle: "Unsupported config key.",
+    unknownConfigKeyDescription:
+      "Only env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB is currently editable.",
+    invalidConfigValueTitle: "Invalid config value.",
+    invalidConfigValueDescription:
+      "env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB only accepts `0` or `1`.",
     showcaseAllDescription: "Preview the full UI surface.",
     showcaseAuthDescription: "Preview the token onboarding panels.",
     showcaseErrorsDescription: "Preview the recovery/error states only.",
@@ -577,14 +729,14 @@ const EN_TEXT: UiText = {
     missingBinarySummary: "The configured or discovered Claude executable is missing from the current environment.",
     doctorDescription: "Inspect binary resolution, host config, and env precedence.",
     previewOnboardingDescription: "Preview the onboarding flow without launching Claude.",
-    permissionPolicyRequiredTitle:
-      "A bypassPermissions override policy is required for non-interactive launches.",
-    permissionPolicyRequiredSummary:
+    subprocessEnvScrubRequiredTitle:
+      "Non-interactive launches must choose CLAUDE_CODE_SUBPROCESS_ENV_SCRUB up front.",
+    subprocessEnvScrubRequiredSummary:
       "The current profile is still in safe mode and `--permission-mode bypassPermissions` or `--dangerously-skip-permissions` was requested, but no TTY is available for an interactive confirmation.",
-    permissionPolicyCompatDescription:
-      "Set `CCO_BYPASS_PERMISSIONS_POLICY=compat` to allow compat mode for this launch.",
-    permissionPolicySafeDescription:
-      "Set `CCO_BYPASS_PERMISSIONS_POLICY=safe` to keep safe mode without prompting.",
+    subprocessEnvScrubCompatDescription:
+      "Re-run with `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0` to allow compat mode for this launch.",
+    subprocessEnvScrubPersistDescription:
+      "Use `cco config set env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 -p <profile>` to make the saved profile persistently compat.",
     unexpectedError: "Unexpected error.",
     unknownShowcaseTopic: (topic) =>
       `Unknown showcase topic "${topic}". Use one of: all, auth, help, profiles, errors, doctor, flows.`,

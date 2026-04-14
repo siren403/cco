@@ -120,7 +120,7 @@ function buildSections(options: RenderOptions): readonly ShowcaseSection[] {
           hostConfigDir: "C:\\Users\\you\\.claude",
           conflicts: [],
           launchMode: text.doctor.launchMode,
-          bypassPermissionsPolicy: "ask",
+          shellSubprocessEnvScrub: undefined,
         },
         options,
       ),
@@ -152,8 +152,8 @@ function buildSections(options: RenderOptions): readonly ShowcaseSection[] {
               },
               {
                 command:
-                  "$env:CCO_BYPASS_PERMISSIONS_POLICY='compat'; cco work --permission-mode bypassPermissions -c",
-                description: text.rootHelp.envOverridesCompatDescription,
+                  "$env:CLAUDE_CODE_SUBPROCESS_ENV_SCRUB='0'; cco work --permission-mode bypassPermissions -c",
+                description: text.rootHelp.permissionScrubCompatDescription,
               },
             ],
             options,

@@ -4,7 +4,7 @@ import { buildLaunchPlan } from "../core/services/build-launch-plan.ts";
 import { listProfiles } from "../core/services/list-profiles.ts";
 import {
   requestsBypassPermissions,
-  resolveBypassPermissionsPolicy,
+  resolveShellSubprocessEnvScrubMode,
 } from "../core/services/permission-mode.ts";
 import { resolveProfile } from "../core/services/resolve-profile.ts";
 import {
@@ -21,6 +21,7 @@ import { promptForPermissionModeOverride } from "../ui/prompts/permission-mode-o
 import { resolveAnsiColor } from "../ui/theme.ts";
 import {
   renderPermissionModeDecision,
+  renderPermissionModeGuidance,
   renderPermissionModeWarning,
 } from "../ui/views/permission-mode-page.ts";
 
@@ -48,6 +49,10 @@ export async function launchClaudeForProfile(
     options.claudeArgs,
     ansiColor,
   );
+  if (subprocessEnvScrubOverride === "exit") {
+    outro(text.misc.noChangesMade);
+    return;
+  }
   const plan = buildLaunchPlan({
     profile,
     binary: context.runtime.resolveClaudeBinary(),
@@ -119,7 +124,7 @@ async function maybeResolvePermissionModeOverride(
   profile: Profile,
   claudeArgs: readonly string[] | undefined,
   ansiColor: boolean,
-): Promise<SubprocessEnvScrubMode | undefined> {
+): Promise<SubprocessEnvScrubMode | "exit" | undefined> {
   const renderOptions = { ansiColor, locale: context.runtime.locale } as const;
   if (profile.kind !== "overlay") {
     return undefined;
@@ -133,26 +138,25 @@ async function maybeResolvePermissionModeOverride(
     return undefined;
   }
 
-  const policy = resolveBypassPermissionsPolicy(context.process.env);
-
-  if (policy === "compat") {
+  const shellScrubMode = resolveShellSubprocessEnvScrubMode(context.process.env);
+  if (shellScrubMode) {
     context.process.stdout.write(
-      `${renderPermissionModeDecision("compat", renderOptions)}\n\n`,
+      `${renderPermissionModeDecision(
+        shellScrubMode === "0" ? "compat" : "safe",
+        renderOptions,
+      )}\n\n`,
     );
-    return "0";
-  }
-
-  if (policy === "safe") {
-    context.process.stdout.write(
-      `${renderPermissionModeDecision("safe", renderOptions)}\n\n`,
-    );
-    return "1";
+    return shellScrubMode;
   }
 
   if (!context.process.stdin.isTTY || !context.process.stdout.isTTY) {
     throw new DomainError(
-      "PERMISSION_OVERRIDE_POLICY_REQUIRED",
-      text.errors.permissionPolicyRequiredTitle,
+      "SUBPROCESS_ENV_SCRUB_REQUIRED",
+      text.errors.subprocessEnvScrubRequiredTitle,
+      {
+        profileId: profile.id,
+        profilesFile: context.runtime.paths.profilesFile,
+      },
     );
   }
 
@@ -160,14 +164,23 @@ async function maybeResolvePermissionModeOverride(
     `${renderPermissionModeWarning(profile.id, renderOptions)}\n\n`,
   );
 
-  const allowCompatMode = await promptForPermissionModeOverride(profile.id);
+  const choice = await promptForPermissionModeOverride(profile.id);
+  if (choice === "guide") {
+    context.process.stdout.write(
+      `${renderPermissionModeGuidance(
+        profile.id,
+        renderOptions,
+      )}\n\n`,
+    );
+    return "exit";
+  }
 
   context.process.stdout.write(
     `${renderPermissionModeDecision(
-      allowCompatMode ? "compat" : "safe",
+      choice === "compat" ? "compat" : "safe",
       renderOptions,
     )}\n\n`,
   );
 
-  return allowCompatMode ? "0" : "1";
+  return choice === "compat" ? "0" : "1";
 }

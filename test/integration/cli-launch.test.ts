@@ -40,7 +40,7 @@ test("overlay launch respects per-profile subprocess env policy", async () => {
   expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
 });
 
-test("non-interactive compat policy can override safe mode for bypassPermissions", async () => {
+test("non-interactive shell scrub env can override safe mode for bypassPermissions", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
 
@@ -48,7 +48,7 @@ test("non-interactive compat policy can override safe mode for bypassPermissions
     ["work", "--permission-mode", "bypassPermissions", "-c"],
     sandbox,
     {
-      CCO_BYPASS_PERMISSIONS_POLICY: "compat",
+      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "0",
     },
   );
 
@@ -59,7 +59,7 @@ test("non-interactive compat policy can override safe mode for bypassPermissions
   expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
 });
 
-test("non-interactive compat policy also covers dangerously-skip-permissions", async () => {
+test("non-interactive shell scrub env also covers dangerously-skip-permissions", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
 
@@ -67,7 +67,7 @@ test("non-interactive compat policy also covers dangerously-skip-permissions", a
     ["work", "--dangerously-skip-permissions", "-c"],
     sandbox,
     {
-      CCO_BYPASS_PERMISSIONS_POLICY: "compat",
+      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "0",
     },
   );
 
@@ -76,6 +76,24 @@ test("non-interactive compat policy also covers dangerously-skip-permissions", a
   const log = await readFakeClaudeLog(sandbox.logPath);
   expect(log.args).toEqual(["--dangerously-skip-permissions", "-c"]);
   expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
+});
+
+test("non-interactive shell scrub env can keep safe mode explicitly", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
+
+  const result = await runCli(
+    ["work", "--permission-mode", "bypassPermissions", "-c"],
+    sandbox,
+    {
+      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1",
+    },
+  );
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("1");
 });
 
 test("non-interactive safe profile with bypassPermissions errors without explicit policy", async () => {
@@ -89,7 +107,7 @@ test("non-interactive safe profile with bypassPermissions errors without explici
   );
 
   expect(result.exitCode).toBe(1);
-  expect(result.stderr).toContain("CCO_BYPASS_PERMISSIONS_POLICY");
+  expect(result.stderr).toContain("CLAUDE_CODE_SUBPROCESS_ENV_SCRUB");
 });
 
 test("host launch omits overlay token and still preserves host config env", async () => {
@@ -105,6 +123,40 @@ test("host launch omits overlay token and still preserves host config env", asyn
   expect(log.args).toEqual(["--resume", "abc123"]);
   expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBeNull();
   expect(log.env.CLAUDE_CONFIG_DIR).toBe(join(sandbox.root, "host-config"));
+});
+
+test("config get prints saved overlay scrub mode", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "0");
+
+  const result = await runCli(["config", "get", "-p", "work"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB");
+  expect(result.stdout).toContain("0 (compat mode)");
+});
+
+test("config set updates saved overlay scrub mode", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
+
+  const result = await runCli(
+    ["config", "set", "env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0", "-p", "work"],
+    sandbox,
+    {},
+  );
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("프로필 설정 저장됨");
+
+  const profiles = JSON.parse(
+    await readFile(join(sandbox.ccoHome, "profiles.json"), "utf8"),
+  ) as {
+    profiles: Array<{ env?: { CLAUDE_CODE_SUBPROCESS_ENV_SCRUB?: string } }>;
+  };
+  expect(
+    profiles.profiles[0]?.env?.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB,
+  ).toBe("0");
 });
 
 interface Sandbox {

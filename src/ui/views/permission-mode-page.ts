@@ -1,5 +1,10 @@
 import { getUiText } from "../../i18n/index.ts";
-import { joinBlocks, renderBulletList, renderPanel } from "../layout/primitives.ts";
+import {
+  joinBlocks,
+  renderBulletList,
+  renderCommandList,
+  renderPanel,
+} from "../layout/primitives.ts";
 import type { RenderOptions } from "../theme.ts";
 
 export function renderPermissionModeWarning(
@@ -29,6 +34,7 @@ export function renderPermissionModeWarning(
           [
             text.permissionMode.choiceCompat,
             text.permissionMode.choiceSafe,
+            text.permissionMode.choiceGuide,
           ],
           options,
         ),
@@ -61,4 +67,46 @@ export function renderPermissionModeDecision(
     },
     options,
   );
+}
+
+export function renderPermissionModeGuidance(
+  profileId: string,
+  options: RenderOptions = {},
+): string {
+  const text = getUiText(options.locale);
+  return joinBlocks([
+    renderPanel(
+      {
+        title: text.permissionMode.guidanceTitle,
+        tone: "warn",
+        badge: { label: profileId, tone: "warn" },
+        body: [text.permissionMode.guidanceLine1, text.permissionMode.guidanceLine2],
+      },
+      options,
+    ),
+    renderPanel(
+      {
+        title: text.permissionMode.guidanceNextTitle,
+        tone: "accent",
+        body: renderCommandList(
+          [
+            {
+              command: `$env:CLAUDE_CODE_SUBPROCESS_ENV_SCRUB='0'; cco ${profileId} --permission-mode bypassPermissions -c`,
+              description: text.permissionMode.guidanceCompatDescription,
+            },
+            {
+              command: `cco ${profileId} -c`,
+              description: text.permissionMode.guidanceSafeDescription,
+            },
+            {
+              command: `cco config set env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 -p ${profileId}`,
+              description: text.permissionMode.guidancePersistDescription,
+            },
+          ],
+          options,
+        ),
+      },
+      options,
+    ),
+  ]);
 }

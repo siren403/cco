@@ -4,6 +4,7 @@ const PROFILE_ID_PATTERN = /^[a-z0-9_-]+$/;
 
 export const RESERVED_PROFILE_IDS = new Set([
   "auth",
+  "config",
   "doctor",
   "help",
   "host",

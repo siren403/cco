@@ -77,6 +77,10 @@ export function renderAuthAddSuccess(
               description: text.authAdd.successListDescription,
             },
             {
+              command: text.authAdd.successConfigGet(profileId),
+              description: text.authAdd.successConfigGetDescription,
+            },
+            {
               command: profilesFile,
               description: text.authAdd.successEditProfiles,
             },

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import {
   requestsBypassPermissions,
-  resolveBypassPermissionsPolicy,
+  resolveShellSubprocessEnvScrubMode,
 } from "../../src/core/services/permission-mode.ts";
 
 test("detects split bypassPermissions args", () => {
@@ -27,21 +27,21 @@ test("ignores other permission modes", () => {
   expect(requestsBypassPermissions(["-c"])).toBe(false);
 });
 
-test("resolves non-interactive bypass policy from env", () => {
-  expect(resolveBypassPermissionsPolicy({})).toBe("ask");
+test("resolves shell subprocess scrub env override", () => {
+  expect(resolveShellSubprocessEnvScrubMode({})).toBeUndefined();
   expect(
-    resolveBypassPermissionsPolicy({
-      CCO_BYPASS_PERMISSIONS_POLICY: "compat",
+    resolveShellSubprocessEnvScrubMode({
+      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "0",
     }),
-  ).toBe("compat");
+  ).toBe("0");
   expect(
-    resolveBypassPermissionsPolicy({
-      CCO_BYPASS_PERMISSIONS_POLICY: "safe",
+    resolveShellSubprocessEnvScrubMode({
+      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1",
     }),
-  ).toBe("safe");
+  ).toBe("1");
   expect(
-    resolveBypassPermissionsPolicy({
-      CCO_BYPASS_PERMISSIONS_POLICY: "unknown",
+    resolveShellSubprocessEnvScrubMode({
+      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "unknown",
     }),
-  ).toBe("ask");
+  ).toBeUndefined();
 });

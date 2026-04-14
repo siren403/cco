@@ -9,7 +9,7 @@ test("showcase all includes core sections", () => {
   expect(output).toContain("=== 저장된 프로필 ===");
   expect(output).toContain("=== 진단 화면 ===");
   expect(output).toContain("=== 명령 흐름 ===");
-  expect(output).toContain("CCO_BYPASS_PERMISSIONS_POLICY");
+  expect(output).toContain("CLAUDE_CODE_SUBPROCESS_ENV_SCRUB");
 });
 
 test("showcase auth focuses on onboarding flow", () => {

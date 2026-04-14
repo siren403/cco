@@ -16,6 +16,7 @@ const ROOT_HELP_FLAGS = new Set(["--help", "-h", "help"]);
 const ROOT_VERSION_FLAGS = new Set(["--version", "-v", "version"]);
 const STRICT_CLI_COMMANDS = new Set([
   "auth",
+  "config",
   "doctor",
   "run",
   "showcase",

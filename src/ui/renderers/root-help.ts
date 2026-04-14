@@ -65,6 +65,7 @@ export function renderRootHelp(options: RenderOptions = {}): string {
             [
               `${theme.code(`${APP_NAME} <profile>`)} ${text.rootHelp.commandSurfaceProfile.replace("`cco <profile>`", "")}`.trim(),
               `${theme.code(`${APP_NAME} host`)} ${text.rootHelp.commandSurfaceHost.replace("`cco host`", "")}`.trim(),
+              `${theme.code(`${APP_NAME} config get -p work`)} ${text.rootHelp.commandSurfaceConfig.replace("`cco config get -p <profile>`", "")}`.trim(),
               `${theme.code(`${APP_NAME} doctor`)} ${text.rootHelp.commandSurfaceDoctor.replace("`cco doctor`", "")}`.trim(),
               `${theme.code(`${APP_NAME} showcase [topic]`)} ${text.rootHelp.commandSurfaceShowcase.replace("`cco showcase [topic]`", "")}`.trim(),
             ],
@@ -78,24 +79,28 @@ export function renderRootHelp(options: RenderOptions = {}): string {
     ),
     renderPanel(
       {
-        title: text.rootHelp.envOverridesTitle,
+        title: text.rootHelp.permissionScrubTitle,
         tone: "warn",
-        badge: { label: text.rootHelp.envOverridesBadge, tone: "warn" },
-        body: renderCommandList(
-          [
-            {
-              command:
-                "$env:CCO_BYPASS_PERMISSIONS_POLICY='compat'; cco work --permission-mode bypassPermissions -c",
-              description: text.rootHelp.envOverridesCompatDescription,
-            },
-            {
-              command:
-                "$env:CCO_BYPASS_PERMISSIONS_POLICY='safe'; cco work --permission-mode bypassPermissions -c",
-              description: text.rootHelp.envOverridesSafeDescription,
-            },
-          ],
-          options,
-        ),
+        badge: { label: text.rootHelp.permissionScrubBadge, tone: "warn" },
+        body: [
+          text.rootHelp.permissionScrubSummary,
+          "",
+          renderCommandList(
+            [
+              {
+                command:
+                  "$env:CLAUDE_CODE_SUBPROCESS_ENV_SCRUB='0'; cco work --permission-mode bypassPermissions -c",
+                description: text.rootHelp.permissionScrubCompatDescription,
+              },
+              {
+                command:
+                  "cco config set env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 -p work",
+                description: text.rootHelp.permissionScrubPersistDescription,
+              },
+            ],
+            options,
+          ),
+        ],
       },
       options,
     ),

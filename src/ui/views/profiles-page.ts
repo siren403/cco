@@ -94,6 +94,7 @@ export function renderProfilesPage(
                 [
                   text.profiles.nextBulletLaunch,
                   text.profiles.nextBulletHost,
+                  text.profiles.nextBulletConfig,
                   text.profiles.nextBulletRemove,
                   profilesFile
                     ? text.profiles.nextBulletEditProfiles(profilesFile)

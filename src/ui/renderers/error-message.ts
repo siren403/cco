@@ -100,6 +100,65 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
           },
           options,
         );
+      case "HOST_CONFIG_NOT_SUPPORTED":
+        return renderErrorPage(
+          {
+            title: text.errors.hostConfigNotSupportedTitle,
+            summary: text.errors.hostConfigNotSupportedDescription,
+            commands: [
+              {
+                command: "cco auth list",
+                description: text.errors.inspectProfilesDescription,
+              },
+            ],
+          },
+          options,
+        );
+      case "INVALID_CONFIG_ASSIGNMENT":
+        return renderErrorPage(
+          {
+            title: text.errors.invalidConfigAssignmentTitle,
+            summary: text.errors.invalidConfigAssignmentDescription,
+            commands: [
+              {
+                command:
+                  "cco config set env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 -p work",
+                description: text.errors.invalidConfigAssignmentDescription,
+              },
+            ],
+          },
+          options,
+        );
+      case "UNKNOWN_CONFIG_KEY":
+        return renderErrorPage(
+          {
+            title: text.errors.unknownConfigKeyTitle,
+            summary: text.errors.unknownConfigKeyDescription,
+            commands: [
+              {
+                command:
+                  "cco config set env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 -p work",
+                description: text.errors.unknownConfigKeyDescription,
+              },
+            ],
+          },
+          options,
+        );
+      case "INVALID_CONFIG_VALUE":
+        return renderErrorPage(
+          {
+            title: text.errors.invalidConfigValueTitle,
+            summary: text.errors.invalidConfigValueDescription,
+            commands: [
+              {
+                command:
+                  "cco config set env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 -p work",
+                description: text.errors.invalidConfigValueDescription,
+              },
+            ],
+          },
+          options,
+        );
       case "PROMPT_CANCELLED":
         return renderErrorPage(
           {
@@ -132,21 +191,20 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
           },
           options,
         );
-      case "PERMISSION_OVERRIDE_POLICY_REQUIRED":
+      case "SUBPROCESS_ENV_SCRUB_REQUIRED":
         return renderErrorPage(
           {
-            title: text.errors.permissionPolicyRequiredTitle,
-            summary: text.errors.permissionPolicyRequiredSummary,
+            title: text.errors.subprocessEnvScrubRequiredTitle,
+            summary: text.errors.subprocessEnvScrubRequiredSummary,
             commands: [
               {
                 command:
-                  "$env:CCO_BYPASS_PERMISSIONS_POLICY='compat'; cco <profile> --permission-mode bypassPermissions ...",
-                description: text.errors.permissionPolicyCompatDescription,
+                  `$env:CLAUDE_CODE_SUBPROCESS_ENV_SCRUB='0'; cco ${profileId ?? "<profile>"} --permission-mode bypassPermissions ...`,
+                description: text.errors.subprocessEnvScrubCompatDescription,
               },
               {
-                command:
-                  "$env:CCO_BYPASS_PERMISSIONS_POLICY='safe'; cco <profile> --permission-mode bypassPermissions ...",
-                description: text.errors.permissionPolicySafeDescription,
+                command: `cco config set env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 -p ${profileId ?? "<profile>"}`,
+                description: text.errors.subprocessEnvScrubPersistDescription,
               },
             ],
           },

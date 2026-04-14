@@ -1,6 +1,7 @@
 export interface DomainErrorDetails {
   readonly exitCode?: number;
   readonly profileId?: string;
+  readonly profilesFile?: string;
   readonly topic?: string;
 }
 
