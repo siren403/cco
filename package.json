@@ -1,9 +1,12 @@
 {
-  "name": "cco",
+  "name": "@qkrsogusl3/cco",
   "version": "0.1.0",
   "description": "Claude Code OAuth overlay launcher for local multi-profile switching",
   "type": "module",
-  "private": true,
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "cco": "./bin/cco.ts"
   },

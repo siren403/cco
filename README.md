@@ -88,6 +88,15 @@ If Bun cannot infer the executable from the repo spec directly, `bunx -p github:
 
 This repo uses `bin/cco.ts` as that launcher entry and keeps the real implementation in `src/cli.ts`.
 
+## npm Publish
+
+This package can also be published as a public scoped npm package and launched with Bun:
+
+```bash
+bunx @qkrsogusl3/cco --help
+bunx @qkrsogusl3/cco work
+```
+
 ## UI Preview
 
 Use the built-in showcase to inspect the CLI surface without touching Claude:
