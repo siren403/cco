@@ -29,7 +29,7 @@ test("overlay launch injects token and scrubs conflicting auth env", () => {
   expect(plan.env.CLAUDE_CODE_OAUTH_TOKEN).toBe("new-token");
   expect(plan.env.ANTHROPIC_API_KEY).toBeUndefined();
   expect(plan.env.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
-  expect(plan.env.CLAUDE_CONFIG_DIR).toBeUndefined();
+  expect(plan.env.CLAUDE_CONFIG_DIR).toBe("/tmp/override");
   expect(plan.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("1");
 });
 

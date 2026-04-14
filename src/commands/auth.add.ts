@@ -5,17 +5,13 @@ import { DomainError } from "../core/errors/domain-error.ts";
 import type { OverlayProfile } from "../core/model/profile.ts";
 import { buildLaunchPlan } from "../core/services/build-launch-plan.ts";
 import { HOST_PROFILE } from "../core/model/profile.ts";
+import { assertProfileIdUsable } from "../core/services/profile-id.ts";
 import { spawnClaudeCapture, spawnClaudeInteractive } from "../infra/bun/spawn-claude.ts";
 import { promptForToken } from "../ui/prompts/token-entry.ts";
 
 export const authAddCommand = buildCommand<{}, [profileId: string], AppContext>({
   async func(this: AppContext, _flags, profileId) {
-    if (!isValidProfileId(profileId)) {
-      throw new DomainError(
-        "INVALID_PROFILE_ID",
-        `Profile ids must use lowercase letters, numbers, "-", or "_". Received "${profileId}".`,
-      );
-    }
+    assertProfileIdUsable(profileId);
 
     intro(`cco auth add ${profileId}`);
     this.process.stdout.write(
@@ -35,11 +31,12 @@ export const authAddCommand = buildCommand<{}, [profileId: string], AppContext>(
       throw new DomainError(
         "SETUP_TOKEN_FAILED",
         `claude setup-token exited with code ${setupExitCode}.`,
+        { exitCode: setupExitCode, profileId },
       );
     }
 
     const token = await promptForToken(profileId);
-    await verifyToken(this, token);
+    await verifyToken(this, profileId, token);
 
     const now = this.runtime.now().toISOString();
     const profile: OverlayProfile = {
@@ -73,7 +70,11 @@ export const authAddCommand = buildCommand<{}, [profileId: string], AppContext>(
   },
 });
 
-async function verifyToken(context: AppContext, token: string): Promise<void> {
+async function verifyToken(
+  context: AppContext,
+  profileId: string,
+  token: string,
+): Promise<void> {
   const verifyPlan = buildLaunchPlan({
     profile: {
       id: "verify",
@@ -95,12 +96,9 @@ async function verifyToken(context: AppContext, token: string): Promise<void> {
     throw new DomainError(
       "TOKEN_VERIFY_FAILED",
       `Token verification failed.\n${result.stderr.trim() || result.stdout.trim()}`,
+      { profileId },
     );
   }
 
   JSON.parse(result.stdout);
-}
-
-function isValidProfileId(profileId: string): boolean {
-  return /^[a-z0-9_-]+$/.test(profileId);
 }

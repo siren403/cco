@@ -9,6 +9,6 @@ test("findConflictingAuthEnv reports only present values", () => {
   });
 
   expect(conflicts).toContain("ANTHROPIC_API_KEY");
-  expect(conflicts).toContain("CLAUDE_CONFIG_DIR");
+  expect(conflicts).not.toContain("CLAUDE_CONFIG_DIR");
   expect(conflicts).not.toContain("CLAUDE_CODE_OAUTH_TOKEN");
 });

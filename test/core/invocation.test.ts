@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { resolveInvocation } from "../../src/invocation.ts";
+import { isRootHelpRequest, isRootVersionRequest, resolveInvocation } from "../../src/invocation.ts";
 
 test("plain profile invocation is treated as direct Claude launch", () => {
   expect(resolveInvocation(["work"])).toEqual({
@@ -29,4 +29,11 @@ test("reserved CLI commands stay on the Stricli path", () => {
   expect(resolveInvocation(["doctor"])).toEqual({ mode: "stricli" });
   expect(resolveInvocation(["--help"])).toEqual({ mode: "stricli" });
   expect(resolveInvocation(["host", "--help"])).toEqual({ mode: "stricli" });
+});
+
+test("root help and version requests are detected explicitly", () => {
+  expect(isRootHelpRequest(["--help"])).toBe(true);
+  expect(isRootHelpRequest(["help"])).toBe(true);
+  expect(isRootVersionRequest(["--version"])).toBe(true);
+  expect(isRootVersionRequest(["version"])).toBe(true);
 });

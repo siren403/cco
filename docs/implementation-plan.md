@@ -123,7 +123,7 @@ That means:
 1. Scrub competing auth env vars in every child process
 2. Never log tokens or include them in error text
 3. Never touch vendor credential storage
-4. Keep `CLAUDE_CONFIG_DIR` out of child env
+4. Preserve the host shell's `CLAUDE_CONFIG_DIR` when present; never rewrite it
 5. Keep token verification in `auth add`
 6. Never implement a global active-profile toggle
 7. Keep session behavior Claude-native until a real need for custom session policy is proven

@@ -1,9 +1,10 @@
-import { buildApplication, buildRouteMap } from "@stricli/core";
+import { buildApplication, buildRouteMap, text_en } from "@stricli/core";
 import { APP_DESCRIPTION, APP_NAME, APP_VERSION } from "./meta.ts";
 import { authRoutes } from "./commands/auth.routes.ts";
 import { doctorCommand } from "./commands/doctor.ts";
 import { hostCommand } from "./commands/host.ts";
 import { runCommand } from "./commands/run.ts";
+import { renderCliError } from "./ui/renderers/error-message.ts";
 
 const routes = buildRouteMap({
   routes: {
@@ -25,5 +26,14 @@ export const app = buildApplication(routes, {
   name: APP_NAME,
   versionInfo: {
     currentVersion: APP_VERSION,
+  },
+  localization: {
+    loadText() {
+      return {
+        ...text_en,
+        exceptionWhileRunningCommand: (exc) => renderCliError(exc),
+        commandErrorResult: (err) => renderCliError(err),
+      };
+    },
   },
 });

@@ -15,6 +15,7 @@ export async function resolveProfile(
     throw new DomainError(
       "PROFILE_NOT_FOUND",
       `Unknown profile "${profileId}". Run "cco auth list" to inspect saved profiles.`,
+      { profileId },
     );
   }
 

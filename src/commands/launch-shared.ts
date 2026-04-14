@@ -69,6 +69,7 @@ async function resolveToken(
     throw new DomainError(
       "TOKEN_NOT_FOUND",
       `Profile "${profile.id}" does not have a stored token. Run "cco auth add ${profile.id}".`,
+      { profileId: profile.id },
     );
   }
 

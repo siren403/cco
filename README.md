@@ -49,9 +49,29 @@ bun run dev -- --help
 bun run build
 ```
 
+## Bunx
+
+For a public GitHub repo, `cco` can be launched without npm or GitHub Packages publish:
+
+```bash
+bunx github:owner/repo --help
+bunx github:owner/repo work
+bunx -p github:owner/repo cco work
+```
+
+Repository requirements for that flow:
+
+- the repo must be public
+- `package.json` must declare a `bin` entry
+- the `bin` target must be Bun-executable from a fresh checkout
+
+If Bun cannot infer the executable from the repo spec directly, `bunx -p github:owner/repo cco ...` is the safer form.
+
+This repo uses `bin/cco.ts` as that launcher entry and keeps the real implementation in `src/cli.ts`.
+
 ## Notes
 
 - Tokens are currently stored locally in plain text under `~/.cco/tokens/` for MVP simplicity.
 - Session management is intentionally left to Claude Code itself in MVP.
-- `CLAUDE_CONFIG_DIR` is scrubbed from the child process to preserve host config behavior.
+- If the host shell already sets `CLAUDE_CONFIG_DIR`, `cco` preserves it and only swaps auth for the spawned Claude process.
 - Cross-terminal isolation is a hard requirement for future session binding work.

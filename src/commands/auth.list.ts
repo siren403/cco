@@ -18,7 +18,20 @@ export const authListCommand = buildCommand<{}, [], AppContext>({
       }),
     );
 
-    this.process.stdout.write(`${renderProfileTable(profiles, tokenPresence)}\n`);
+    const overlays = profiles.filter((profile) => profile.kind === "overlay");
+    const lines = [renderProfileTable(profiles, tokenPresence)];
+
+    if (overlays.length === 0) {
+      lines.push(
+        "",
+        "No overlay profiles saved yet.",
+        "",
+        "Create one with:",
+        "  cco auth add work",
+      );
+    }
+
+    this.process.stdout.write(`${lines.join("\n")}\n`);
   },
   parameters: {
     positional: {
