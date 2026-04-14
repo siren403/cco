@@ -1,4 +1,3 @@
-import { intro, outro } from "@clack/prompts";
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
@@ -8,15 +7,18 @@ import { HOST_PROFILE } from "../core/model/profile.ts";
 import { assertProfileIdUsable } from "../core/services/profile-id.ts";
 import { spawnClaudeCapture, spawnClaudeInteractive } from "../infra/bun/spawn-claude.ts";
 import { promptForToken } from "../ui/prompts/token-entry.ts";
+import { resolveAnsiColor } from "../ui/theme.ts";
+import {
+  renderAuthAddIntro,
+  renderAuthAddSuccess,
+} from "../ui/views/auth-add-page.ts";
 
 export const authAddCommand = buildCommand<{}, [profileId: string], AppContext>({
   async func(this: AppContext, _flags, profileId) {
     assertProfileIdUsable(profileId);
+    const ansiColor = resolveAnsiColor(this.process.stdout, this.process.env);
 
-    intro(`cco auth add ${profileId}`);
-    this.process.stdout.write(
-      "Running official `claude setup-token` now. Copy the token from that flow, then paste it back here.\n\n",
-    );
+    this.process.stdout.write(`${renderAuthAddIntro(profileId, { ansiColor })}\n\n`);
 
     const setupPlan = buildLaunchPlan({
       profile: HOST_PROFILE,
@@ -51,7 +53,7 @@ export const authAddCommand = buildCommand<{}, [profileId: string], AppContext>(
     await this.runtime.profileStore.put(profile);
     await this.runtime.tokenStore.put(profileId, token);
 
-    outro(`Saved overlay profile "${profileId}".`);
+    this.process.stdout.write(`${renderAuthAddSuccess(profileId, { ansiColor })}\n`);
   },
   parameters: {
     positional: {

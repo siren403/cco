@@ -4,10 +4,19 @@ import { renderShowcase } from "../../src/ui/renderers/showcase.ts";
 test("showcase all includes core sections", () => {
   const output = renderShowcase();
 
+  expect(output).toContain("=== Auth Add Intro ===");
   expect(output).toContain("=== Root Help ===");
   expect(output).toContain("=== Saved Profiles ===");
   expect(output).toContain("=== Doctor Output ===");
   expect(output).toContain("=== Command Flows ===");
+});
+
+test("showcase auth focuses on onboarding flow", () => {
+  const output = renderShowcase("auth");
+
+  expect(output).toContain("=== Auth Add Intro ===");
+  expect(output).toContain("Overlay Ready");
+  expect(output).not.toContain("=== Doctor Output ===");
 });
 
 test("showcase errors focuses on error output only", () => {

@@ -44,6 +44,10 @@ export function renderRootHelp(options: RenderOptions = {}): string {
               command: `${APP_NAME} work -c`,
               description: "Pass Claude's native continue flag through unchanged.",
             },
+            {
+              command: `${APP_NAME} showcase auth`,
+              description: "Preview the onboarding panels without launching Claude.",
+            },
           ],
           options,
         ),

@@ -115,6 +115,10 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
                 description: "Preview the full UI surface.",
               },
               {
+                command: "cco showcase auth",
+                description: "Preview the token onboarding panels.",
+              },
+              {
                 command: "cco showcase errors",
                 description: "Preview the recovery/error states only.",
               },
@@ -141,6 +145,10 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
           {
             command: "cco doctor",
             description: "Inspect binary resolution, host config, and env precedence.",
+          },
+          {
+            command: "cco showcase auth",
+            description: "Preview the onboarding flow without launching Claude.",
           },
         ],
       },

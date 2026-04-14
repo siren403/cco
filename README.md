@@ -43,6 +43,7 @@ bun run check
 bun test
 bun run dev -- --help
 bun run dev -- showcase
+bun run dev -- showcase auth
 ```
 
 ## Build
@@ -70,6 +71,35 @@ Repository requirements for that flow:
 If Bun cannot infer the executable from the repo spec directly, `bunx -p github:owner/repo cco ...` is the safer form.
 
 This repo uses `bin/cco.ts` as that launcher entry and keeps the real implementation in `src/cli.ts`.
+
+## UI Preview
+
+Use the built-in showcase to inspect the CLI surface without touching Claude:
+
+```bash
+bun run showcase
+bun run showcase auth
+bun run showcase errors
+```
+
+Typical screens now render as structured terminal panels instead of flat line lists:
+
+```text
+┌─ Doctor [ready] ──────────────────────────────────────────────┐
+│ Runtime looks ready for host launches and process-local auth  │
+│ overlays. No conflicting auth environment variables were      │
+│ detected in the current shell.                                │
+└───────────────────────────────────────────────────────────────┘
+```
+
+```text
+┌─ Problem [error] ─────────────────────────────────────────────┐
+│ Unknown profile: missing-profile                              │
+│                                                               │
+│ Create the local alias first, or inspect the saved overlay   │
+│ profiles.                                                     │
+└───────────────────────────────────────────────────────────────┘
+```
 
 ## Notes
 

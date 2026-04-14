@@ -5,11 +5,16 @@ import { createTheme, type RenderOptions } from "../theme.ts";
 import { renderCliError } from "./error-message.ts";
 import { renderRootHelp } from "./root-help.ts";
 import { renderPanel, renderCommandList } from "../layout/primitives.ts";
+import {
+  renderAuthAddIntro,
+  renderAuthAddSuccess,
+} from "../views/auth-add-page.ts";
 import { renderDoctorPage } from "../views/doctor-page.ts";
 import { renderProfilesPage } from "../views/profiles-page.ts";
 
 export type ShowcaseTopic =
   | "all"
+  | "auth"
   | "help"
   | "profiles"
   | "errors"
@@ -37,6 +42,16 @@ export function renderShowcase(
 
 function buildSections(options: RenderOptions): readonly ShowcaseSection[] {
   return [
+    {
+      topic: "auth",
+      title: "Auth Add Intro",
+      body: renderAuthAddIntro("work", options),
+    },
+    {
+      topic: "auth",
+      title: "Auth Add Success",
+      body: renderAuthAddSuccess("work", options),
+    },
     {
       topic: "help",
       title: "Root Help",

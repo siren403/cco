@@ -9,6 +9,7 @@ import {
 
 const VALID_TOPICS = new Set<ShowcaseTopic>([
   "all",
+  "auth",
   "help",
   "profiles",
   "errors",
@@ -27,7 +28,7 @@ export const showcaseCommand = buildCommand<{}, [topic?: string], AppContext>({
       kind: "tuple",
       parameters: [
         {
-          brief: "Optional showcase topic: all, help, profiles, errors, doctor, or flows",
+          brief: "Optional showcase topic: all, auth, help, profiles, errors, doctor, or flows",
           parse: String,
           optional: true,
           placeholder: "topic",
@@ -51,6 +52,6 @@ function resolveTopic(topic?: string): ShowcaseTopic {
 
   throw new DomainError(
     "INVALID_SHOWCASE_TOPIC",
-    `Unknown showcase topic "${topic}". Use one of: all, help, profiles, errors, doctor, flows.`,
+    `Unknown showcase topic "${topic}". Use one of: all, auth, help, profiles, errors, doctor, flows.`,
   );
 }

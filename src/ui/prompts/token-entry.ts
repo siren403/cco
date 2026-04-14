@@ -3,7 +3,7 @@ import { DomainError } from "../../core/errors/domain-error.ts";
 
 export async function promptForToken(profileId: string): Promise<string> {
   const value = await password({
-    message: `Paste the setup token for "${profileId}"`,
+    message: `Paste the verified setup token for "${profileId}"`,
     mask: "*",
     validate(input) {
       if (!input || !input.trim()) {
