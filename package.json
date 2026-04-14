@@ -1,6 +1,6 @@
 {
   "name": "@qkrsogusl3/cco",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Claude Code OAuth overlay launcher for local multi-profile switching",
   "type": "module",
   "private": false,
