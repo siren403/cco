@@ -140,6 +140,15 @@ bunx @qkrsogusl3/cco --help
 bunx @qkrsogusl3/cco work
 ```
 
+If the machine already has an older global `cco` installed, prefer an explicit latest fetch:
+
+```bash
+bunx --no-cache @qkrsogusl3/cco@latest --help
+bunx --no-cache @qkrsogusl3/cco@latest --version
+```
+
+That avoids local `cco` shadowing when validating a fresh release.
+
 ## UI Preview
 
 Use the built-in showcase to inspect the CLI surface without touching Claude:
