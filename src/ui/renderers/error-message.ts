@@ -159,6 +159,96 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
           },
           options,
         );
+      case "MISPLACED_LAUNCH_FLAG":
+        return renderErrorPage(
+          {
+            title: text.errors.misplacedLaunchFlagTitle(
+              String(error.details.flag ?? "--isolate"),
+            ),
+            tone: "warn",
+            summary: text.errors.misplacedLaunchFlagSummary,
+            commands: [
+              {
+                command: `cco ${String(error.details.flag ?? "--isolate")} ${profileId ?? "work"}`,
+                description: text.errors.misplacedLaunchFlagDescription(
+                  profileId ?? "work",
+                  String(error.details.flag ?? "--isolate"),
+                ),
+              },
+            ],
+          },
+          options,
+        );
+      case "TEAMS_MODE_NOT_IMPLEMENTED":
+        return renderErrorPage(
+          {
+            title: text.errors.teamsModeNotImplementedTitle,
+            tone: "warn",
+            summary: text.errors.teamsModeNotImplementedDescription,
+            commands: [
+              {
+                command: `cco ${profileId ?? "work"}`,
+                description: text.rootHelp.quickStartLaunch,
+              },
+              {
+                command: "cco showcase help",
+                description: text.errors.previewOnboardingDescription,
+              },
+            ],
+          },
+          options,
+        );
+      case "TEAMS_SETUP_REQUIRED":
+        return renderErrorPage(
+          {
+            title: text.errors.teamsSetupRequiredTitle,
+            tone: "warn",
+            summary: text.errors.teamsSetupRequiredSummary,
+            commands: [
+              {
+                command: `cco --isolate ${profileId ?? "work"}`,
+                description: text.errors.teamsSetupRequiredDescription(
+                  profileId ?? "work",
+                ),
+              },
+            ],
+          },
+          options,
+        );
+      case "TEAMS_LOGIN_FAILED":
+        return renderErrorPage(
+          {
+            title: text.errors.teamsLoginFailedTitle,
+            tone: "warn",
+            summary: text.errors.exitCodeSummary(
+              String(error.details.exitCode ?? "unknown"),
+            ),
+            commands: [
+              {
+                command: `cco --isolate ${profileId ?? "work"}`,
+                description: text.errors.teamsLoginRetryDescription(
+                  profileId ?? "work",
+                ),
+              },
+            ],
+          },
+          options,
+        );
+      case "TEAMS_OVERLAY_ONLY":
+        return renderErrorPage(
+          {
+            title: text.errors.teamsOverlayOnlyTitle,
+            tone: "warn",
+            summary: text.errors.teamsOverlayOnlySummary,
+            commands: [
+              {
+                command: "cco auth list",
+                description: text.errors.inspectProfilesDescription,
+              },
+            ],
+          },
+          options,
+        );
       case "PROMPT_CANCELLED":
         return renderErrorPage(
           {

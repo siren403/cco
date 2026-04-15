@@ -12,6 +12,7 @@ test("root help uses panel-based sections", () => {
   expect(output).toContain("명령 표면");
   expect(output).toContain("인증 오버레이");
   expect(output).toContain("CLAUDE_CODE_SUBPROCESS_ENV_SCRUB");
+  expect(output).toContain("isolate status work");
 });
 
 test("profiles page shows inventory and next step", () => {

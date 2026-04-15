@@ -104,3 +104,18 @@ test("explicit Claude args are passed through unchanged", () => {
 
   expect(plan.args).toEqual(["-c", "--verbose"]);
 });
+
+test("env overrides can redirect the Claude config dir", () => {
+  const plan = buildLaunchPlan({
+    profile: HOST_PROFILE,
+    binary: "claude",
+    cwd: "/tmp/example",
+    parentEnv: baseEnv,
+    envOverrides: {
+      CLAUDE_CONFIG_DIR: "/tmp/teams-home",
+    },
+  });
+
+  expect(plan.env.CLAUDE_CONFIG_DIR).toBe("/tmp/teams-home");
+  expect(plan.env.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined();
+});

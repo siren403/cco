@@ -13,6 +13,7 @@ export interface BuildLaunchPlanInput {
   readonly binary: string;
   readonly cwd: string;
   readonly parentEnv: NodeJS.ProcessEnv;
+  readonly envOverrides?: Readonly<Record<string, string | undefined>>;
   readonly token?: string;
   readonly explicitArgs?: readonly string[];
   readonly subprocessEnvScrubOverride?: "0" | "1";

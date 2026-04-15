@@ -8,7 +8,9 @@ export const RESERVED_PROFILE_IDS = new Set([
   "doctor",
   "help",
   "host",
+  "isolate",
   "run",
+  "teams",
   "showcase",
   "version",
 ]);

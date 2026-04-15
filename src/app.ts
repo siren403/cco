@@ -6,6 +6,7 @@ import { doctorCommand } from "./commands/doctor.ts";
 import { hostCommand } from "./commands/host.ts";
 import { runCommand } from "./commands/run.ts";
 import { showcaseCommand } from "./commands/showcase.ts";
+import { teamsRoutes as isolateRoutes } from "./commands/teams.routes.ts";
 import { getStaticUiText, getStricliText } from "./i18n/index.ts";
 import { renderCliError } from "./ui/renderers/error-message.ts";
 
@@ -18,6 +19,8 @@ const routes = buildRouteMap({
     auth: authRoutes,
     config: configRoutes,
     doctor: doctorCommand,
+    isolate: isolateRoutes,
+    teams: isolateRoutes,
     showcase: showcaseCommand,
   },
   defaultCommand: "run",
@@ -25,6 +28,7 @@ const routes = buildRouteMap({
     brief: text.appDescription,
     hideRoute: {
       run: true,
+      teams: true,
     },
   },
 });

@@ -21,6 +21,13 @@ export interface UiText {
     readonly configSetArgAssignment: string;
     readonly configSet: string;
     readonly doctor: string;
+    readonly teams: string;
+    readonly teamsArgProfile: string;
+    readonly teamsFlagYes: string;
+    readonly teamsStatus: string;
+    readonly teamsRemove: string;
+    readonly teamsFreshArg: string;
+    readonly teamsFresh: string;
     readonly showcaseArgTopic: string;
     readonly showcase: string;
   };
@@ -32,15 +39,22 @@ export interface UiText {
     readonly quickStartAuthAdd: string;
     readonly quickStartLaunch: string;
     readonly quickStartContinue: string;
+    readonly quickStartTeams: string;
     readonly quickStartShowcase: string;
     readonly commandSurfaceTitle: string;
     readonly commandSurfaceProfile: string;
     readonly commandSurfaceHost: string;
     readonly commandSurfaceConfig: string;
     readonly commandSurfaceDoctor: string;
+    readonly commandSurfaceTeams: string;
     readonly commandSurfaceShowcase: string;
     readonly localAliasBadge: string;
     readonly localAliasSummary: string;
+    readonly launchSyntaxTitle: string;
+    readonly launchSyntaxSummary: string;
+    readonly launchSyntaxEasy: string;
+    readonly launchSyntaxAdvanced: string;
+    readonly launchSyntaxAdvancedDescription: string;
     readonly permissionScrubTitle: string;
     readonly permissionScrubBadge: string;
     readonly permissionScrubSummary: string;
@@ -57,6 +71,8 @@ export interface UiText {
     readonly tokenCancelled: string;
     readonly confirmRemove: (profileId: string) => string;
     readonly removeCancelled: string;
+    readonly confirmTeamsRemove: (profileId: string) => string;
+    readonly teamsRemoveCancelled: string;
     readonly profileEnvPolicy: (profileId: string) => string;
     readonly profileEnvSafeLabel: string;
     readonly profileEnvSafeHint: string;
@@ -70,6 +86,12 @@ export interface UiText {
     readonly permissionOverrideSafeHint: string;
     readonly permissionOverrideGuideLabel: string;
     readonly permissionOverrideGuideHint: string;
+    readonly teamsBootstrap: (profileId: string) => string;
+    readonly teamsBootstrapImportLabel: string;
+    readonly teamsBootstrapImportHint: string;
+    readonly teamsBootstrapCleanLabel: string;
+    readonly teamsBootstrapCleanHint: string;
+    readonly teamsBootstrapCancelled: string;
   };
   readonly authAdd: {
     readonly introTitle: string;
@@ -199,6 +221,18 @@ export interface UiText {
     readonly unknownConfigKeyDescription: string;
     readonly invalidConfigValueTitle: string;
     readonly invalidConfigValueDescription: string;
+    readonly misplacedLaunchFlagTitle: (flag: string) => string;
+    readonly misplacedLaunchFlagSummary: string;
+    readonly misplacedLaunchFlagDescription: (profileId: string, flag: string) => string;
+    readonly teamsModeNotImplementedTitle: string;
+    readonly teamsModeNotImplementedDescription: string;
+    readonly teamsSetupRequiredTitle: string;
+    readonly teamsSetupRequiredSummary: string;
+    readonly teamsSetupRequiredDescription: (profileId: string) => string;
+    readonly teamsLoginFailedTitle: string;
+    readonly teamsLoginRetryDescription: (profileId: string) => string;
+    readonly teamsOverlayOnlyTitle: string;
+    readonly teamsOverlayOnlySummary: string;
     readonly showcaseAllDescription: string;
     readonly showcaseAuthDescription: string;
     readonly showcaseErrorsDescription: string;
@@ -234,8 +268,18 @@ export interface UiText {
     readonly profileConfigurationCancelled: string;
     readonly noChangesMade: string;
     readonly removedProfile: (profileId: string) => string;
+    readonly removedTeams: (profileId: string) => string;
+    readonly teamsAlreadyMissing: (profileId: string) => string;
     readonly claudeExited: string;
     readonly ccoPrefix: (profileId: string) => string;
+    readonly teamsStatusTitle: string;
+    readonly teamsStatusReadyBadge: string;
+    readonly teamsStatusMissingBadge: string;
+    readonly teamsStatusBrokenBadge: string;
+    readonly teamsBootstrapReadyTitle: string;
+    readonly teamsBootstrapReadyLine1: string;
+    readonly teamsBootstrapReadyLine2: (claudeHomeDir: string) => string;
+    readonly teamsBootstrapReadyLine3: string;
   };
 }
 
@@ -259,6 +303,15 @@ const KO_TEXT: UiText = {
       "설정 항목. 예: env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0",
     configSet: "저장된 오버레이 프로필 설정을 변경합니다",
     doctor: "로컬 저장소, 환경변수 우선순위, Claude 실행 파일 탐지를 점검합니다",
+    teams: "격리 실행 환경 상태를 확인하거나 제거하고 새로 시작합니다",
+    teamsArgProfile: "대상 오버레이 프로필 ID",
+    teamsFlagYes: "확인 프롬프트 없이 바로 진행합니다",
+    teamsStatus: "현재 격리 실행 환경 상태와 메타데이터를 표시합니다",
+    teamsRemove: "현재 프로필의 격리 실행 환경만 제거합니다",
+    teamsFreshArg:
+      "프로필 뒤에는 선택적으로 `-- <claude-args...>`를 붙여 fresh launch에 전달할 수 있습니다",
+    teamsFresh:
+      "현재 격리 실행 환경을 제거한 뒤 fresh bootstrap으로 다시 실행합니다",
     showcaseArgTopic: "선택 사항: all, auth, help, profiles, errors, doctor, flows",
     showcase: "Claude를 실행하지 않고 cco의 도움말, 오류, 흐름 화면을 미리 봅니다",
   },
@@ -270,6 +323,8 @@ const KO_TEXT: UiText = {
     quickStartAuthAdd: "공식 Claude setup-token용 로컬 별칭을 만듭니다.",
     quickStartLaunch: "호스트 구성을 유지한 채 work 오버레이 토큰으로 Claude를 실행합니다.",
     quickStartContinue: "Claude의 기본 continue 플래그를 그대로 전달합니다.",
+    quickStartTeams:
+      "host 설정을 이어받는 분리된 Claude home으로 work 격리 실행을 시작합니다.",
     quickStartShowcase: "Claude를 실행하지 않고 온보딩 화면을 미리 봅니다.",
     commandSurfaceTitle: "명령 표면",
     commandSurfaceProfile: "`cco <profile>`은 오버레이 토큰으로 Claude를 실행합니다.",
@@ -277,10 +332,19 @@ const KO_TEXT: UiText = {
     commandSurfaceConfig:
       "`cco config get -p <profile>`은 저장된 오버레이 프로필 설정을 확인합니다.",
     commandSurfaceDoctor: "`cco doctor`는 런타임 연결 상태와 환경변수 우선순위를 점검합니다.",
+    commandSurfaceTeams:
+      "`cco isolate status/remove/fresh <profile>`은 격리 실행 환경을 점검하거나 정리합니다.",
     commandSurfaceShowcase: "`cco showcase [topic]`은 Claude를 실행하지 않고 CLI 화면을 미리 봅니다.",
     localAliasBadge: "로컬 별칭",
     localAliasSummary:
       "프로필은 사용자가 정하는 이름입니다. 예: `work`, `backup`",
+    launchSyntaxTitle: "실행 문법",
+    launchSyntaxSummary:
+      "쉬운 사용법은 그대로 두고, cco 전용 실행 플래그는 `<profile>` 앞에 둡니다. Claude 인자를 명시적으로 구분할 때만 `--`를 사용합니다.",
+    launchSyntaxEasy: "`cco work -c`처럼 바로 이어서 실행합니다.",
+    launchSyntaxAdvanced: "`cco [cco-flags] <profile> -- <claude-args...>`",
+    launchSyntaxAdvancedDescription:
+      "launch flag와 Claude 인자를 확실히 나눠야 할 때 쓰는 고급 전달 방식입니다.",
     permissionScrubTitle: "권한 우회와 scrub",
     permissionScrubBadge: "safe profile",
     permissionScrubSummary:
@@ -300,6 +364,9 @@ const KO_TEXT: UiText = {
     tokenCancelled: "토큰 입력을 취소했습니다.",
     confirmRemove: (profileId) => `"${profileId}" 프로필과 저장된 토큰을 삭제할까요?`,
     removeCancelled: "프로필 삭제를 취소했습니다.",
+    confirmTeamsRemove: (profileId) =>
+      `"${profileId}"의 격리 실행 환경만 제거할까요? 호스트 Claude 설정과 저장된 토큰은 유지됩니다.`,
+    teamsRemoveCancelled: "격리 실행 환경 제거를 취소했습니다.",
     profileEnvPolicy: (profileId) => `"${profileId}"의 하위 프로세스 인증 env 정책`,
     profileEnvSafeLabel: "권장: Claude 하위 프로세스에서 인증 env를 제거",
     profileEnvSafeHint: "더 안전합니다. Bash/hooks/MCP 하위 프로세스가 오버레이 토큰을 읽을 수 없습니다.",
@@ -317,6 +384,15 @@ const KO_TEXT: UiText = {
     permissionOverrideGuideLabel: "종료하고 재실행 방법 보기",
     permissionOverrideGuideHint:
       "scrub env 예시와 profiles.json 수정 위치를 출력하고 실행하지 않습니다.",
+    teamsBootstrap: (profileId) =>
+      `"${profileId}" 격리 실행용 Claude home 초기화 방식`,
+    teamsBootstrapImportLabel: "현재 host 설정 가져오기",
+    teamsBootstrapImportHint:
+      "settings, mcp, plugins, skills 같은 안전한 사용자 설정만 복사합니다.",
+    teamsBootstrapCleanLabel: "빈 상태로 시작",
+    teamsBootstrapCleanHint:
+      "별도 Claude home만 만들고, 팀 실행용 로그인을 처음부터 진행합니다.",
+    teamsBootstrapCancelled: "격리 실행 초기화를 취소했습니다.",
   },
   authAdd: {
     introTitle: "오버레이 프로필 추가",
@@ -458,6 +534,26 @@ const KO_TEXT: UiText = {
     invalidConfigValueTitle: "설정 값이 올바르지 않습니다.",
     invalidConfigValueDescription:
       "env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB는 `0` 또는 `1`만 허용합니다.",
+    misplacedLaunchFlagTitle: (flag) => `${flag} 위치가 잘못되었습니다.`,
+    misplacedLaunchFlagSummary:
+      "cco 전용 실행 플래그는 `<profile>` 앞에 와야 합니다.",
+    misplacedLaunchFlagDescription: (profileId, flag) =>
+      `${flag}를 앞쪽으로 옮겨 \`cco ${flag} ${profileId}\` 형태로 다시 실행하세요.`,
+    teamsModeNotImplementedTitle: "격리 실행 모드는 아직 연결되지 않았습니다.",
+    teamsModeNotImplementedDescription:
+      "문법 자리는 확보했지만, isolate 전용 Claude home bootstrap은 아직 이 빌드에 포함되지 않았습니다.",
+    teamsSetupRequiredTitle:
+      "격리 home이 아직 준비되지 않아 비대화형으로는 시작할 수 없습니다.",
+    teamsSetupRequiredSummary:
+      "첫 격리 실행에서는 초기화 방식 선택과 isolate home 준비가 필요합니다.",
+    teamsSetupRequiredDescription: (profileId) =>
+      `터미널에서 한 번 \`cco --isolate ${profileId}\`를 대화형으로 실행해 격리 home을 준비하세요.`,
+    teamsLoginFailedTitle: "격리 전용 `claude auth login`이 완료되지 않았습니다.",
+    teamsLoginRetryDescription: (profileId) =>
+      `같은 프로필로 \`cco --isolate ${profileId}\`를 다시 실행해 로그인 단계를 마치세요.`,
+    teamsOverlayOnlyTitle: "격리 실행은 저장된 overlay 프로필에서만 지원합니다.",
+    teamsOverlayOnlySummary:
+      "host 내장 프로필은 격리 메타데이터를 저장하지 않으므로 아직 지원하지 않습니다.",
     showcaseAllDescription: "전체 UI 표면을 미리 봅니다.",
     showcaseAuthDescription: "토큰 온보딩 패널만 미리 봅니다.",
     showcaseErrorsDescription: "복구/오류 상태만 미리 봅니다.",
@@ -498,8 +594,22 @@ const KO_TEXT: UiText = {
     profileConfigurationCancelled: "프로필 설정을 취소했습니다.",
     noChangesMade: "변경된 내용이 없습니다.",
     removedProfile: (profileId) => `"${profileId}" 프로필을 삭제했습니다.`,
+    removedTeams: (profileId) => `"${profileId}"의 격리 실행 환경을 제거했습니다.`,
+    teamsAlreadyMissing: (profileId) =>
+      `"${profileId}"의 격리 실행 환경이 이미 비어 있습니다.`,
     claudeExited: "Claude가 종료되었습니다.",
     ccoPrefix: (profileId) => `cco ${profileId}`,
+    teamsStatusTitle: "Isolate 상태",
+    teamsStatusReadyBadge: "ready",
+    teamsStatusMissingBadge: "missing",
+    teamsStatusBrokenBadge: "broken",
+    teamsBootstrapReadyTitle: "격리 모드 준비",
+    teamsBootstrapReadyLine1:
+      "이 실행은 host와 분리된 별도 Claude home을 사용합니다.",
+    teamsBootstrapReadyLine2: (claudeHomeDir) =>
+      `대상 경로: ${claudeHomeDir}`,
+    teamsBootstrapReadyLine3:
+      "초기화가 끝나면 이 isolate home에 host 설정의 안전한 부분만 반영한 뒤 바로 실행합니다.",
   },
 };
 
@@ -523,6 +633,15 @@ const EN_TEXT: UiText = {
       "Setting assignment such as env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0",
     configSet: "Update a saved overlay profile setting",
     doctor: "Check local storage, env precedence, and Claude binary resolution",
+    teams: "Inspect, remove, or recreate isolated Claude homes for overlay profiles",
+    teamsArgProfile: "Target overlay profile id",
+    teamsFlagYes: "Proceed without showing a confirmation prompt",
+    teamsStatus: "Show the current isolate state and metadata",
+    teamsRemove: "Remove only the current profile's isolate home",
+    teamsFreshArg:
+      "After the profile you may add `-- <claude-args...>` to pass through to the fresh launch",
+    teamsFresh:
+      "Remove the current isolate home and launch again through a fresh bootstrap",
     showcaseArgTopic: "Optional showcase topic: all, auth, help, profiles, errors, doctor, or flows",
     showcase: "Preview cco help, errors, and flow output without launching Claude",
   },
@@ -534,6 +653,8 @@ const EN_TEXT: UiText = {
     quickStartAuthAdd: "Create a local alias for an official Claude setup-token.",
     quickStartLaunch: "Launch Claude with the work overlay token while keeping host config intact.",
     quickStartContinue: "Pass Claude's native continue flag through unchanged.",
+    quickStartTeams:
+      "Start a work isolate run in a separate Claude home that inherits host-facing setup.",
     quickStartShowcase: "Preview the onboarding panels without launching Claude.",
     commandSurfaceTitle: "Command Surface",
     commandSurfaceProfile: "`cco <profile>` launches Claude with an overlay token.",
@@ -541,9 +662,18 @@ const EN_TEXT: UiText = {
     commandSurfaceConfig:
       "`cco config get -p <profile>` inspects saved overlay profile settings.",
     commandSurfaceDoctor: "`cco doctor` inspects runtime wiring and env precedence.",
+    commandSurfaceTeams:
+      "`cco isolate status/remove/fresh <profile>` inspects or resets the isolate home.",
     commandSurfaceShowcase: "`cco showcase [topic]` previews the CLI surface without launching Claude.",
     localAliasBadge: "local alias",
     localAliasSummary: "Profiles are names you choose, such as `work` or `backup`.",
+    launchSyntaxTitle: "Launch Syntax",
+    launchSyntaxSummary:
+      "Keep the easy form for common launches, put cco launch flags before `<profile>`, and use `--` only when you want an explicit Claude passthrough boundary.",
+    launchSyntaxEasy: "Easy: launch directly, for example `cco work -c`.",
+    launchSyntaxAdvanced: "`cco [cco-flags] <profile> -- <claude-args...>`",
+    launchSyntaxAdvancedDescription:
+      "Advanced form for cases where cco launch flags and Claude args must stay unambiguous.",
     permissionScrubTitle: "Bypass Flags and Scrub",
     permissionScrubBadge: "safe profile",
     permissionScrubSummary:
@@ -563,6 +693,9 @@ const EN_TEXT: UiText = {
     tokenCancelled: "Token capture cancelled.",
     confirmRemove: (profileId) => `Remove profile "${profileId}" and delete its stored token?`,
     removeCancelled: "Profile removal cancelled.",
+    confirmTeamsRemove: (profileId) =>
+      `Remove only the isolate home for "${profileId}"? Host Claude config and saved token stay untouched.`,
+    teamsRemoveCancelled: "Isolate removal cancelled.",
     profileEnvPolicy: (profileId) => `Subprocess auth env policy for "${profileId}"`,
     profileEnvSafeLabel: "Recommended: scrub auth env in Claude child subprocesses",
     profileEnvSafeHint: "Safer. Bash/hooks/MCP subprocesses cannot read the overlay token.",
@@ -580,6 +713,15 @@ const EN_TEXT: UiText = {
     permissionOverrideGuideLabel: "Exit and show re-run options",
     permissionOverrideGuideHint:
       "Print scrub env examples and the profiles.json edit path without launching Claude.",
+    teamsBootstrap: (profileId) =>
+      `How should the isolate Claude home for "${profileId}" be initialized?`,
+    teamsBootstrapImportLabel: "Import current host setup",
+    teamsBootstrapImportHint:
+      "Copies only safe user-facing config such as settings, mcp, plugins, and skills.",
+    teamsBootstrapCleanLabel: "Start clean",
+    teamsBootstrapCleanHint:
+      "Creates an empty Claude home and signs in for team runs from scratch.",
+    teamsBootstrapCancelled: "Isolate bootstrap cancelled.",
   },
   authAdd: {
     introTitle: "Add Overlay Profile",
@@ -722,6 +864,26 @@ const EN_TEXT: UiText = {
     invalidConfigValueTitle: "Invalid config value.",
     invalidConfigValueDescription:
       "env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB only accepts `0` or `1`.",
+    misplacedLaunchFlagTitle: (flag) => `${flag} is in the wrong position.`,
+    misplacedLaunchFlagSummary:
+      "cco launch flags must appear before `<profile>`.",
+    misplacedLaunchFlagDescription: (profileId, flag) =>
+      `Move ${flag} before the profile and re-run as \`cco ${flag} ${profileId}\`.`,
+    teamsModeNotImplementedTitle: "Teams launch mode is not wired yet.",
+    teamsModeNotImplementedDescription:
+      "The launch syntax is reserved, but the isolate-specific Claude home bootstrap is not included in this build yet.",
+    teamsSetupRequiredTitle:
+      "The isolate home is not ready yet, so this launch cannot run non-interactively.",
+    teamsSetupRequiredSummary:
+      "The first isolate launch needs one setup choice and an isolated home bootstrap step.",
+    teamsSetupRequiredDescription: (profileId) =>
+      `Run \`cco --isolate ${profileId}\` once in an interactive terminal to prepare the isolate home.`,
+    teamsLoginFailedTitle: "The isolate-specific `claude auth login` step did not finish successfully.",
+    teamsLoginRetryDescription: (profileId) =>
+      `Run \`cco --isolate ${profileId}\` again to complete the login step.`,
+    teamsOverlayOnlyTitle: "Isolate mode currently supports saved overlay profiles only.",
+    teamsOverlayOnlySummary:
+      "The built-in host profile does not persist isolate metadata yet, so it is not supported in this build.",
     showcaseAllDescription: "Preview the full UI surface.",
     showcaseAuthDescription: "Preview the token onboarding panels.",
     showcaseErrorsDescription: "Preview the recovery/error states only.",
@@ -762,8 +924,22 @@ const EN_TEXT: UiText = {
     profileConfigurationCancelled: "Profile configuration cancelled.",
     noChangesMade: "No changes made.",
     removedProfile: (profileId) => `Removed profile "${profileId}".`,
+    removedTeams: (profileId) => `Removed the isolate home for "${profileId}".`,
+    teamsAlreadyMissing: (profileId) =>
+      `The isolate home for "${profileId}" is already absent.`,
     claudeExited: "Claude exited.",
     ccoPrefix: (profileId) => `cco ${profileId}`,
+    teamsStatusTitle: "Isolate Status",
+    teamsStatusReadyBadge: "ready",
+    teamsStatusMissingBadge: "missing",
+    teamsStatusBrokenBadge: "broken",
+    teamsBootstrapReadyTitle: "Isolate Setup",
+    teamsBootstrapReadyLine1:
+      "This launch will use a Claude home kept separate from the host while inheriting host-facing setup.",
+    teamsBootstrapReadyLine2: (claudeHomeDir) =>
+      `Target home: ${claudeHomeDir}`,
+    teamsBootstrapReadyLine3:
+      "After the seed step, cco will launch directly with that isolated home.",
   },
 };
 

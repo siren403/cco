@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -26,6 +26,82 @@ test("overlay launch injects overlay token and preserves host config env", async
   expect(log.env.CLAUDE_CONFIG_DIR).toBe(join(sandbox.root, "host-config"));
   expect(log.env.ANTHROPIC_API_KEY).toBeNull();
   expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("1");
+});
+
+test("misplaced isolate launch flag is rejected before Claude is spawned", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
+
+  const result = await runCli(["work", "--isolate"], sandbox, {});
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("--isolate");
+  expect(result.stderr).toContain("cco --isolate work");
+});
+
+test("isolate launch flag before profile reaches the launch layer", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
+
+  const result = await runCli(["--isolate", "work", "-c"], sandbox, {});
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("격리 home");
+});
+
+test("legacy teams launch flag is still accepted as an alias", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
+  await seedTeamsHome(sandbox.ccoHome, "work");
+
+  const result = await runCli(["--teams", "work", "-c"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.args).toEqual(["-c"]);
+  expect(log.env.CLAUDE_CONFIG_DIR).toBe(
+    join(sandbox.ccoHome, "profiles", "work", "teams", "claude"),
+  );
+  expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBeNull();
+});
+
+test("isolate launch uses the dedicated Claude home and omits overlay auth env", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
+  await seedTeamsHome(sandbox.ccoHome, "work");
+
+  const result = await runCli(["--isolate", "work", "-c"], sandbox, {
+    CLAUDE_CONFIG_DIR: join(sandbox.root, "host-config"),
+  });
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.args).toEqual(["-c"]);
+  expect(log.env.CLAUDE_CONFIG_DIR).toBe(
+    join(sandbox.ccoHome, "profiles", "work", "teams", "claude"),
+  );
+  expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBeNull();
+  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBeNull();
+});
+
+test("isolate launch does not require the saved overlay token once teams home exists", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
+  await seedTeamsHome(sandbox.ccoHome, "work");
+  await rm(join(sandbox.ccoHome, "tokens", "work.token"), { force: true });
+
+  const result = await runCli(["--isolate", "work", "-c"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.args).toEqual(["-c"]);
+  expect(log.env.CLAUDE_CONFIG_DIR).toBe(
+    join(sandbox.ccoHome, "profiles", "work", "teams", "claude"),
+  );
+  expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBeNull();
 });
 
 test("overlay launch respects per-profile subprocess env policy", async () => {
@@ -159,6 +235,62 @@ test("config set updates saved overlay scrub mode", async () => {
   ).toBe("0");
 });
 
+test("isolate status reports missing isolate when none is prepared", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
+
+  const result = await runCli(["isolate", "status", "work"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Isolate");
+  expect(result.stdout).toContain("missing");
+  expect(result.stdout).toContain(join(sandbox.ccoHome, "profiles", "work", "teams", "claude"));
+});
+
+test("legacy teams status command remains available as an alias", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
+
+  const result = await runCli(["teams", "status", "work"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Isolate");
+});
+
+test("isolate remove deletes only the isolate home and clears metadata", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1", true);
+  await seedTeamsHome(sandbox.ccoHome, "work");
+
+  const result = await runCli(["isolate", "remove", "work", "--yes"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("격리 실행 환경");
+  expect(await exists(join(sandbox.ccoHome, "profiles", "work", "teams"))).toBe(false);
+  expect(await exists(join(sandbox.ccoHome, "tokens", "work.token"))).toBe(true);
+
+  const profiles = JSON.parse(
+    await readFile(join(sandbox.ccoHome, "profiles.json"), "utf8"),
+  ) as { profiles: Array<{ teams?: unknown }> };
+  expect(profiles.profiles[0]?.teams).toBeUndefined();
+});
+
+test("isolate fresh removes stale isolate before re-entering bootstrap flow", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1", true);
+  await seedTeamsHome(sandbox.ccoHome, "work");
+
+  const result = await runCli(
+    ["isolate", "fresh", "--yes", "work"],
+    sandbox,
+    {},
+  );
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("격리 home");
+  expect(await exists(join(sandbox.ccoHome, "profiles", "work", "teams"))).toBe(false);
+});
+
 interface Sandbox {
   readonly root: string;
   readonly ccoHome: string;
@@ -189,7 +321,9 @@ async function seedOverlayProfile(
   profileId: string,
   token: string,
   subprocessEnvScrub: "0" | "1" = "1",
+  withTeamsMetadata = false,
 ): Promise<void> {
+  const teamsRoot = join(ccoHome, "profiles", profileId, "teams");
   await writeFile(
     join(ccoHome, "profiles.json"),
     JSON.stringify(
@@ -205,6 +339,22 @@ async function seedOverlayProfile(
             env: {
               CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: subprocessEnvScrub,
             },
+            teams: withTeamsMetadata
+              ? {
+                  enabled: true,
+                  homeDir: join(teamsRoot, "claude"),
+                  state: "ready",
+                  seedPreset: "host-lite",
+                  source: {
+                    kind: "overlay",
+                    profileId,
+                    configDir: join(ccoHome, "..", ".claude"),
+                  },
+                  manifestPath: join(teamsRoot, "manifest.json"),
+                  lastSeededAt: "2026-04-15T00:00:00.000Z",
+                  lastSyncedAt: "2026-04-15T00:00:00.000Z",
+                }
+              : undefined,
           },
         ],
       },
@@ -215,6 +365,30 @@ async function seedOverlayProfile(
   );
 
   await writeFile(join(ccoHome, "tokens", `${profileId}.token`), `${token}\n`, "utf8");
+}
+
+async function seedTeamsHome(
+  ccoHome: string,
+  profileId: string,
+): Promise<void> {
+  const teamsRoot = join(ccoHome, "profiles", profileId, "teams");
+  await mkdir(join(teamsRoot, "claude"), { recursive: true });
+  await writeFile(
+    join(teamsRoot, "manifest.json"),
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        profileId,
+        seedMode: "clean",
+        sourceConfigDir: join(ccoHome, "..", ".claude"),
+        createdAt: "2026-04-15T00:00:00.000Z",
+        updatedAt: "2026-04-15T00:00:00.000Z",
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
 }
 
 async function runCli(
@@ -262,6 +436,15 @@ async function createLauncher(root: string): Promise<string> {
   await writeFile(launcherPath, script, "utf8");
   await chmod(launcherPath, 0o755);
   return launcherPath;
+}
+
+async function exists(path: string): Promise<boolean> {
+  try {
+    await stat(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function readFakeClaudeLog(logPath: string): Promise<{

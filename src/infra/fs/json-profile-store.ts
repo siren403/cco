@@ -3,10 +3,13 @@ import { basename, dirname, join } from "node:path";
 import type {
   OverlayProfile,
   OverlayProfileEnv,
+  TeamsProfileMetadata,
+  TeamsProfileSource,
 } from "../../core/model/profile.ts";
 import type { ProfileStore } from "../../core/ports/profile-store.ts";
 
 interface ProfileFileShape {
+  readonly schemaVersion: 1;
   readonly profiles: readonly OverlayProfile[];
 }
 
@@ -32,6 +35,7 @@ export class JsonProfileStore implements ProfileStore {
       const next = data.profiles.filter((item) => item.id !== profile.id);
       next.push(profile);
       await this.writeFile({
+        schemaVersion: 1,
         profiles: next.sort((a, b) => a.id.localeCompare(b.id)),
       });
     });
@@ -41,6 +45,7 @@ export class JsonProfileStore implements ProfileStore {
     await this.withWriteLock(async () => {
       const data = await this.readFile();
       await this.writeFile({
+        schemaVersion: 1,
         profiles: data.profiles.filter((profile) => profile.id !== id),
       });
     });
@@ -51,6 +56,7 @@ export class JsonProfileStore implements ProfileStore {
       const content = await readFile(this.filePath, "utf8");
       const parsed = JSON.parse(content) as Partial<ProfileFileShape>;
       return {
+        schemaVersion: 1,
         profiles: Array.isArray(parsed.profiles)
           ? parsed.profiles
               .map((profile) => normalizeProfile(profile))
@@ -59,7 +65,7 @@ export class JsonProfileStore implements ProfileStore {
       };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return { profiles: [] };
+        return { schemaVersion: 1, profiles: [] };
       }
 
       throw error;
@@ -110,6 +116,7 @@ function normalizeProfile(value: unknown): OverlayProfile | null {
     lastUsedAt:
       typeof profile.lastUsedAt === "string" ? profile.lastUsedAt : undefined,
     env: normalizeProfileEnv(profile.env),
+    teams: normalizeTeamsProfile(profile.teams),
   };
 }
 
@@ -128,6 +135,66 @@ function normalizeProfileEnv(value: unknown): OverlayProfileEnv | undefined {
 
   return {
     CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB,
+  };
+}
+
+function normalizeTeamsProfile(value: unknown): TeamsProfileMetadata | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const teams = value as Partial<TeamsProfileMetadata>;
+  if (
+    teams.enabled !== true ||
+    typeof teams.homeDir !== "string" ||
+    (teams.state !== "ready" &&
+      teams.state !== "stale" &&
+      teams.state !== "broken") ||
+    teams.seedPreset !== "host-lite" ||
+    typeof teams.manifestPath !== "string"
+  ) {
+    return undefined;
+  }
+
+  const source = normalizeTeamsSource(teams.source);
+  if (!source) {
+    return undefined;
+  }
+
+  return {
+    enabled: true,
+    homeDir: teams.homeDir,
+    state: teams.state,
+    seedPreset: "host-lite",
+    source,
+    manifestPath: teams.manifestPath,
+    lastSeededAt:
+      typeof teams.lastSeededAt === "string" ? teams.lastSeededAt : undefined,
+    lastSyncedAt:
+      typeof teams.lastSyncedAt === "string" ? teams.lastSyncedAt : undefined,
+  };
+}
+
+function normalizeTeamsSource(value: unknown): TeamsProfileSource | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const source = value as Partial<TeamsProfileSource>;
+  if (
+    source.kind !== "overlay" ||
+    typeof source.profileId !== "string" ||
+    typeof source.configDir !== "string"
+  ) {
+    return undefined;
+  }
+
+  return {
+    kind: "overlay",
+    profileId: source.profileId,
+    configDir: source.configDir,
+    fingerprint:
+      typeof source.fingerprint === "string" ? source.fingerprint : undefined,
   };
 }
 
