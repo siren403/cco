@@ -284,7 +284,7 @@ export interface UiText {
 }
 
 const KO_TEXT: UiText = {
-  appDescription: "로컬 멀티 프로필 전환을 위한 Claude Code OAuth 오버레이 런처",
+  appDescription: "로컬 멀티 프로필 전환을 위한 Claude Code 오버레이/격리 런처",
   commandBriefs: {
     runArgProfile: "실행에 사용할 오버레이 프로필 ID. 생략하면 선택 UI를 표시합니다",
     run: "호스트 로그인 또는 선택한 오버레이 프로필로 Claude를 실행합니다",
@@ -316,8 +316,9 @@ const KO_TEXT: UiText = {
     showcase: "Claude를 실행하지 않고 cco의 도움말, 오류, 흐름 화면을 미리 봅니다",
   },
   rootHelp: {
-    badge: "인증 오버레이",
-    summary: "호스트 Claude Code 구성은 그대로 두고, 실행마다 자식 프로세스 인증 토큰만 바꿉니다.",
+    badge: "오버레이 + 격리",
+    summary:
+      "기본은 호스트 구성을 유지한 인증 오버레이 실행이고, 필요할 때는 분리된 Claude home으로 격리 실행할 수 있습니다.",
     quickStartTitle: "빠른 시작",
     quickStartBadge: "권장 흐름",
     quickStartAuthAdd: "공식 Claude setup-token용 로컬 별칭을 만듭니다.",
@@ -614,7 +615,7 @@ const KO_TEXT: UiText = {
 };
 
 const EN_TEXT: UiText = {
-  appDescription: "Claude Code OAuth overlay launcher for local multi-profile switching",
+  appDescription: "Claude Code overlay/isolate launcher for local multi-profile switching",
   commandBriefs: {
     runArgProfile: "Overlay profile id to use, or omit for profile picker",
     run: "Launch Claude with the host login or a selected overlay profile",
@@ -646,8 +647,9 @@ const EN_TEXT: UiText = {
     showcase: "Preview cco help, errors, and flow output without launching Claude",
   },
   rootHelp: {
-    badge: "auth overlay",
-    summary: "Keep the host Claude Code config intact and swap only the child-process auth token per launch.",
+    badge: "overlay + isolate",
+    summary:
+      "Use fast auth overlay launches by default, and switch to a separate Claude home when you need isolate mode.",
     quickStartTitle: "Quick Start",
     quickStartBadge: "primary path",
     quickStartAuthAdd: "Create a local alias for an official Claude setup-token.",
