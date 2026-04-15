@@ -37,7 +37,6 @@
 - `cco --isolate <profile>` launches Claude in a separate `cco`-owned Claude home.
 - The first `cco --isolate <profile>` run bootstraps that home with either `Import current host setup` or `Start clean`.
 - `cco isolate status/remove/fresh <profile>` inspects or resets the isolate home.
-- `cco teams ...` and `cco --teams ...` remain as compatibility aliases, but `isolate` is the public surface.
 - `cco host` launches with host auth explicitly.
 - `cco auth add <profile>` guides setup-token capture and verifies the token.
 - `cco auth add <profile>` also lets you choose the profile's subprocess auth-env policy.
@@ -64,7 +63,7 @@ cco isolate fresh work
 Behavior summary:
 
 - overlay mode keeps the host Claude home and changes auth only for the launched Claude process
-- isolate mode launches Claude against a separate Claude home under `~/.cco/profiles/<profile>/teams/claude`
+- isolate mode launches Claude against a separate Claude home under `~/.cco/profiles/<profile>/isolate/claude`
 - the isolate home is prepared on first use and then reused on later runs
 - isolate mode uses native Claude login inside that separate home instead of the overlay token file
 

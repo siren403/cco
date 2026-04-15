@@ -5,7 +5,7 @@ export interface DirectLaunchInvocation {
   readonly mode: "direct-launch";
   readonly profileId: string;
   readonly claudeArgs: readonly string[];
-  readonly teams: boolean;
+  readonly isolate: boolean;
 }
 
 export interface StricliInvocation {
@@ -16,14 +16,13 @@ export type Invocation = DirectLaunchInvocation | StricliInvocation;
 
 const ROOT_HELP_FLAGS = new Set(["--help", "-h", "help"]);
 const ROOT_VERSION_FLAGS = new Set(["--version", "-v", "version"]);
-const LAUNCH_FLAGS = new Set(["--isolate", "--teams"]);
+const LAUNCH_FLAGS = new Set(["--isolate"]);
 const STRICT_CLI_COMMANDS = new Set([
   "auth",
   "config",
   "doctor",
   "isolate",
   "run",
-  "teams",
   "showcase",
   ...ROOT_HELP_FLAGS,
   ...ROOT_VERSION_FLAGS,
@@ -66,20 +65,20 @@ export function resolveInvocation(argv: readonly string[]): Invocation {
     mode: "direct-launch",
     profileId: launchParse.profileId,
     claudeArgs: launchParse.claudeArgs,
-    teams: launchParse.teams,
+    isolate: launchParse.isolate,
   };
 }
 
 interface ParsedLaunchInvocation {
   readonly profileId: string;
   readonly claudeArgs: readonly string[];
-  readonly teams: boolean;
+  readonly isolate: boolean;
 }
 
 function parseLaunchInvocation(
   argv: readonly string[],
 ): ParsedLaunchInvocation | null {
-  let teams = false;
+  let isolate = false;
   let index = 0;
 
   while (index < argv.length) {
@@ -90,7 +89,7 @@ function parseLaunchInvocation(
     }
 
     if (LAUNCH_FLAGS.has(token)) {
-      teams = true;
+      isolate = true;
       index += 1;
       continue;
     }
@@ -106,7 +105,7 @@ function parseLaunchInvocation(
     return {
       profileId: token,
       claudeArgs: parseClaudeArgs(argv.slice(index + 1), token),
-      teams,
+      isolate,
     };
   }
 

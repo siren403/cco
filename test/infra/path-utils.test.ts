@@ -3,7 +3,7 @@ import {
   resolveCcoPaths,
   resolvePhysicalHostClaudeConfigDir,
   resolveHostClaudeConfigDir,
-  resolveTeamsProfilePaths,
+  resolveIsolateProfilePaths,
 } from "../../src/infra/fs/path-utils.ts";
 
 test("resolveCcoPaths includes profiles directory", () => {
@@ -17,20 +17,20 @@ test("resolveCcoPaths includes profiles directory", () => {
   expect(paths.profilesFile).toBe(`${fakeHome}\\.cco\\profiles.json`);
 });
 
-test("resolveTeamsProfilePaths nests teams home under the profile directory", () => {
+test("resolveIsolateProfilePaths nests isolate home under the profile directory", () => {
   const fakeHome = "C:\\Users\\test-user";
   const paths = resolveCcoPaths({
     USERPROFILE: fakeHome,
   });
 
-  const teams = resolveTeamsProfilePaths(paths, "work");
+  const isolate = resolveIsolateProfilePaths(paths, "work");
 
-  expect(teams.root).toBe(`${fakeHome}\\.cco\\profiles\\work\\teams`);
-  expect(teams.claudeHomeDir).toBe(
-    `${fakeHome}\\.cco\\profiles\\work\\teams\\claude`,
+  expect(isolate.root).toBe(`${fakeHome}\\.cco\\profiles\\work\\isolate`);
+  expect(isolate.claudeHomeDir).toBe(
+    `${fakeHome}\\.cco\\profiles\\work\\isolate\\claude`,
   );
-  expect(teams.manifestFile).toBe(
-    `${fakeHome}\\.cco\\profiles\\work\\teams\\manifest.json`,
+  expect(isolate.manifestFile).toBe(
+    `${fakeHome}\\.cco\\profiles\\work\\isolate\\manifest.json`,
   );
 });
 

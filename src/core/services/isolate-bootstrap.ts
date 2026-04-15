@@ -5,21 +5,21 @@ import { DomainError } from "../errors/domain-error.ts";
 import type { OverlayProfile } from "../model/profile.ts";
 import {
   resolvePhysicalHostClaudeConfigDir,
-  resolveTeamsProfilePaths,
+  resolveIsolateProfilePaths,
 } from "../../infra/fs/path-utils.ts";
-import { promptForTeamsBootstrapMode, type TeamsBootstrapMode } from "../../ui/prompts/teams-bootstrap-mode.ts";
-import { renderTeamsBootstrapPage } from "../../ui/views/teams-bootstrap-page.ts";
+import { promptForIsolateBootstrapMode, type IsolateBootstrapMode } from "../../ui/prompts/isolate-bootstrap-mode.ts";
+import { renderIsolateBootstrapPage } from "../../ui/views/isolate-bootstrap-page.ts";
 
-interface TeamsManifest {
+interface IsolateManifest {
   readonly schemaVersion: 1;
   readonly profileId: string;
-  readonly seedMode: TeamsBootstrapMode;
+  readonly seedMode: IsolateBootstrapMode;
   readonly sourceConfigDir: string;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
 
-interface EnsureTeamsHomeReadyInput {
+interface EnsureIsolateHomeReadyInput {
   readonly context: AppContext;
   readonly profile: OverlayProfile;
   readonly ansiColor: boolean;
@@ -44,47 +44,47 @@ const LOCK_WAIT_MS = 25;
 const LOCK_TIMEOUT_MS = 5_000;
 const STALE_LOCK_MS = 15_000;
 
-export async function ensureTeamsHomeReady(
-  input: EnsureTeamsHomeReadyInput,
+export async function ensureIsolateHomeReady(
+  input: EnsureIsolateHomeReadyInput,
 ): Promise<string> {
   const { context, profile, ansiColor } = input;
-  const teamsPaths = resolveTeamsProfilePaths(context.runtime.paths, profile.id);
+  const isolatePaths = resolveIsolateProfilePaths(context.runtime.paths, profile.id);
   const sourceConfigDir = resolvePhysicalHostClaudeConfigDir(context.process.env);
   const renderOptions = { ansiColor, locale: context.runtime.locale } as const;
 
-  if (await hasPreparedTeamsHome(teamsPaths.claudeHomeDir, teamsPaths.manifestFile)) {
-    await persistTeamsMetadata(context, profile, teamsPaths.claudeHomeDir, teamsPaths.manifestFile, sourceConfigDir);
-    return teamsPaths.claudeHomeDir;
+  if (await hasPreparedIsolateHome(isolatePaths.claudeHomeDir, isolatePaths.manifestFile)) {
+    await persistIsolateMetadata(context, profile, isolatePaths.claudeHomeDir, isolatePaths.manifestFile, sourceConfigDir);
+    return isolatePaths.claudeHomeDir;
   }
 
   if (!context.process.stdin.isTTY || !context.process.stdout.isTTY) {
     throw new DomainError(
-      "TEAMS_SETUP_REQUIRED",
+      "ISOLATE_SETUP_REQUIRED",
       "The isolate home is not ready yet.",
       { profileId: profile.id },
     );
   }
 
-  await mkdir(teamsPaths.root, { recursive: true });
+  await mkdir(isolatePaths.root, { recursive: true });
 
-  return await withTeamsLock(teamsPaths.root, async () => {
-    if (await hasPreparedTeamsHome(teamsPaths.claudeHomeDir, teamsPaths.manifestFile)) {
-      await persistTeamsMetadata(context, profile, teamsPaths.claudeHomeDir, teamsPaths.manifestFile, sourceConfigDir);
-      return teamsPaths.claudeHomeDir;
+  return await withIsolateLock(isolatePaths.root, async () => {
+    if (await hasPreparedIsolateHome(isolatePaths.claudeHomeDir, isolatePaths.manifestFile)) {
+      await persistIsolateMetadata(context, profile, isolatePaths.claudeHomeDir, isolatePaths.manifestFile, sourceConfigDir);
+      return isolatePaths.claudeHomeDir;
     }
 
     context.process.stdout.write(
-      `${renderTeamsBootstrapPage(teamsPaths.claudeHomeDir, renderOptions)}\n\n`,
+      `${renderIsolateBootstrapPage(isolatePaths.claudeHomeDir, renderOptions)}\n\n`,
     );
 
-    const seedMode = await promptForTeamsBootstrapMode(profile.id);
-    await mkdir(teamsPaths.claudeHomeDir, { recursive: true });
+    const seedMode = await promptForIsolateBootstrapMode(profile.id);
+    await mkdir(isolatePaths.claudeHomeDir, { recursive: true });
 
     if (
       seedMode === "import-host" &&
-      await isDirectoryEmpty(teamsPaths.claudeHomeDir)
+      await isDirectoryEmpty(isolatePaths.claudeHomeDir)
     ) {
-      await copyHostLiteSeed(sourceConfigDir, teamsPaths.claudeHomeDir);
+      await copyHostLiteSeed(sourceConfigDir, isolatePaths.claudeHomeDir);
     }
 
     const manifest = buildManifest(
@@ -93,21 +93,21 @@ export async function ensureTeamsHomeReady(
       sourceConfigDir,
       context.runtime.now().toISOString(),
     );
-    await writeManifest(teamsPaths.manifestFile, manifest);
-    await persistTeamsMetadata(
+    await writeManifest(isolatePaths.manifestFile, manifest);
+    await persistIsolateMetadata(
       context,
       profile,
-      teamsPaths.claudeHomeDir,
-      teamsPaths.manifestFile,
+      isolatePaths.claudeHomeDir,
+      isolatePaths.manifestFile,
       sourceConfigDir,
       manifest.createdAt,
     );
 
-    return teamsPaths.claudeHomeDir;
+    return isolatePaths.claudeHomeDir;
   });
 }
 
-async function persistTeamsMetadata(
+async function persistIsolateMetadata(
   context: AppContext,
   profile: OverlayProfile,
   claudeHomeDir: string,
@@ -115,7 +115,7 @@ async function persistTeamsMetadata(
   sourceConfigDir: string,
   seededAt?: string,
 ): Promise<void> {
-  if (profile.teams) {
+  if (profile.isolate) {
     return;
   }
 
@@ -123,7 +123,7 @@ async function persistTeamsMetadata(
   await context.runtime.profileStore.put({
     ...profile,
     updatedAt: now,
-    teams: {
+    isolate: {
       enabled: true,
       homeDir: claudeHomeDir,
       state: "ready",
@@ -142,10 +142,10 @@ async function persistTeamsMetadata(
 
 function buildManifest(
   profileId: string,
-  seedMode: TeamsBootstrapMode,
+  seedMode: IsolateBootstrapMode,
   sourceConfigDir: string,
   timestamp: string,
-): TeamsManifest {
+): IsolateManifest {
   return {
     schemaVersion: 1,
     profileId,
@@ -158,14 +158,14 @@ function buildManifest(
 
 async function writeManifest(
   manifestFile: string,
-  manifest: TeamsManifest,
+  manifest: IsolateManifest,
 ): Promise<void> {
   const tempFile = `${manifestFile}.${process.pid}.${Date.now()}.tmp`;
   await writeFile(tempFile, JSON.stringify(manifest, null, 2), "utf8");
   await rename(tempFile, manifestFile);
 }
 
-async function hasPreparedTeamsHome(
+async function hasPreparedIsolateHome(
   claudeHomeDir: string,
   manifestFile: string,
 ): Promise<boolean> {
@@ -219,7 +219,7 @@ async function isDirectoryEmpty(path: string): Promise<boolean> {
   }
 }
 
-async function withTeamsLock<T>(
+async function withIsolateLock<T>(
   root: string,
   work: () => Promise<T>,
 ): Promise<T> {
@@ -249,7 +249,7 @@ async function acquireLock(lockPath: string): Promise<void> {
       await clearStaleLock(lockPath);
 
       if (Date.now() >= deadline) {
-        throw new Error(`Timed out waiting for teams bootstrap lock at ${lockPath}.`);
+        throw new Error(`Timed out waiting for isolate bootstrap lock at ${lockPath}.`);
       }
 
       await sleep(LOCK_WAIT_MS);

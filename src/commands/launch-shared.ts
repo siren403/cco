@@ -7,7 +7,7 @@ import {
   resolveShellSubprocessEnvScrubMode,
 } from "../core/services/permission-mode.ts";
 import { resolveProfile } from "../core/services/resolve-profile.ts";
-import { ensureTeamsHomeReady } from "../core/services/teams-bootstrap.ts";
+import { ensureIsolateHomeReady } from "../core/services/isolate-bootstrap.ts";
 import {
   resolveSubprocessEnvScrubMode,
   type OverlayProfile,
@@ -31,7 +31,7 @@ const text = getStaticUiText();
 export interface LaunchProfileOptions {
   readonly requestedProfileId?: string;
   readonly claudeArgs?: readonly string[];
-  readonly teams?: boolean;
+  readonly isolate?: boolean;
 }
 
 export async function launchClaudeForProfile(
@@ -43,11 +43,11 @@ export async function launchClaudeForProfile(
   const profile = options.requestedProfileId
     ? await resolveProfile(context.runtime.profileStore, options.requestedProfileId)
     : await chooseProfile(profiles);
-  const teamsConfigDir = options.teams
-    ? await resolveTeamsConfigDir(context, profile, ansiColor)
+  const isolateConfigDir = options.isolate
+    ? await resolveIsolateConfigDir(context, profile, ansiColor)
     : undefined;
-  const token = options.teams ? null : await resolveToken(context, profile);
-  const subprocessEnvScrubOverride = options.teams
+  const token = options.isolate ? null : await resolveToken(context, profile);
+  const subprocessEnvScrubOverride = options.isolate
     ? undefined
     : await maybeResolvePermissionModeOverride(
         context,
@@ -66,9 +66,9 @@ export async function launchClaudeForProfile(
     parentEnv: context.process.env,
     token: token ?? undefined,
     explicitArgs: options.claudeArgs,
-    envOverrides: teamsConfigDir
+    envOverrides: isolateConfigDir
       ? {
-          CLAUDE_CONFIG_DIR: teamsConfigDir,
+          CLAUDE_CONFIG_DIR: isolateConfigDir,
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: undefined,
         }
       : undefined,
@@ -119,20 +119,20 @@ async function resolveToken(
   return token;
 }
 
-async function resolveTeamsConfigDir(
+async function resolveIsolateConfigDir(
   context: AppContext,
   profile: Profile,
   ansiColor: boolean,
 ): Promise<string> {
   if (profile.kind !== "overlay") {
     throw new DomainError(
-      "TEAMS_OVERLAY_ONLY",
+      "ISOLATE_OVERLAY_ONLY",
       "Isolate mode currently supports saved overlay profiles only.",
       { profileId: profile.id },
     );
   }
 
-  return await ensureTeamsHomeReady({
+  return await ensureIsolateHomeReady({
     context,
     profile,
     ansiColor,

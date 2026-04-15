@@ -10,7 +10,6 @@ export const RESERVED_PROFILE_IDS = new Set([
   "host",
   "isolate",
   "run",
-  "teams",
   "showcase",
   "version",
 ]);

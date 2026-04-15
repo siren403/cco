@@ -9,7 +9,7 @@ export interface CcoPaths {
   readonly tokensDir: string;
 }
 
-export interface TeamsProfilePaths {
+export interface IsolateProfilePaths {
   readonly root: string;
   readonly claudeHomeDir: string;
   readonly manifestFile: string;
@@ -32,11 +32,11 @@ export function ensureCcoLayout(paths: CcoPaths): void {
   mkdirSync(paths.tokensDir, { recursive: true });
 }
 
-export function resolveTeamsProfilePaths(
+export function resolveIsolateProfilePaths(
   paths: CcoPaths,
   profileId: string,
-): TeamsProfilePaths {
-  const root = join(paths.profilesDir, profileId, "teams");
+): IsolateProfilePaths {
+  const root = join(paths.profilesDir, profileId, "isolate");
 
   return {
     root,

@@ -3,8 +3,8 @@ import { basename, dirname, join } from "node:path";
 import type {
   OverlayProfile,
   OverlayProfileEnv,
-  TeamsProfileMetadata,
-  TeamsProfileSource,
+  IsolateProfileMetadata,
+  IsolateProfileSource,
 } from "../../core/model/profile.ts";
 import type { ProfileStore } from "../../core/ports/profile-store.ts";
 
@@ -116,7 +116,7 @@ function normalizeProfile(value: unknown): OverlayProfile | null {
     lastUsedAt:
       typeof profile.lastUsedAt === "string" ? profile.lastUsedAt : undefined,
     env: normalizeProfileEnv(profile.env),
-    teams: normalizeTeamsProfile(profile.teams),
+    isolate: normalizeIsolateProfile(profile.isolate),
   };
 }
 
@@ -138,49 +138,49 @@ function normalizeProfileEnv(value: unknown): OverlayProfileEnv | undefined {
   };
 }
 
-function normalizeTeamsProfile(value: unknown): TeamsProfileMetadata | undefined {
+function normalizeIsolateProfile(value: unknown): IsolateProfileMetadata | undefined {
   if (!value || typeof value !== "object") {
     return undefined;
   }
 
-  const teams = value as Partial<TeamsProfileMetadata>;
+  const isolate = value as Partial<IsolateProfileMetadata>;
   if (
-    teams.enabled !== true ||
-    typeof teams.homeDir !== "string" ||
-    (teams.state !== "ready" &&
-      teams.state !== "stale" &&
-      teams.state !== "broken") ||
-    teams.seedPreset !== "host-lite" ||
-    typeof teams.manifestPath !== "string"
+    isolate.enabled !== true ||
+    typeof isolate.homeDir !== "string" ||
+    (isolate.state !== "ready" &&
+      isolate.state !== "stale" &&
+      isolate.state !== "broken") ||
+    isolate.seedPreset !== "host-lite" ||
+    typeof isolate.manifestPath !== "string"
   ) {
     return undefined;
   }
 
-  const source = normalizeTeamsSource(teams.source);
+  const source = normalizeIsolateSource(isolate.source);
   if (!source) {
     return undefined;
   }
 
   return {
     enabled: true,
-    homeDir: teams.homeDir,
-    state: teams.state,
+    homeDir: isolate.homeDir,
+    state: isolate.state,
     seedPreset: "host-lite",
     source,
-    manifestPath: teams.manifestPath,
+    manifestPath: isolate.manifestPath,
     lastSeededAt:
-      typeof teams.lastSeededAt === "string" ? teams.lastSeededAt : undefined,
+      typeof isolate.lastSeededAt === "string" ? isolate.lastSeededAt : undefined,
     lastSyncedAt:
-      typeof teams.lastSyncedAt === "string" ? teams.lastSyncedAt : undefined,
+      typeof isolate.lastSyncedAt === "string" ? isolate.lastSyncedAt : undefined,
   };
 }
 
-function normalizeTeamsSource(value: unknown): TeamsProfileSource | undefined {
+function normalizeIsolateSource(value: unknown): IsolateProfileSource | undefined {
   if (!value || typeof value !== "object") {
     return undefined;
   }
 
-  const source = value as Partial<TeamsProfileSource>;
+  const source = value as Partial<IsolateProfileSource>;
   if (
     source.kind !== "overlay" ||
     typeof source.profileId !== "string" ||

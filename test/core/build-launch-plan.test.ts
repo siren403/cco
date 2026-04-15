@@ -112,10 +112,10 @@ test("env overrides can redirect the Claude config dir", () => {
     cwd: "/tmp/example",
     parentEnv: baseEnv,
     envOverrides: {
-      CLAUDE_CONFIG_DIR: "/tmp/teams-home",
+      CLAUDE_CONFIG_DIR: "/tmp/isolate-home",
     },
   });
 
-  expect(plan.env.CLAUDE_CONFIG_DIR).toBe("/tmp/teams-home");
+  expect(plan.env.CLAUDE_CONFIG_DIR).toBe("/tmp/isolate-home");
   expect(plan.env.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined();
 });

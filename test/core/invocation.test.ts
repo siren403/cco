@@ -6,14 +6,21 @@ test("plain profile invocation is treated as direct Claude launch", () => {
     mode: "direct-launch",
     profileId: "work",
     claudeArgs: [],
-    teams: false,
+    isolate: false,
   });
 
   expect(resolveInvocation(["work", "-c"])).toEqual({
     mode: "direct-launch",
     profileId: "work",
     claudeArgs: ["-c"],
-    teams: false,
+    isolate: false,
+  });
+
+  expect(resolveInvocation(["teams"])).toEqual({
+    mode: "direct-launch",
+    profileId: "teams",
+    claudeArgs: [],
+    isolate: false,
   });
 });
 
@@ -22,7 +29,7 @@ test("host invocation passes trailing args through to Claude", () => {
     mode: "direct-launch",
     profileId: "host",
     claudeArgs: ["--resume", "abc"],
-    teams: false,
+    isolate: false,
   });
 });
 
@@ -31,31 +38,13 @@ test("launch flags before profile stay on the direct launch path", () => {
     mode: "direct-launch",
     profileId: "work",
     claudeArgs: ["-c"],
-    teams: true,
-  });
-
-  expect(resolveInvocation(["--teams", "work", "-c"])).toEqual({
-    mode: "direct-launch",
-    profileId: "work",
-    claudeArgs: ["-c"],
-    teams: true,
-  });
-
-  expect(resolveInvocation(["--teams", "work", "--", "-c"])).toEqual({
-    mode: "direct-launch",
-    profileId: "work",
-    claudeArgs: ["-c"],
-    teams: true,
+    isolate: true,
   });
 });
 
 test("launch flags after profile are rejected with a targeted error", () => {
   expect(() => resolveInvocation(["work", "--isolate"])).toThrow(
     '"--isolate" is a cco launch option and must appear before <profile>. Try: cco --isolate work',
-  );
-
-  expect(() => resolveInvocation(["work", "--teams"])).toThrow(
-    '"--teams" is a cco launch option and must appear before <profile>. Try: cco --teams work',
   );
 });
 
@@ -64,7 +53,6 @@ test("reserved CLI commands stay on the Stricli path", () => {
   expect(resolveInvocation(["auth", "list"])).toEqual({ mode: "stricli" });
   expect(resolveInvocation(["doctor"])).toEqual({ mode: "stricli" });
   expect(resolveInvocation(["isolate", "status", "work"])).toEqual({ mode: "stricli" });
-  expect(resolveInvocation(["teams", "status", "work"])).toEqual({ mode: "stricli" });
   expect(resolveInvocation(["showcase"])).toEqual({ mode: "stricli" });
   expect(resolveInvocation(["--help"])).toEqual({ mode: "stricli" });
   expect(resolveInvocation(["host", "--help"])).toEqual({ mode: "stricli" });

@@ -1,49 +1,49 @@
 import { readFile, rm, stat } from "node:fs/promises";
 import type { AppContext } from "../../context.ts";
-import { resolveTeamsProfilePaths } from "../../infra/fs/path-utils.ts";
+import { resolveIsolateProfilePaths } from "../../infra/fs/path-utils.ts";
 import type { OverlayProfile } from "../model/profile.ts";
 
-export type TeamsSeedMode = "import-host" | "clean";
-export type TeamsHomeHealth = "ready" | "missing" | "broken";
+export type IsolateSeedMode = "import-host" | "clean";
+export type IsolateHomeHealth = "ready" | "missing" | "broken";
 
-export interface TeamsManifest {
+export interface IsolateManifest {
   readonly schemaVersion: 1;
   readonly profileId: string;
-  readonly seedMode: TeamsSeedMode;
+  readonly seedMode: IsolateSeedMode;
   readonly sourceConfigDir: string;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
 
-export interface TeamsHomeStatus {
+export interface IsolateHomeStatus {
   readonly profileId: string;
   readonly root: string;
   readonly homeDir: string;
   readonly manifestFile: string;
-  readonly health: TeamsHomeHealth;
+  readonly health: IsolateHomeHealth;
   readonly homeExists: boolean;
   readonly manifestExists: boolean;
   readonly metadataExists: boolean;
   readonly metadataState?: string;
-  readonly manifest?: TeamsManifest;
+  readonly manifest?: IsolateManifest;
 }
 
-export interface RemoveTeamsHomeResult {
+export interface RemoveIsolateHomeResult {
   readonly changed: boolean;
   readonly homeRemoved: boolean;
   readonly metadataCleared: boolean;
   readonly root: string;
 }
 
-export async function inspectTeamsHome(
+export async function inspectIsolateHome(
   context: AppContext,
   profile: OverlayProfile,
-): Promise<TeamsHomeStatus> {
-  const paths = resolveTeamsProfilePaths(context.runtime.paths, profile.id);
+): Promise<IsolateHomeStatus> {
+  const paths = resolveIsolateProfilePaths(context.runtime.paths, profile.id);
   const homeExists = await pathExists(paths.claudeHomeDir);
   const manifestExists = await pathExists(paths.manifestFile);
   const manifest = manifestExists ? await readManifest(paths.manifestFile) : undefined;
-  const metadataExists = profile.teams != null;
+  const metadataExists = profile.isolate != null;
 
   return {
     profileId: profile.id,
@@ -54,16 +54,16 @@ export async function inspectTeamsHome(
     homeExists,
     manifestExists,
     metadataExists,
-    metadataState: profile.teams?.state,
+    metadataState: profile.isolate?.state,
     manifest,
   };
 }
 
-export async function removeTeamsHome(
+export async function removeIsolateHome(
   context: AppContext,
   profile: OverlayProfile,
-): Promise<RemoveTeamsHomeResult> {
-  const paths = resolveTeamsProfilePaths(context.runtime.paths, profile.id);
+): Promise<RemoveIsolateHomeResult> {
+  const paths = resolveIsolateProfilePaths(context.runtime.paths, profile.id);
   const rootExists = await pathExists(paths.root);
 
   if (rootExists) {
@@ -71,12 +71,12 @@ export async function removeTeamsHome(
   }
 
   let metadataCleared = false;
-  if (profile.teams) {
+  if (profile.isolate) {
     metadataCleared = true;
     await context.runtime.profileStore.put({
       ...profile,
       updatedAt: context.runtime.now().toISOString(),
-      teams: undefined,
+      isolate: undefined,
     });
   }
 
@@ -92,8 +92,8 @@ function resolveHealth(
   homeExists: boolean,
   manifestExists: boolean,
   metadataExists: boolean,
-  manifest?: TeamsManifest,
-): TeamsHomeHealth {
+  manifest?: IsolateManifest,
+): IsolateHomeHealth {
   if (!homeExists && !manifestExists && !metadataExists) {
     return "missing";
   }
@@ -105,9 +105,9 @@ function resolveHealth(
   return "broken";
 }
 
-async function readManifest(filePath: string): Promise<TeamsManifest | undefined> {
+async function readManifest(filePath: string): Promise<IsolateManifest | undefined> {
   try {
-    const parsed = JSON.parse(await readFile(filePath, "utf8")) as Partial<TeamsManifest>;
+    const parsed = JSON.parse(await readFile(filePath, "utf8")) as Partial<IsolateManifest>;
     if (
       parsed.schemaVersion !== 1 ||
       typeof parsed.profileId !== "string" ||

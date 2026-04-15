@@ -10,11 +10,6 @@ The public UX is:
 - `cco --isolate <profile>`: isolate launch
 - `cco isolate status|remove|fresh <profile>`: isolate maintenance
 
-Legacy compatibility aliases remain:
-
-- `cco --teams <profile>`
-- `cco teams ...`
-
 ## Product Model
 
 `cco` has one saved overlay profile record per alias such as `work` or `backup`.
@@ -38,7 +33,7 @@ That means:
 
 ### Isolate
 
-- Uses a separate Claude home under `~/.cco/profiles/<profile>/teams/claude`
+- Uses a separate Claude home under `~/.cco/profiles/<profile>/isolate/claude`
 - Does not inject the overlay token into the launched Claude process
 - Uses native Claude login inside that isolate home
 - Best option for team or teammate workflows where runtime token overlay is insufficient
@@ -94,7 +89,6 @@ Implemented and intended for public use:
 - `isolate remove`
 - `isolate fresh`
 - Korean-first help and recovery copy
-- `teams` compatibility aliases
 
 Out of scope for now:
 

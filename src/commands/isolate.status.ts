@@ -1,7 +1,7 @@
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
-import { inspectTeamsHome } from "../core/services/teams-home.ts";
+import { inspectIsolateHome } from "../core/services/isolate-home.ts";
 import { resolveProfile } from "../core/services/resolve-profile.ts";
 import { getStaticUiText } from "../i18n/index.ts";
 import { renderKeyValueList, renderPanel } from "../ui/layout/primitives.ts";
@@ -9,24 +9,24 @@ import { resolveAnsiColor } from "../ui/theme.ts";
 
 const text = getStaticUiText();
 
-export const teamsStatusCommand = buildCommand<{}, [profileId: string], AppContext>({
+export const isolateStatusCommand = buildCommand<{}, [profileId: string], AppContext>({
   async func(this: AppContext, _flags, profileId) {
     const profile = await resolveProfile(this.runtime.profileStore, profileId);
     if (profile.kind !== "overlay") {
       throw new DomainError(
-        "TEAMS_OVERLAY_ONLY",
+        "ISOLATE_OVERLAY_ONLY",
         "Isolate mode currently supports saved overlay profiles only.",
         { profileId },
       );
     }
 
-    const status = await inspectTeamsHome(this, profile);
+    const status = await inspectIsolateHome(this, profile);
     const ansiColor = resolveAnsiColor(this.process.stdout, this.process.env);
     const renderOptions = { ansiColor, locale: this.runtime.locale } as const;
 
     const panel = renderPanel(
       {
-        title: text.misc.teamsStatusTitle,
+        title: text.misc.isolateStatusTitle,
         tone: status.health === "ready"
           ? "ok"
           : status.health === "missing"
@@ -42,10 +42,10 @@ export const teamsStatusCommand = buildCommand<{}, [profileId: string], AppConte
               {
                 label: "status",
                 value: status.health === "ready"
-                  ? text.misc.teamsStatusReadyBadge
+                  ? text.misc.isolateStatusReadyBadge
                   : status.health === "missing"
-                    ? text.misc.teamsStatusMissingBadge
-                    : text.misc.teamsStatusBrokenBadge,
+                    ? text.misc.isolateStatusMissingBadge
+                    : text.misc.isolateStatusBrokenBadge,
               },
               {
                 label: "home-dir",
@@ -81,7 +81,7 @@ export const teamsStatusCommand = buildCommand<{}, [profileId: string], AppConte
                 label: "source-config",
                 value:
                   status.manifest?.sourceConfigDir ??
-                  profile.teams?.source.configDir ??
+                  profile.isolate?.source.configDir ??
                   text.profiles.missingBadge,
               },
             ],
@@ -99,7 +99,7 @@ export const teamsStatusCommand = buildCommand<{}, [profileId: string], AppConte
       kind: "tuple",
       parameters: [
         {
-          brief: text.commandBriefs.teamsArgProfile,
+          brief: text.commandBriefs.isolateArgProfile,
           parse: String,
           placeholder: "profile",
         },
@@ -107,6 +107,6 @@ export const teamsStatusCommand = buildCommand<{}, [profileId: string], AppConte
     },
   },
   docs: {
-    brief: text.commandBriefs.teamsStatus,
+    brief: text.commandBriefs.isolateStatus,
   },
 });

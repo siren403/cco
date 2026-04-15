@@ -1,24 +1,24 @@
 export type ProfileKind = "host" | "overlay";
 export type SubprocessEnvScrubMode = "0" | "1";
-export type TeamsProfileState = "ready" | "stale" | "broken";
+export type IsolateProfileState = "ready" | "stale" | "broken";
 
 export interface OverlayProfileEnv {
   readonly CLAUDE_CODE_SUBPROCESS_ENV_SCRUB?: SubprocessEnvScrubMode;
 }
 
-export interface TeamsProfileSource {
+export interface IsolateProfileSource {
   readonly kind: "overlay";
   readonly profileId: string;
   readonly configDir: string;
   readonly fingerprint?: string;
 }
 
-export interface TeamsProfileMetadata {
+export interface IsolateProfileMetadata {
   readonly enabled: boolean;
   readonly homeDir: string;
-  readonly state: TeamsProfileState;
+  readonly state: IsolateProfileState;
   readonly seedPreset: "host-lite";
-  readonly source: TeamsProfileSource;
+  readonly source: IsolateProfileSource;
   readonly manifestPath: string;
   readonly lastSeededAt?: string;
   readonly lastSyncedAt?: string;
@@ -39,7 +39,7 @@ export interface OverlayProfile {
   readonly updatedAt: string;
   readonly lastUsedAt?: string;
   readonly env?: OverlayProfileEnv;
-  readonly teams?: TeamsProfileMetadata;
+  readonly isolate?: IsolateProfileMetadata;
 }
 
 export type Profile = HostProfile | OverlayProfile;

@@ -26,7 +26,7 @@ if (isRootHelpRequest(argv)) {
       await launchClaudeForProfile(context, {
         requestedProfileId: invocation.profileId,
         claudeArgs: invocation.claudeArgs,
-        teams: invocation.teams,
+        isolate: invocation.isolate,
       });
     } else {
       await run(app, argv, context);

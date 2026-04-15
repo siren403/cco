@@ -1,20 +1,20 @@
-import { outro } from "@clack/prompts";
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
-import { removeTeamsHome } from "../core/services/teams-home.ts";
+import { inspectIsolateHome, removeIsolateHome } from "../core/services/isolate-home.ts";
 import { resolveProfile } from "../core/services/resolve-profile.ts";
 import { getStaticUiText } from "../i18n/index.ts";
-import { promptToConfirmTeamsRemove } from "../ui/prompts/confirm-teams-remove.ts";
+import { promptToConfirmIsolateRemove } from "../ui/prompts/confirm-isolate-remove.ts";
+import { launchClaudeForProfile } from "./launch-shared.ts";
 
 const text = getStaticUiText();
 
-interface TeamsRemoveFlags {
+interface IsolateFreshFlags {
   readonly yes?: boolean;
 }
 
-export const teamsRemoveCommand = buildCommand<
-  TeamsRemoveFlags,
+export const isolateFreshCommand = buildCommand<
+  IsolateFreshFlags,
   [profileId: string],
   AppContext
 >({
@@ -22,34 +22,34 @@ export const teamsRemoveCommand = buildCommand<
     const profile = await resolveProfile(this.runtime.profileStore, profileId);
     if (profile.kind !== "overlay") {
       throw new DomainError(
-        "TEAMS_OVERLAY_ONLY",
+        "ISOLATE_OVERLAY_ONLY",
         "Isolate mode currently supports saved overlay profiles only.",
         { profileId },
       );
     }
 
-    const confirmed = flags.yes === true
-      ? true
-      : await promptToConfirmTeamsRemove(profileId);
-    if (!confirmed) {
-      this.process.stdout.write(`${text.misc.noChangesMade}\n`);
-      return;
+    const current = await inspectIsolateHome(this, profile);
+    if ((current.homeExists || current.metadataExists) && flags.yes !== true) {
+      const confirmed = await promptToConfirmIsolateRemove(profileId);
+      if (!confirmed) {
+        this.process.stdout.write(`${text.misc.noChangesMade}\n`);
+        return;
+      }
     }
 
-    const result = await removeTeamsHome(this, profile);
-    if (!result.changed) {
-      this.process.stdout.write(`${text.misc.teamsAlreadyMissing(profileId)}\n`);
-      return;
-    }
+    await removeIsolateHome(this, profile);
 
-    outro(text.misc.removedTeams(profileId));
+    await launchClaudeForProfile(this, {
+      requestedProfileId: profileId,
+      isolate: true,
+    });
   },
   parameters: {
     flags: {
       yes: {
         kind: "boolean",
         optional: true,
-        brief: text.commandBriefs.teamsFlagYes,
+        brief: text.commandBriefs.isolateFlagYes,
       },
     },
     aliases: {
@@ -59,7 +59,7 @@ export const teamsRemoveCommand = buildCommand<
       kind: "tuple",
       parameters: [
         {
-          brief: text.commandBriefs.teamsArgProfile,
+          brief: text.commandBriefs.isolateArgProfile,
           parse: String,
           placeholder: "profile",
         },
@@ -67,6 +67,6 @@ export const teamsRemoveCommand = buildCommand<
     },
   },
   docs: {
-    brief: text.commandBriefs.teamsRemove,
+    brief: text.commandBriefs.isolateFresh,
   },
 });

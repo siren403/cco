@@ -49,27 +49,10 @@ test("isolate launch flag before profile reaches the launch layer", async () => 
   expect(result.stderr).toContain("격리 home");
 });
 
-test("legacy teams launch flag is still accepted as an alias", async () => {
-  const sandbox = await createSandbox();
-  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
-  await seedTeamsHome(sandbox.ccoHome, "work");
-
-  const result = await runCli(["--teams", "work", "-c"], sandbox, {});
-
-  expect(result.exitCode).toBe(0);
-
-  const log = await readFakeClaudeLog(sandbox.logPath);
-  expect(log.args).toEqual(["-c"]);
-  expect(log.env.CLAUDE_CONFIG_DIR).toBe(
-    join(sandbox.ccoHome, "profiles", "work", "teams", "claude"),
-  );
-  expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBeNull();
-});
-
 test("isolate launch uses the dedicated Claude home and omits overlay auth env", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
-  await seedTeamsHome(sandbox.ccoHome, "work");
+  await seedIsolateHome(sandbox.ccoHome, "work");
 
   const result = await runCli(["--isolate", "work", "-c"], sandbox, {
     CLAUDE_CONFIG_DIR: join(sandbox.root, "host-config"),
@@ -80,16 +63,16 @@ test("isolate launch uses the dedicated Claude home and omits overlay auth env",
   const log = await readFakeClaudeLog(sandbox.logPath);
   expect(log.args).toEqual(["-c"]);
   expect(log.env.CLAUDE_CONFIG_DIR).toBe(
-    join(sandbox.ccoHome, "profiles", "work", "teams", "claude"),
+    join(sandbox.ccoHome, "profiles", "work", "isolate", "claude"),
   );
   expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBeNull();
   expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBeNull();
 });
 
-test("isolate launch does not require the saved overlay token once teams home exists", async () => {
+test("isolate launch does not require the saved overlay token once isolate home exists", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
-  await seedTeamsHome(sandbox.ccoHome, "work");
+  await seedIsolateHome(sandbox.ccoHome, "work");
   await rm(join(sandbox.ccoHome, "tokens", "work.token"), { force: true });
 
   const result = await runCli(["--isolate", "work", "-c"], sandbox, {});
@@ -99,7 +82,7 @@ test("isolate launch does not require the saved overlay token once teams home ex
   const log = await readFakeClaudeLog(sandbox.logPath);
   expect(log.args).toEqual(["-c"]);
   expect(log.env.CLAUDE_CONFIG_DIR).toBe(
-    join(sandbox.ccoHome, "profiles", "work", "teams", "claude"),
+    join(sandbox.ccoHome, "profiles", "work", "isolate", "claude"),
   );
   expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBeNull();
 });
@@ -244,41 +227,31 @@ test("isolate status reports missing isolate when none is prepared", async () =>
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("Isolate");
   expect(result.stdout).toContain("missing");
-  expect(result.stdout).toContain(join(sandbox.ccoHome, "profiles", "work", "teams", "claude"));
-});
-
-test("legacy teams status command remains available as an alias", async () => {
-  const sandbox = await createSandbox();
-  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
-
-  const result = await runCli(["teams", "status", "work"], sandbox, {});
-
-  expect(result.exitCode).toBe(0);
-  expect(result.stdout).toContain("Isolate");
+  expect(result.stdout).toContain(join(sandbox.ccoHome, "profiles", "work", "isolate", "claude"));
 });
 
 test("isolate remove deletes only the isolate home and clears metadata", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1", true);
-  await seedTeamsHome(sandbox.ccoHome, "work");
+  await seedIsolateHome(sandbox.ccoHome, "work");
 
   const result = await runCli(["isolate", "remove", "work", "--yes"], sandbox, {});
 
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("격리 실행 환경");
-  expect(await exists(join(sandbox.ccoHome, "profiles", "work", "teams"))).toBe(false);
+  expect(await exists(join(sandbox.ccoHome, "profiles", "work", "isolate"))).toBe(false);
   expect(await exists(join(sandbox.ccoHome, "tokens", "work.token"))).toBe(true);
 
   const profiles = JSON.parse(
     await readFile(join(sandbox.ccoHome, "profiles.json"), "utf8"),
-  ) as { profiles: Array<{ teams?: unknown }> };
-  expect(profiles.profiles[0]?.teams).toBeUndefined();
+  ) as { profiles: Array<{ isolate?: unknown }> };
+  expect(profiles.profiles[0]?.isolate).toBeUndefined();
 });
 
 test("isolate fresh removes stale isolate before re-entering bootstrap flow", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1", true);
-  await seedTeamsHome(sandbox.ccoHome, "work");
+  await seedIsolateHome(sandbox.ccoHome, "work");
 
   const result = await runCli(
     ["isolate", "fresh", "--yes", "work"],
@@ -288,7 +261,7 @@ test("isolate fresh removes stale isolate before re-entering bootstrap flow", as
 
   expect(result.exitCode).toBe(1);
   expect(result.stderr).toContain("격리 home");
-  expect(await exists(join(sandbox.ccoHome, "profiles", "work", "teams"))).toBe(false);
+  expect(await exists(join(sandbox.ccoHome, "profiles", "work", "isolate"))).toBe(false);
 });
 
 interface Sandbox {
@@ -321,9 +294,9 @@ async function seedOverlayProfile(
   profileId: string,
   token: string,
   subprocessEnvScrub: "0" | "1" = "1",
-  withTeamsMetadata = false,
+  withIsolateMetadata = false,
 ): Promise<void> {
-  const teamsRoot = join(ccoHome, "profiles", profileId, "teams");
+  const isolateRoot = join(ccoHome, "profiles", profileId, "isolate");
   await writeFile(
     join(ccoHome, "profiles.json"),
     JSON.stringify(
@@ -339,10 +312,10 @@ async function seedOverlayProfile(
             env: {
               CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: subprocessEnvScrub,
             },
-            teams: withTeamsMetadata
+            isolate: withIsolateMetadata
               ? {
                   enabled: true,
-                  homeDir: join(teamsRoot, "claude"),
+                  homeDir: join(isolateRoot, "claude"),
                   state: "ready",
                   seedPreset: "host-lite",
                   source: {
@@ -350,7 +323,7 @@ async function seedOverlayProfile(
                     profileId,
                     configDir: join(ccoHome, "..", ".claude"),
                   },
-                  manifestPath: join(teamsRoot, "manifest.json"),
+                  manifestPath: join(isolateRoot, "manifest.json"),
                   lastSeededAt: "2026-04-15T00:00:00.000Z",
                   lastSyncedAt: "2026-04-15T00:00:00.000Z",
                 }
@@ -367,14 +340,14 @@ async function seedOverlayProfile(
   await writeFile(join(ccoHome, "tokens", `${profileId}.token`), `${token}\n`, "utf8");
 }
 
-async function seedTeamsHome(
+async function seedIsolateHome(
   ccoHome: string,
   profileId: string,
 ): Promise<void> {
-  const teamsRoot = join(ccoHome, "profiles", profileId, "teams");
-  await mkdir(join(teamsRoot, "claude"), { recursive: true });
+  const isolateRoot = join(ccoHome, "profiles", profileId, "isolate");
+  await mkdir(join(isolateRoot, "claude"), { recursive: true });
   await writeFile(
-    join(teamsRoot, "manifest.json"),
+    join(isolateRoot, "manifest.json"),
     JSON.stringify(
       {
         schemaVersion: 1,

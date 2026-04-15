@@ -81,7 +81,7 @@ test("store normalizes manual env edits from profiles.json", async () => {
   expect(profile?.env?.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
 });
 
-test("store normalizes teams metadata from profiles.json", async () => {
+test("store normalizes isolate metadata from profiles.json", async () => {
   const root = await mkdtemp(join(tmpdir(), "cco-profiles-"));
   createdDirs.push(root);
   const fakeCcoHome = "C:\\Users\\test-user\\.cco";
@@ -101,9 +101,9 @@ test("store normalizes teams metadata from profiles.json", async () => {
             tokenRef: "work",
             createdAt: "2026-04-15T00:00:00.000Z",
             updatedAt: "2026-04-15T00:00:00.000Z",
-            teams: {
+            isolate: {
               enabled: true,
-              homeDir: `${fakeCcoHome}\\profiles\\work\\teams\\claude`,
+              homeDir: `${fakeCcoHome}\\profiles\\work\\isolate\\claude`,
               state: "ready",
               seedPreset: "host-lite",
               source: {
@@ -112,7 +112,7 @@ test("store normalizes teams metadata from profiles.json", async () => {
                 configDir: fakeClaudeHome,
                 fingerprint: "sha256:test",
               },
-              manifestPath: `${fakeCcoHome}\\profiles\\work\\teams\\manifest.json`,
+              manifestPath: `${fakeCcoHome}\\profiles\\work\\isolate\\manifest.json`,
               lastSeededAt: "2026-04-15T00:00:00.000Z",
               lastSyncedAt: "2026-04-15T00:00:00.000Z",
             },
@@ -128,9 +128,9 @@ test("store normalizes teams metadata from profiles.json", async () => {
   const store = new JsonProfileStore(filePath);
   const profile = await store.get("work");
 
-  expect(profile?.teams?.enabled).toBe(true);
-  expect(profile?.teams?.state).toBe("ready");
-  expect(profile?.teams?.seedPreset).toBe("host-lite");
-  expect(profile?.teams?.source.profileId).toBe("work");
-  expect(profile?.teams?.source.configDir).toBe(fakeClaudeHome);
+  expect(profile?.isolate?.enabled).toBe(true);
+  expect(profile?.isolate?.state).toBe("ready");
+  expect(profile?.isolate?.seedPreset).toBe("host-lite");
+  expect(profile?.isolate?.source.profileId).toBe("work");
+  expect(profile?.isolate?.source.configDir).toBe(fakeClaudeHome);
 });

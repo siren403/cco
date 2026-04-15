@@ -179,12 +179,12 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
           },
           options,
         );
-      case "TEAMS_MODE_NOT_IMPLEMENTED":
+      case "ISOLATE_MODE_NOT_IMPLEMENTED":
         return renderErrorPage(
           {
-            title: text.errors.teamsModeNotImplementedTitle,
+            title: text.errors.isolateModeNotImplementedTitle,
             tone: "warn",
-            summary: text.errors.teamsModeNotImplementedDescription,
+            summary: text.errors.isolateModeNotImplementedDescription,
             commands: [
               {
                 command: `cco ${profileId ?? "work"}`,
@@ -198,16 +198,16 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
           },
           options,
         );
-      case "TEAMS_SETUP_REQUIRED":
+      case "ISOLATE_SETUP_REQUIRED":
         return renderErrorPage(
           {
-            title: text.errors.teamsSetupRequiredTitle,
+            title: text.errors.isolateSetupRequiredTitle,
             tone: "warn",
-            summary: text.errors.teamsSetupRequiredSummary,
+            summary: text.errors.isolateSetupRequiredSummary,
             commands: [
               {
                 command: `cco --isolate ${profileId ?? "work"}`,
-                description: text.errors.teamsSetupRequiredDescription(
+                description: text.errors.isolateSetupRequiredDescription(
                   profileId ?? "work",
                 ),
               },
@@ -215,10 +215,10 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
           },
           options,
         );
-      case "TEAMS_LOGIN_FAILED":
+      case "ISOLATE_LOGIN_FAILED":
         return renderErrorPage(
           {
-            title: text.errors.teamsLoginFailedTitle,
+            title: text.errors.isolateLoginFailedTitle,
             tone: "warn",
             summary: text.errors.exitCodeSummary(
               String(error.details.exitCode ?? "unknown"),
@@ -226,7 +226,7 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
             commands: [
               {
                 command: `cco --isolate ${profileId ?? "work"}`,
-                description: text.errors.teamsLoginRetryDescription(
+                description: text.errors.isolateLoginRetryDescription(
                   profileId ?? "work",
                 ),
               },
@@ -234,12 +234,12 @@ export function renderCliError(error: unknown, options: RenderOptions = {}): str
           },
           options,
         );
-      case "TEAMS_OVERLAY_ONLY":
+      case "ISOLATE_OVERLAY_ONLY":
         return renderErrorPage(
           {
-            title: text.errors.teamsOverlayOnlyTitle,
+            title: text.errors.isolateOverlayOnlyTitle,
             tone: "warn",
-            summary: text.errors.teamsOverlayOnlySummary,
+            summary: text.errors.isolateOverlayOnlySummary,
             commands: [
               {
                 command: "cco auth list",
