@@ -5,6 +5,23 @@
 - overlay: keep the host Claude home and swap runtime auth with `CLAUDE_CODE_OAUTH_TOKEN`
 - isolate: launch against a separate Claude home for team-compatible runs
 
+## Breaking Change in 0.2.0
+
+The old experimental `teams` surface has been removed.
+
+- `cco --teams <profile>` is gone
+- `cco teams ...` is gone
+- internal isolate storage moved from `~/.cco/profiles/<profile>/teams/` to `~/.cco/profiles/<profile>/isolate/`
+- there is no automatic migration for old experimental isolate homes
+
+If you used pre-`0.2.0` experimental builds, re-run:
+
+```bash
+cco --isolate <profile>
+```
+
+That will bootstrap a fresh isolate home under the new path.
+
 ## Positioning
 
 - Host Claude settings, plugins, and local sessions stay where they are.
