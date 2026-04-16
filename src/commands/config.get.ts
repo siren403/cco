@@ -1,3 +1,4 @@
+import React from "react";
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
@@ -7,8 +8,8 @@ import {
 } from "../core/model/profile.ts";
 import { resolveProfile } from "../core/services/resolve-profile.ts";
 import { getStaticUiText } from "../i18n/index.ts";
-import { renderKeyValueList, renderPanel } from "../ui/layout/primitives.ts";
-import { resolveAnsiColor } from "../ui/theme.ts";
+import { ConfigGetInkScreen } from "../ui/ink/config-ink-screen.ts";
+import { renderInkHost } from "../ui/ink/render-ink.ts";
 
 const text = getStaticUiText();
 
@@ -29,33 +30,21 @@ export const configGetCommand = buildCommand<ConfigGetFlags, [], AppContext>({
       );
     }
 
-    const ansiColor = resolveAnsiColor(this.process.stdout, this.process.env);
     const mode = resolveSubprocessEnvScrubMode(profile);
-    const message = renderPanel(
-      {
-        title: text.config.getTitle,
-        tone: "accent",
-        badge: { label: profileId, tone: "accent" },
-        body: [
-          renderKeyValueList(
-            [
-              {
-                label: "env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB",
-                value: `${mode} (${describeSubprocessEnvScrubMode(mode)})`,
-              },
-              {
-                label: "profiles-file",
-                value: this.runtime.paths.profilesFile,
-              },
-            ],
-            { ansiColor, locale: this.runtime.locale },
-          ),
-        ],
-      },
-      { ansiColor, locale: this.runtime.locale },
-    );
 
-    this.process.stdout.write(`${message}\n`);
+    await renderInkHost(
+      React.createElement(ConfigGetInkScreen, {
+        profileId,
+        modeDescription: `${mode} (${describeSubprocessEnvScrubMode(mode)})`,
+        profilesFile: this.runtime.paths.profilesFile,
+        locale: this.runtime.locale,
+      }),
+      {
+        stdin: this.process.stdin,
+        stdout: this.process.stdout,
+        stderr: this.process.stderr,
+      },
+    );
   },
   parameters: {
     flags: {

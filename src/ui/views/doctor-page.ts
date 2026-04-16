@@ -1,4 +1,7 @@
-import { getUiText } from "../../i18n/index.ts";
+import {
+  buildDoctorPageModel,
+  type DoctorPageData,
+} from "../models/doctor-page.ts";
 import {
   joinBlocks,
   renderBulletList,
@@ -8,107 +11,42 @@ import {
 } from "../layout/primitives.ts";
 import type { RenderOptions } from "../theme.ts";
 
-export interface DoctorPageData {
-  readonly claudeBinary: string;
-  readonly ccoHome: string;
-  readonly profiles: number;
-  readonly hostConfigDir: string;
-  readonly conflicts: readonly string[];
-  readonly launchMode: string;
-  readonly shellSubprocessEnvScrub?: "0" | "1";
-}
-
 export function renderDoctorPage(
   data: DoctorPageData,
   options: RenderOptions = {},
 ): string {
-  const text = getUiText(options.locale);
-  const ready = data.conflicts.length === 0;
+  const model = buildDoctorPageModel(data, options.locale ?? "ko");
 
   return joinBlocks([
     renderPanel(
       {
-        title: text.doctor.title,
-        tone: ready ? "ok" : "warn",
+        title: model.title,
+        tone: model.titleTone,
         badge: {
-          label: ready ? text.doctor.readyBadge : text.doctor.checkEnvBadge,
-          tone: ready ? "ok" : "warn",
+          label: model.badge,
+          tone: model.titleTone,
         },
-        body: ready
-          ? [text.doctor.readyLine1, text.doctor.readyLine2]
-          : [text.doctor.conflictLine1, text.doctor.conflictLine2],
+        body: model.introLines,
       },
       options,
     ),
     renderPanel(
       {
-        title: text.doctor.snapshotTitle,
+        title: model.snapshotTitle,
         tone: "dim",
-        body: renderKeyValueList(
-          [
-            { label: "claude-binary", value: data.claudeBinary },
-            { label: "cco-home", value: data.ccoHome },
-            { label: "profiles", value: String(data.profiles) },
-            { label: "host-config-dir", value: data.hostConfigDir },
-            {
-              label: text.doctor.shellScrubLabel,
-              value:
-                data.shellSubprocessEnvScrub === "0"
-                  ? text.doctor.shellScrubCompat
-                  : data.shellSubprocessEnvScrub === "1"
-                    ? text.doctor.shellScrubSafe
-                    : text.doctor.shellScrubInherit,
-            },
-            {
-              label: "env-conflicts",
-              value:
-                data.conflicts.length > 0
-                  ? data.conflicts.join(", ")
-                  : text.doctor.noneDetected,
-              tone: data.conflicts.length > 0 ? "warn" : "ok",
-            },
-            { label: "launch-mode", value: data.launchMode },
-          ],
-          options,
-        ),
+        body: renderKeyValueList(model.snapshotEntries, options),
       },
       options,
     ),
-    ready
-      ? renderPanel(
-          {
-            title: text.doctor.suggestedNextStepTitle,
-            tone: "ok",
-            body: renderCommandList(
-              [
-                {
-                  command: "cco work",
-                  description: text.doctor.launchDescription,
-                },
-                {
-                  command: "cco host -c",
-                  description: text.doctor.hostContinueDescription,
-                },
-              ],
-              options,
-            ),
-          },
-          options,
-        )
-      : renderPanel(
-          {
-            title: text.doctor.suggestedCleanupTitle,
-            tone: "warn",
-            body: renderBulletList(
-              [
-                text.doctor.cleanup1,
-                text.doctor.cleanup2,
-                text.doctor.cleanup3,
-              ],
-              options,
-            ),
-          },
-          options,
-        ),
+    renderPanel(
+      {
+        title: model.nextStepTitle,
+        tone: model.nextStepTone,
+        body: model.nextStepCommands
+          ? renderCommandList(model.nextStepCommands, options)
+          : renderBulletList(model.cleanupBullets ?? [], options),
+      },
+      options,
+    ),
   ]);
 }

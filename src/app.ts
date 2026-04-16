@@ -8,7 +8,7 @@ import { isolateRoutes } from "./commands/isolate.routes.ts";
 import { runCommand } from "./commands/run.ts";
 import { showcaseCommand } from "./commands/showcase.ts";
 import { getStaticUiText, getStricliText } from "./i18n/index.ts";
-import { renderCliError } from "./ui/renderers/error-message.ts";
+import { createStricliMarker } from "./ui/ink/stricli-ink-intercept.ts";
 
 const text = getStaticUiText();
 
@@ -39,13 +39,21 @@ export const app = buildApplication(routes, {
   localization: {
     defaultLocale: "ko",
     loadText(locale) {
-      const appLocale = locale?.toLowerCase().startsWith("en") ? "en" : "ko";
+      const stricliText = getStricliText(locale);
       return {
-        ...getStricliText(locale),
-        exceptionWhileRunningCommand: (exc, ansiColor) =>
-          renderCliError(exc, { ansiColor, locale: appLocale }),
-        commandErrorResult: (err, ansiColor) =>
-          renderCliError(err, { ansiColor, locale: appLocale }),
+        ...stricliText,
+        noCommandRegisteredForInput: ({ input, corrections }) =>
+          createStricliMarker("no-command", { input, corrections }),
+        noTextAvailableForLocale: ({ requestedLocale, defaultLocale }) =>
+          createStricliMarker("no-locale-text", { requestedLocale, defaultLocale }),
+        exceptionWhileParsingArguments: (exc) => createStricliMarker("parse-error", exc),
+        exceptionWhileLoadingCommandFunction: (exc) =>
+          createStricliMarker("load-command-error", exc),
+        exceptionWhileLoadingCommandContext: (exc) =>
+          createStricliMarker("load-context-error", exc),
+        exceptionWhileRunningCommand: (exc) =>
+          createStricliMarker("run-command-error", exc),
+        commandErrorResult: (err) => createStricliMarker("command-error", err),
       };
     },
   },

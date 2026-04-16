@@ -236,6 +236,7 @@ export interface UiText {
     readonly showcaseAllDescription: string;
     readonly showcaseAuthDescription: string;
     readonly showcaseErrorsDescription: string;
+    readonly showcaseInkDescription: string;
     readonly missingBinaryTitle: string;
     readonly missingBinarySummary: string;
     readonly doctorDescription: string;
@@ -312,7 +313,7 @@ const KO_TEXT: UiText = {
       "프로필 뒤에는 선택적으로 `-- <claude-args...>`를 붙여 fresh launch에 전달할 수 있습니다",
     isolateFresh:
       "현재 격리 실행 환경을 제거한 뒤 fresh bootstrap으로 다시 실행합니다",
-    showcaseArgTopic: "선택 사항: all, auth, help, profiles, errors, doctor, flows",
+    showcaseArgTopic: "선택 사항: all, auth, help, profiles, errors, doctor, flows, ink",
     showcase: "Claude를 실행하지 않고 cco의 도움말, 오류, 흐름 화면을 미리 봅니다",
   },
   rootHelp: {
@@ -558,6 +559,7 @@ const KO_TEXT: UiText = {
     showcaseAllDescription: "전체 UI 표면을 미리 봅니다.",
     showcaseAuthDescription: "토큰 온보딩 패널만 미리 봅니다.",
     showcaseErrorsDescription: "복구/오류 상태만 미리 봅니다.",
+    showcaseInkDescription: "Ink 기반 showcase 레이아웃을 미리 봅니다.",
     missingBinaryTitle: "Claude 실행 파일을 찾지 못해 실행할 수 없습니다.",
     missingBinarySummary: "설정되었거나 자동 탐지된 Claude 실행 파일이 현재 환경에 없습니다.",
     doctorDescription: "실행 파일 탐지, host config, env 우선순위를 확인합니다.",
@@ -572,7 +574,7 @@ const KO_TEXT: UiText = {
       "`cco config set env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 -p <profile>`로 저장된 프로필을 영구 compat mode로 바꿀 수 있습니다.",
     unexpectedError: "예상하지 못한 오류입니다.",
     unknownShowcaseTopic: (topic) =>
-      `알 수 없는 showcase 주제 "${topic}". 사용 가능: all, auth, help, profiles, errors, doctor, flows`,
+      `알 수 없는 showcase 주제 "${topic}". 사용 가능: all, auth, help, profiles, errors, doctor, flows, ink`,
   },
   showcase: {
     authIntro: "프로필 추가 시작",
@@ -643,7 +645,7 @@ const EN_TEXT: UiText = {
       "After the profile you may add `-- <claude-args...>` to pass through to the fresh launch",
     isolateFresh:
       "Remove the current isolate home and launch again through a fresh bootstrap",
-    showcaseArgTopic: "Optional showcase topic: all, auth, help, profiles, errors, doctor, or flows",
+    showcaseArgTopic: "Optional showcase topic: all, auth, help, profiles, errors, doctor, flows, or ink",
     showcase: "Preview cco help, errors, and flow output without launching Claude",
   },
   rootHelp: {
@@ -889,6 +891,7 @@ const EN_TEXT: UiText = {
     showcaseAllDescription: "Preview the full UI surface.",
     showcaseAuthDescription: "Preview the token onboarding panels.",
     showcaseErrorsDescription: "Preview the recovery/error states only.",
+    showcaseInkDescription: "Preview the Ink-powered showcase layout.",
     missingBinaryTitle: "Could not launch Claude because the binary was not found.",
     missingBinarySummary: "The configured or discovered Claude executable is missing from the current environment.",
     doctorDescription: "Inspect binary resolution, host config, and env precedence.",
@@ -903,7 +906,7 @@ const EN_TEXT: UiText = {
       "Use `cco config set env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 -p <profile>` to make the saved profile persistently compat.",
     unexpectedError: "Unexpected error.",
     unknownShowcaseTopic: (topic) =>
-      `Unknown showcase topic "${topic}". Use one of: all, auth, help, profiles, errors, doctor, flows.`,
+      `Unknown showcase topic "${topic}". Use one of: all, auth, help, profiles, errors, doctor, flows, ink.`,
   },
   showcase: {
     authIntro: "Auth Add Intro",
@@ -983,9 +986,16 @@ export function getStricliText(localeLike: string | undefined): ApplicationText 
       version: "버전 정보를 출력하고 종료합니다",
       argumentEscapeSequence: "이후 입력은 모두 인자로 해석합니다",
     },
-    noCommandRegisteredForInput: (input) => `입력 "${input}"에 해당하는 명령을 찾지 못했습니다.`,
-    noTextAvailableForLocale: (localeName) =>
-      `로케일 "${localeName}"에 사용할 텍스트가 없습니다.`,
+    noCommandRegisteredForInput: ({ input, corrections }) => {
+      const base = `입력 "${input}"에 해당하는 명령을 찾지 못했습니다.`;
+      if (corrections.length === 0) {
+        return base;
+      }
+
+      return `${base} ${corrections.join(", ")} 중 하나를 시도해 보세요.`;
+    },
+    noTextAvailableForLocale: ({ requestedLocale, defaultLocale }) =>
+      `로케일 "${requestedLocale}"에 사용할 텍스트가 없어 기본 로케일 "${defaultLocale}"로 대체합니다.`,
     currentVersionIsNotLatest: ({ currentVersion, latestVersion }) =>
       `현재 버전 ${currentVersion}은 최신 버전 ${latestVersion}이 아닙니다.`,
   };

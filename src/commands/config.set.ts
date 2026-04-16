@@ -1,3 +1,4 @@
+import React from "react";
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
@@ -8,8 +9,8 @@ import {
 } from "../core/services/profile-config.ts";
 import { resolveProfile } from "../core/services/resolve-profile.ts";
 import { getStaticUiText } from "../i18n/index.ts";
-import { renderPanel } from "../ui/layout/primitives.ts";
-import { resolveAnsiColor } from "../ui/theme.ts";
+import { ConfigSetSuccessInkScreen } from "../ui/ink/config-ink-screen.ts";
+import { renderInkHost } from "../ui/ink/render-ink.ts";
 
 const text = getStaticUiText();
 
@@ -39,24 +40,21 @@ export const configSetCommand = buildCommand<ConfigSetFlags, [assignment: string
       updatedAt: now,
     });
 
-    const ansiColor = resolveAnsiColor(this.process.stdout, this.process.env);
-    const message = renderPanel(
+    await renderInkHost(
+      React.createElement(ConfigSetSuccessInkScreen, {
+        profileId,
+        assignmentLine: `${assignment.key} = ${assignment.value}`,
+        summary: text.config.setSuccessSummary(
+          describeSubprocessEnvScrubMode(assignment.value),
+        ),
+        locale: this.runtime.locale,
+      }),
       {
-        title: text.config.setSuccessTitle,
-        tone: "ok",
-        badge: { label: profileId, tone: "ok" },
-        body: [
-          `${assignment.key} = ${assignment.value}`,
-          "",
-          text.config.setSuccessSummary(
-            describeSubprocessEnvScrubMode(assignment.value),
-          ),
-        ],
+        stdin: this.process.stdin,
+        stdout: this.process.stdout,
+        stderr: this.process.stderr,
       },
-      { ansiColor, locale: this.runtime.locale },
     );
-
-    this.process.stdout.write(`${message}\n`);
   },
   parameters: {
     flags: {

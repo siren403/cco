@@ -23,7 +23,10 @@
   },
   "dependencies": {
     "@clack/prompts": "^1.2.0",
-    "@stricli/core": "^1.2.6"
+    "@stricli/core": "^1.2.6",
+    "ink": "^7.0.0",
+    "react": "^19.2.5",
+    "react-devtools-core": "^7.0.1"
   },
   "devDependencies": {
     "@types/bun": "latest",

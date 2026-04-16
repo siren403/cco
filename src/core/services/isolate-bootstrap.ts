@@ -1,14 +1,16 @@
+import React from "react";
 import { cp, mkdir, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AppContext } from "../../context.ts";
-import { DomainError } from "../errors/domain-error.ts";
-import type { OverlayProfile } from "../model/profile.ts";
 import {
   resolvePhysicalHostClaudeConfigDir,
   resolveIsolateProfilePaths,
 } from "../../infra/fs/path-utils.ts";
+import { renderInkHost } from "../../ui/ink/render-ink.ts";
+import { IsolateBootstrapInkScreen } from "../../ui/ink/isolate-bootstrap-ink-screen.ts";
 import { promptForIsolateBootstrapMode, type IsolateBootstrapMode } from "../../ui/prompts/isolate-bootstrap-mode.ts";
-import { renderIsolateBootstrapPage } from "../../ui/views/isolate-bootstrap-page.ts";
+import { DomainError } from "../errors/domain-error.ts";
+import type { OverlayProfile } from "../model/profile.ts";
 
 interface IsolateManifest {
   readonly schemaVersion: 1;
@@ -22,7 +24,6 @@ interface IsolateManifest {
 interface EnsureIsolateHomeReadyInput {
   readonly context: AppContext;
   readonly profile: OverlayProfile;
-  readonly ansiColor: boolean;
 }
 
 const HOST_LITE_ENTRIES = [
@@ -47,10 +48,9 @@ const STALE_LOCK_MS = 15_000;
 export async function ensureIsolateHomeReady(
   input: EnsureIsolateHomeReadyInput,
 ): Promise<string> {
-  const { context, profile, ansiColor } = input;
+  const { context, profile } = input;
   const isolatePaths = resolveIsolateProfilePaths(context.runtime.paths, profile.id);
   const sourceConfigDir = resolvePhysicalHostClaudeConfigDir(context.process.env);
-  const renderOptions = { ansiColor, locale: context.runtime.locale } as const;
 
   if (await hasPreparedIsolateHome(isolatePaths.claudeHomeDir, isolatePaths.manifestFile)) {
     await persistIsolateMetadata(context, profile, isolatePaths.claudeHomeDir, isolatePaths.manifestFile, sourceConfigDir);
@@ -73,9 +73,18 @@ export async function ensureIsolateHomeReady(
       return isolatePaths.claudeHomeDir;
     }
 
-    context.process.stdout.write(
-      `${renderIsolateBootstrapPage(isolatePaths.claudeHomeDir, renderOptions)}\n\n`,
+    await renderInkHost(
+      React.createElement(IsolateBootstrapInkScreen, {
+        claudeHomeDir: isolatePaths.claudeHomeDir,
+        locale: context.runtime.locale,
+      }),
+      {
+        stdin: context.process.stdin,
+        stdout: context.process.stdout,
+        stderr: context.process.stderr,
+      },
     );
+    context.process.stdout.write("\n");
 
     const seedMode = await promptForIsolateBootstrapMode(profile.id);
     await mkdir(isolatePaths.claudeHomeDir, { recursive: true });

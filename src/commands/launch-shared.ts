@@ -1,3 +1,4 @@
+import React from "react";
 import { intro, outro } from "@clack/prompts";
 import type { AppContext } from "../context.ts";
 import { buildLaunchPlan } from "../core/services/build-launch-plan.ts";
@@ -17,14 +18,14 @@ import {
 import { DomainError } from "../core/errors/domain-error.ts";
 import { getStaticUiText } from "../i18n/index.ts";
 import { spawnClaudeInteractive } from "../infra/bun/spawn-claude.ts";
+import {
+  PermissionModeDecisionInkScreen,
+  PermissionModeGuidanceInkScreen,
+  PermissionModeWarningInkScreen,
+} from "../ui/ink/permission-mode-ink-screen.ts";
+import { renderInkHost } from "../ui/ink/render-ink.ts";
 import { promptForProfile } from "../ui/prompts/profile-picker.ts";
 import { promptForPermissionModeOverride } from "../ui/prompts/permission-mode-override.ts";
-import { resolveAnsiColor } from "../ui/theme.ts";
-import {
-  renderPermissionModeDecision,
-  renderPermissionModeGuidance,
-  renderPermissionModeWarning,
-} from "../ui/views/permission-mode-page.ts";
 
 const text = getStaticUiText();
 
@@ -38,13 +39,12 @@ export async function launchClaudeForProfile(
   context: AppContext,
   options: LaunchProfileOptions = {},
 ): Promise<void> {
-  const ansiColor = resolveAnsiColor(context.process.stdout, context.process.env);
   const profiles = await listProfiles(context.runtime.profileStore);
   const profile = options.requestedProfileId
     ? await resolveProfile(context.runtime.profileStore, options.requestedProfileId)
     : await chooseProfile(profiles);
   const isolateConfigDir = options.isolate
-    ? await resolveIsolateConfigDir(context, profile, ansiColor)
+    ? await resolveIsolateConfigDir(context, profile)
     : undefined;
   const token = options.isolate ? null : await resolveToken(context, profile);
   const subprocessEnvScrubOverride = options.isolate
@@ -53,7 +53,6 @@ export async function launchClaudeForProfile(
         context,
         profile,
         options.claudeArgs,
-        ansiColor,
       );
   if (subprocessEnvScrubOverride === "exit") {
     outro(text.misc.noChangesMade);
@@ -122,7 +121,6 @@ async function resolveToken(
 async function resolveIsolateConfigDir(
   context: AppContext,
   profile: Profile,
-  ansiColor: boolean,
 ): Promise<string> {
   if (profile.kind !== "overlay") {
     throw new DomainError(
@@ -135,7 +133,6 @@ async function resolveIsolateConfigDir(
   return await ensureIsolateHomeReady({
     context,
     profile,
-    ansiColor,
   });
 }
 
@@ -155,9 +152,7 @@ async function maybeResolvePermissionModeOverride(
   context: AppContext,
   profile: Profile,
   claudeArgs: readonly string[] | undefined,
-  ansiColor: boolean,
 ): Promise<SubprocessEnvScrubMode | "exit" | undefined> {
-  const renderOptions = { ansiColor, locale: context.runtime.locale } as const;
   if (profile.kind !== "overlay") {
     return undefined;
   }
@@ -172,12 +167,18 @@ async function maybeResolvePermissionModeOverride(
 
   const shellScrubMode = resolveShellSubprocessEnvScrubMode(context.process.env);
   if (shellScrubMode) {
-    context.process.stdout.write(
-      `${renderPermissionModeDecision(
-        shellScrubMode === "0" ? "compat" : "safe",
-        renderOptions,
-      )}\n\n`,
+    await renderInkHost(
+      React.createElement(PermissionModeDecisionInkScreen, {
+        mode: shellScrubMode === "0" ? "compat" : "safe",
+        locale: context.runtime.locale,
+      }),
+      {
+        stdin: context.process.stdin,
+        stdout: context.process.stdout,
+        stderr: context.process.stderr,
+      },
     );
+    context.process.stdout.write("\n");
     return shellScrubMode;
   }
 
@@ -192,27 +193,48 @@ async function maybeResolvePermissionModeOverride(
     );
   }
 
-  context.process.stdout.write(
-    `${renderPermissionModeWarning(profile.id, renderOptions)}\n\n`,
+  await renderInkHost(
+    React.createElement(PermissionModeWarningInkScreen, {
+      profileId: profile.id,
+      locale: context.runtime.locale,
+    }),
+    {
+      stdin: context.process.stdin,
+      stdout: context.process.stdout,
+      stderr: context.process.stderr,
+    },
   );
+  context.process.stdout.write("\n");
 
   const choice = await promptForPermissionModeOverride(profile.id);
   if (choice === "guide") {
-    context.process.stdout.write(
-      `${renderPermissionModeGuidance(
-        profile.id,
-        renderOptions,
-      )}\n\n`,
+    await renderInkHost(
+      React.createElement(PermissionModeGuidanceInkScreen, {
+        profileId: profile.id,
+        locale: context.runtime.locale,
+      }),
+      {
+        stdin: context.process.stdin,
+        stdout: context.process.stdout,
+        stderr: context.process.stderr,
+      },
     );
+    context.process.stdout.write("\n");
     return "exit";
   }
 
-  context.process.stdout.write(
-    `${renderPermissionModeDecision(
-      choice === "compat" ? "compat" : "safe",
-      renderOptions,
-    )}\n\n`,
+  await renderInkHost(
+    React.createElement(PermissionModeDecisionInkScreen, {
+      mode: choice === "compat" ? "compat" : "safe",
+      locale: context.runtime.locale,
+    }),
+    {
+      stdin: context.process.stdin,
+      stdout: context.process.stdout,
+      stderr: context.process.stderr,
+    },
   );
+  context.process.stdout.write("\n");
 
   return choice === "compat" ? "0" : "1";
 }

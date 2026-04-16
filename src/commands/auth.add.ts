@@ -1,3 +1,4 @@
+import React from "react";
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
@@ -10,13 +11,13 @@ import { HOST_PROFILE } from "../core/model/profile.ts";
 import { assertProfileIdUsable } from "../core/services/profile-id.ts";
 import { getStaticUiText } from "../i18n/index.ts";
 import { spawnClaudeCapture, spawnClaudeInteractive } from "../infra/bun/spawn-claude.ts";
+import {
+  AuthAddIntroInkScreen,
+  AuthAddSuccessInkScreen,
+} from "../ui/ink/auth-add-ink-screen.ts";
+import { renderInkHost } from "../ui/ink/render-ink.ts";
 import { promptForProfileEnvMode } from "../ui/prompts/profile-env-mode.ts";
 import { promptForToken } from "../ui/prompts/token-entry.ts";
-import { resolveAnsiColor } from "../ui/theme.ts";
-import {
-  renderAuthAddIntro,
-  renderAuthAddSuccess,
-} from "../ui/views/auth-add-page.ts";
 
 const text = getStaticUiText();
 
@@ -24,14 +25,20 @@ export const authAddCommand = buildCommand<{}, [profileId: string], AppContext>(
   async func(this: AppContext, _flags, profileId) {
     assertProfileIdUsable(profileId);
     const existingProfile = await this.runtime.profileStore.get(profileId);
-    const ansiColor = resolveAnsiColor(this.process.stdout, this.process.env);
 
-    this.process.stdout.write(
-      `${renderAuthAddIntro(profileId, {
-        ansiColor,
+    await renderInkHost(
+      React.createElement(AuthAddIntroInkScreen, {
+        profileId,
         locale: this.runtime.locale,
-      })}\n\n`,
+      }),
+      {
+        stdin: this.process.stdin,
+        stdout: this.process.stdout,
+        stderr: this.process.stderr,
+      },
     );
+
+    this.process.stdout.write("\n");
 
     const subprocessEnvScrub = await promptForProfileEnvMode(profileId, existingProfile);
 
@@ -72,13 +79,18 @@ export const authAddCommand = buildCommand<{}, [profileId: string], AppContext>(
     await this.runtime.profileStore.put(profile);
     await this.runtime.tokenStore.put(profileId, token);
 
-    this.process.stdout.write(
-      `${renderAuthAddSuccess(
+    await renderInkHost(
+      React.createElement(AuthAddSuccessInkScreen, {
         profileId,
-        describeSubprocessEnvScrubMode(subprocessEnvScrub),
-        this.runtime.paths.profilesFile,
-        { ansiColor, locale: this.runtime.locale },
-      )}\n`,
+        modeLabel: describeSubprocessEnvScrubMode(subprocessEnvScrub),
+        profilesFile: this.runtime.paths.profilesFile,
+        locale: this.runtime.locale,
+      }),
+      {
+        stdin: this.process.stdin,
+        stdout: this.process.stdout,
+        stderr: this.process.stderr,
+      },
     );
   },
   parameters: {

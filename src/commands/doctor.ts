@@ -1,16 +1,16 @@
+import React from "react";
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { resolveShellSubprocessEnvScrubMode } from "../core/services/permission-mode.ts";
 import { getStaticUiText } from "../i18n/index.ts";
 import { findConflictingAuthEnv } from "../infra/bun/env.ts";
-import { resolveAnsiColor } from "../ui/theme.ts";
-import { renderDoctorPage } from "../ui/views/doctor-page.ts";
+import { DoctorInkScreen } from "../ui/ink/doctor-ink-screen.ts";
+import { renderInkHost } from "../ui/ink/render-ink.ts";
 
 const text = getStaticUiText();
 
 export const doctorCommand = buildCommand<{}, [], AppContext>({
   async func(this: AppContext) {
-    const ansiColor = resolveAnsiColor(this.process.stdout, this.process.env);
     const profiles = await this.runtime.profileStore.list();
     const conflicts = findConflictingAuthEnv(this.process.env);
     const claudeBinary = this.runtime.resolveClaudeBinary();
@@ -19,20 +19,25 @@ export const doctorCommand = buildCommand<{}, [], AppContext>({
     const shellSubprocessEnvScrub =
       resolveShellSubprocessEnvScrubMode(this.process.env);
 
-    const report = renderDoctorPage(
+    await renderInkHost(
+      React.createElement(DoctorInkScreen, {
+        data: {
+          claudeBinary,
+          ccoHome: this.runtime.paths.root,
+          profiles: profiles.length,
+          hostConfigDir,
+          conflicts,
+          launchMode: text.doctor.launchMode,
+          shellSubprocessEnvScrub,
+        },
+        locale: this.runtime.locale,
+      }),
       {
-        claudeBinary,
-        ccoHome: this.runtime.paths.root,
-        profiles: profiles.length,
-        hostConfigDir,
-        conflicts,
-        launchMode: text.doctor.launchMode,
-        shellSubprocessEnvScrub,
+        stdin: this.process.stdin,
+        stdout: this.process.stdout,
+        stderr: this.process.stderr,
       },
-      { ansiColor, locale: this.runtime.locale },
     );
-
-    this.process.stdout.write(`${report}\n`);
   },
   parameters: {
     positional: {

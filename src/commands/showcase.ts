@@ -1,12 +1,11 @@
+import React from "react";
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
 import { getStaticUiText } from "../i18n/index.ts";
-import { resolveAnsiColor } from "../ui/theme.ts";
-import {
-  renderShowcase,
-  type ShowcaseTopic,
-} from "../ui/renderers/showcase.ts";
+import { renderInkHost } from "../ui/ink/render-ink.ts";
+import { ShowcaseInkScreen } from "../ui/ink/showcase-ink-screen.ts";
+import { type ShowcaseTopic } from "../ui/models/showcase-page.ts";
 
 const VALID_TOPICS = new Set<ShowcaseTopic>([
   "all",
@@ -16,6 +15,7 @@ const VALID_TOPICS = new Set<ShowcaseTopic>([
   "errors",
   "doctor",
   "flows",
+  "ink",
 ]);
 
 const text = getStaticUiText();
@@ -23,12 +23,17 @@ const text = getStaticUiText();
 export const showcaseCommand = buildCommand<{}, [topic?: string], AppContext>({
   async func(this: AppContext, _flags, topic) {
     const resolvedTopic = resolveTopic(topic);
-    const ansiColor = resolveAnsiColor(this.process.stdout, this.process.env);
-    this.process.stdout.write(
-      `${renderShowcase(resolvedTopic, {
-        ansiColor,
+
+    await renderInkHost(
+      React.createElement(ShowcaseInkScreen, {
         locale: this.runtime.locale,
-      })}\n`,
+        topic: resolvedTopic,
+      }),
+      {
+        stdin: this.process.stdin,
+        stdout: this.process.stdout,
+        stderr: this.process.stderr,
+      },
     );
   },
   parameters: {

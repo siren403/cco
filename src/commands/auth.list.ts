@@ -1,15 +1,15 @@
+import React from "react";
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { listProfiles } from "../core/services/list-profiles.ts";
 import { getStaticUiText } from "../i18n/index.ts";
-import { renderProfilesPage } from "../ui/views/profiles-page.ts";
-import { resolveAnsiColor } from "../ui/theme.ts";
+import { renderInkHost } from "../ui/ink/render-ink.ts";
+import { ProfilesInkScreen } from "../ui/ink/profiles-ink-screen.ts";
 
 const text = getStaticUiText();
 
 export const authListCommand = buildCommand<{}, [], AppContext>({
   async func(this: AppContext) {
-    const ansiColor = resolveAnsiColor(this.process.stdout, this.process.env);
     const profiles = await listProfiles(this.runtime.profileStore);
     const tokenPresence = new Map<string, boolean>();
 
@@ -23,13 +23,18 @@ export const authListCommand = buildCommand<{}, [], AppContext>({
       }),
     );
 
-    this.process.stdout.write(
-      `${renderProfilesPage(
+    await renderInkHost(
+      React.createElement(ProfilesInkScreen, {
         profiles,
         tokenPresence,
-        this.runtime.paths.profilesFile,
-        { ansiColor, locale: this.runtime.locale },
-      )}\n`,
+        profilesFile: this.runtime.paths.profilesFile,
+        locale: this.runtime.locale,
+      }),
+      {
+        stdin: this.process.stdin,
+        stdout: this.process.stdout,
+        stderr: this.process.stderr,
+      },
     );
   },
   parameters: {

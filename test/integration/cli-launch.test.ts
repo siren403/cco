@@ -184,6 +184,46 @@ test("host launch omits overlay token and still preserves host config env", asyn
   expect(log.env.CLAUDE_CONFIG_DIR).toBe(join(sandbox.root, "host-config"));
 });
 
+test("showcase ink renders through Ink host in non-interactive mode", async () => {
+  const sandbox = await createSandbox();
+
+  const result = await runCli(["showcase", "ink"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Ink showcase");
+  expect(result.stdout).toContain("Responsive preview");
+  expect(result.stderr).toBe("");
+});
+
+test("auth list renders through Ink host in non-interactive mode", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "0");
+
+  const result = await runCli(["auth", "list"], sandbox, { CCO_LOCALE: "en" });
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Profiles");
+  expect(result.stdout).toContain("host [host] [host login]");
+  expect(result.stdout).toContain("work [overlay] [stored] [compat mode]");
+  expect(result.stderr).toBe("");
+});
+
+test("doctor renders through Ink host in non-interactive mode", async () => {
+  const sandbox = await createSandbox();
+
+  const result = await runCli(["doctor"], sandbox, {
+    CCO_LOCALE: "en",
+    ANTHROPIC_AUTH_TOKEN: "",
+    ANTHROPIC_API_KEY: "",
+  });
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Doctor");
+  expect(result.stdout).toContain("Runtime Snapshot");
+  expect(result.stdout).toContain("Suggested ");
+  expect(result.stderr).toBe("");
+});
+
 test("config get prints saved overlay scrub mode", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "0");
@@ -227,7 +267,19 @@ test("isolate status reports missing isolate when none is prepared", async () =>
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("Isolate");
   expect(result.stdout).toContain("missing");
-  expect(result.stdout).toContain(join(sandbox.ccoHome, "profiles", "work", "isolate", "claude"));
+
+  const normalizedOutput = result.stdout
+    .replace(/[│╭╮╰╯─]/g, "")
+    .replace(/\s+/g, "");
+  const expectedPath = join(
+    sandbox.ccoHome,
+    "profiles",
+    "work",
+    "isolate",
+    "claude",
+  ).replace(/\s+/g, "");
+
+  expect(normalizedOutput).toContain(expectedPath);
 });
 
 test("isolate remove deletes only the isolate home and clears metadata", async () => {
@@ -262,6 +314,40 @@ test("isolate fresh removes stale isolate before re-entering bootstrap flow", as
   expect(result.exitCode).toBe(1);
   expect(result.stderr).toContain("격리 home");
   expect(await exists(join(sandbox.ccoHome, "profiles", "work", "isolate"))).toBe(false);
+});
+
+test("auth help renders through Stricli Ink interception", async () => {
+  const sandbox = await createSandbox();
+
+  const result = await runCli(["auth", "--help"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("사용법");
+  expect(result.stdout).toContain("cco auth list");
+  expect(result.stdout).toContain("명령");
+  expect(result.stderr).toBe("");
+});
+
+test("config get parse errors render through Stricli Ink interception", async () => {
+  const sandbox = await createSandbox();
+
+  const result = await runCli(["config", "get"], sandbox, {});
+
+  expect(result.exitCode).toBe(252);
+  expect(result.stderr).toContain("문제 [error]");
+  expect(result.stderr).toContain("Expected input for flag --profile");
+  expect(result.stdout).toBe("");
+});
+
+test("unknown subcommands render through Stricli Ink interception", async () => {
+  const sandbox = await createSandbox();
+
+  const result = await runCli(["auth", "lissst"], sandbox, {});
+
+  expect(result.exitCode).toBe(251);
+  expect(result.stderr).toContain('입력 "lissst"에 해당하는 명령을 찾지 못했습니다.');
+  expect(result.stderr).toContain("cco auth list");
+  expect(result.stdout).toBe("");
 });
 
 interface Sandbox {
