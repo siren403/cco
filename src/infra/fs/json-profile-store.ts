@@ -4,6 +4,7 @@ import type {
   OverlayProfile,
   OverlayProfileEnv,
   IsolateProfileMetadata,
+  IsolateSessionContinuityMetadata,
   IsolateProfileSource,
 } from "../../core/model/profile.ts";
 import type { ProfileStore } from "../../core/ports/profile-store.ts";
@@ -172,6 +173,7 @@ function normalizeIsolateProfile(value: unknown): IsolateProfileMetadata | undef
       typeof isolate.lastSeededAt === "string" ? isolate.lastSeededAt : undefined,
     lastSyncedAt:
       typeof isolate.lastSyncedAt === "string" ? isolate.lastSyncedAt : undefined,
+    continuity: normalizeIsolateContinuity(isolate.continuity),
   };
 }
 
@@ -195,6 +197,29 @@ function normalizeIsolateSource(value: unknown): IsolateProfileSource | undefine
     configDir: source.configDir,
     fingerprint:
       typeof source.fingerprint === "string" ? source.fingerprint : undefined,
+  };
+}
+
+function normalizeIsolateContinuity(
+  value: unknown,
+): IsolateSessionContinuityMetadata | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const continuity = value as Partial<IsolateSessionContinuityMetadata>;
+  if (
+    typeof continuity.importedSessionId !== "string" ||
+    typeof continuity.projectKey !== "string" ||
+    typeof continuity.importedAt !== "string"
+  ) {
+    return undefined;
+  }
+
+  return {
+    importedSessionId: continuity.importedSessionId,
+    projectKey: continuity.projectKey,
+    importedAt: continuity.importedAt,
   };
 }
 

@@ -24,6 +24,8 @@ export interface UiText {
     readonly isolate: string;
     readonly isolateArgProfile: string;
     readonly isolateFlagYes: string;
+    readonly isolateFlagClean: string;
+    readonly isolateFlagImportLatestHostSession: string;
     readonly isolateStatus: string;
     readonly isolateRemove: string;
     readonly isolateFreshArg: string;
@@ -92,6 +94,12 @@ export interface UiText {
     readonly isolateBootstrapCleanLabel: string;
     readonly isolateBootstrapCleanHint: string;
     readonly isolateBootstrapCancelled: string;
+    readonly isolateContinuity: (profileId: string) => string;
+    readonly isolateContinuityImportLabel: string;
+    readonly isolateContinuityImportHint: string;
+    readonly isolateContinuitySkipLabel: string;
+    readonly isolateContinuitySkipHint: string;
+    readonly isolateContinuityCancelled: string;
   };
   readonly authAdd: {
     readonly introTitle: string;
@@ -271,6 +279,8 @@ export interface UiText {
     readonly removedProfile: (profileId: string) => string;
     readonly removedIsolate: (profileId: string) => string;
     readonly isolateAlreadyMissing: (profileId: string) => string;
+    readonly isolateContinuityImportWarning: (profileId: string) => string;
+    readonly isolateContinuityMissingWarning: (profileId: string) => string;
     readonly claudeExited: string;
     readonly ccoPrefix: (profileId: string) => string;
     readonly isolateStatusTitle: string;
@@ -307,10 +317,13 @@ const KO_TEXT: UiText = {
     isolate: "격리 실행 환경 상태를 확인하거나 제거하고 새로 시작합니다",
     isolateArgProfile: "대상 오버레이 프로필 ID",
     isolateFlagYes: "확인 프롬프트 없이 바로 진행합니다",
+    isolateFlagClean: "host 설정 링크 없이 빈 isolate home으로 다시 시작합니다",
+    isolateFlagImportLatestHostSession:
+      "현재 작업 디렉터리 기준 최신 host 세션을 첫 isolate launch에서 바로 이어 시작합니다",
     isolateStatus: "현재 격리 실행 환경 상태와 메타데이터를 표시합니다",
     isolateRemove: "현재 프로필의 격리 실행 환경만 제거합니다",
     isolateFreshArg:
-      "프로필 뒤에는 선택적으로 `-- <claude-args...>`를 붙여 fresh launch에 전달할 수 있습니다",
+      "고급 플래그로 `--clean`, `--import-latest-host-session`를 사용할 수 있습니다",
     isolateFresh:
       "현재 격리 실행 환경을 제거한 뒤 fresh bootstrap으로 다시 실행합니다",
     showcaseArgTopic: "선택 사항: all, auth, help, profiles, errors, doctor, flows, ink",
@@ -395,6 +408,15 @@ const KO_TEXT: UiText = {
     isolateBootstrapCleanHint:
       "별도 Claude home만 만들고, 팀 실행용 로그인을 처음부터 진행합니다.",
     isolateBootstrapCancelled: "격리 실행 초기화를 취소했습니다.",
+    isolateContinuity: (profileId) =>
+      `"${profileId}" 격리 실행으로 host 프로젝트 세션을 이어갈까요?`,
+    isolateContinuityImportLabel: "host 최신 프로젝트 세션 가져오기",
+    isolateContinuityImportHint:
+      "현재 작업 디렉터리 기준 최신 host session JSONL만 isolate home으로 복사합니다.",
+    isolateContinuitySkipLabel: "세션은 가져오지 않음",
+    isolateContinuitySkipHint:
+      "이번 isolate는 별도 대화 흐름으로 시작합니다. 이후 세션 활동도 isolate 내부에만 남습니다.",
+    isolateContinuityCancelled: "세션 연속성 가져오기를 취소했습니다.",
   },
   authAdd: {
     introTitle: "오버레이 프로필 추가",
@@ -600,6 +622,10 @@ const KO_TEXT: UiText = {
     removedIsolate: (profileId) => `"${profileId}"의 격리 실행 환경을 제거했습니다.`,
     isolateAlreadyMissing: (profileId) =>
       `"${profileId}"의 격리 실행 환경이 이미 비어 있습니다.`,
+    isolateContinuityImportWarning: (profileId) =>
+      `경고: "${profileId}"의 host 세션 연속성 가져오기에 실패했습니다. resume handoff 없이 isolate launch를 계속합니다.`,
+    isolateContinuityMissingWarning: (profileId) =>
+      `경고: "${profileId}"에 가져올 host 세션이 현재 작업 디렉터리에서 발견되지 않았습니다. resume handoff 없이 isolate launch를 계속합니다.`,
     claudeExited: "Claude가 종료되었습니다.",
     ccoPrefix: (profileId) => `cco ${profileId}`,
     isolateStatusTitle: "Isolate 상태",
@@ -612,7 +638,7 @@ const KO_TEXT: UiText = {
     isolateBootstrapReadyLine2: (claudeHomeDir) =>
       `대상 경로: ${claudeHomeDir}`,
     isolateBootstrapReadyLine3:
-      "초기화가 끝나면 이 isolate home에 host 설정의 안전한 부분만 반영한 뒤 바로 실행합니다.",
+      "bootstrap이 끝나면 cco가 해당 isolate home으로 바로 실행합니다.",
   },
 };
 
@@ -639,10 +665,13 @@ const EN_TEXT: UiText = {
     isolate: "Inspect, remove, or recreate isolated Claude homes for overlay profiles",
     isolateArgProfile: "Target overlay profile id",
     isolateFlagYes: "Proceed without showing a confirmation prompt",
+    isolateFlagClean: "Recreate the isolate home without linking host-facing setup",
+    isolateFlagImportLatestHostSession:
+      "Resume the latest host session for the current working directory on the first isolate launch",
     isolateStatus: "Show the current isolate state and metadata",
     isolateRemove: "Remove only the current profile's isolate home",
     isolateFreshArg:
-      "After the profile you may add `-- <claude-args...>` to pass through to the fresh launch",
+      "Advanced flags include `--clean` and `--import-latest-host-session`",
     isolateFresh:
       "Remove the current isolate home and launch again through a fresh bootstrap",
     showcaseArgTopic: "Optional showcase topic: all, auth, help, profiles, errors, doctor, flows, or ink",
@@ -726,6 +755,15 @@ const EN_TEXT: UiText = {
     isolateBootstrapCleanHint:
       "Creates an empty Claude home and signs in for team runs from scratch.",
     isolateBootstrapCancelled: "Isolate bootstrap cancelled.",
+    isolateContinuity: (profileId) =>
+      `Should "${profileId}" also import the latest host project session?`,
+    isolateContinuityImportLabel: "Import latest host project session",
+    isolateContinuityImportHint:
+      "Copies only the latest host session JSONL for the current working directory into the isolate home.",
+    isolateContinuitySkipLabel: "Keep sessions separate",
+    isolateContinuitySkipHint:
+      "Start this isolate as a separate conversation. Later session activity also stays isolate-local.",
+    isolateContinuityCancelled: "Session continuity import cancelled.",
   },
   authAdd: {
     introTitle: "Add Overlay Profile",
@@ -932,6 +970,10 @@ const EN_TEXT: UiText = {
     removedIsolate: (profileId) => `Removed the isolate home for "${profileId}".`,
     isolateAlreadyMissing: (profileId) =>
       `The isolate home for "${profileId}" is already absent.`,
+    isolateContinuityImportWarning: (profileId) =>
+      `Warning: host session continuity import for "${profileId}" failed. Launching the isolate without resume handoff.`,
+    isolateContinuityMissingWarning: (profileId) =>
+      `Warning: no host session for "${profileId}" was found in the current working directory. Launching the isolate without resume handoff.`,
     claudeExited: "Claude exited.",
     ccoPrefix: (profileId) => `cco ${profileId}`,
     isolateStatusTitle: "Isolate Status",
@@ -940,11 +982,11 @@ const EN_TEXT: UiText = {
     isolateStatusBrokenBadge: "broken",
     isolateBootstrapReadyTitle: "Isolate Setup",
     isolateBootstrapReadyLine1:
-      "This launch will use a Claude home kept separate from the host while inheriting host-facing setup.",
+      "This launch will prepare a Claude home kept separate from the host for this profile.",
     isolateBootstrapReadyLine2: (claudeHomeDir) =>
       `Target home: ${claudeHomeDir}`,
     isolateBootstrapReadyLine3:
-      "After the seed step, cco will launch directly with that isolated home.",
+      "After bootstrap, cco will launch directly with that isolated home.",
   },
 };
 

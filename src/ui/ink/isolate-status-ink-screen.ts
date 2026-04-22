@@ -20,6 +20,9 @@ export function IsolateStatusInkScreen(props: {
   readonly metadataState?: string;
   readonly seedMode?: string;
   readonly sourceConfigDir: string;
+  readonly continuitySessionId?: string;
+  readonly continuityProjectKey?: string;
+  readonly continuityImportedAt?: string;
   readonly locale: AppLocale;
 }): ReactNode {
   const text = getUiText(props.locale);
@@ -70,6 +73,21 @@ export function IsolateStatusInkScreen(props: {
           {
             label: "source-config",
             value: props.sourceConfigDir,
+          },
+          {
+            label: "continuity-session",
+            value: props.continuitySessionId ?? text.profiles.missingBadge,
+            tone: props.continuitySessionId ? "ok" : "dim",
+          },
+          {
+            label: "continuity-project",
+            value: props.continuityProjectKey ?? text.profiles.missingBadge,
+            tone: props.continuityProjectKey ? "ok" : "dim",
+          },
+          {
+            label: "continuity-imported-at",
+            value: props.continuityImportedAt ?? text.profiles.missingBadge,
+            tone: props.continuityImportedAt ? "ok" : "dim",
           },
         ],
       }),

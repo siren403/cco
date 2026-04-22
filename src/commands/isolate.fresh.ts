@@ -1,3 +1,4 @@
+import type { IsolateBootstrapMode } from "../core/services/isolate-bootstrap.ts";
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
@@ -11,6 +12,8 @@ const text = getStaticUiText();
 
 interface IsolateFreshFlags {
   readonly yes?: boolean;
+  readonly clean?: boolean;
+  readonly "import-latest-host-session"?: boolean;
 }
 
 export const isolateFreshCommand = buildCommand<
@@ -42,6 +45,10 @@ export const isolateFreshCommand = buildCommand<
     await launchClaudeForProfile(this, {
       requestedProfileId: profileId,
       isolate: true,
+      isolateBootstrap: {
+        seedMode: resolveSeedMode(flags.clean),
+        importLatestHostSession: flags["import-latest-host-session"] === true,
+      },
     });
   },
   parameters: {
@@ -50,6 +57,16 @@ export const isolateFreshCommand = buildCommand<
         kind: "boolean",
         optional: true,
         brief: text.commandBriefs.isolateFlagYes,
+      },
+      clean: {
+        kind: "boolean",
+        optional: true,
+        brief: text.commandBriefs.isolateFlagClean,
+      },
+      "import-latest-host-session": {
+        kind: "boolean",
+        optional: true,
+        brief: text.commandBriefs.isolateFlagImportLatestHostSession,
       },
     },
     aliases: {
@@ -70,3 +87,7 @@ export const isolateFreshCommand = buildCommand<
     brief: text.commandBriefs.isolateFresh,
   },
 });
+
+function resolveSeedMode(clean: boolean | undefined): IsolateBootstrapMode | undefined {
+  return clean === true ? "clean" : undefined;
+}

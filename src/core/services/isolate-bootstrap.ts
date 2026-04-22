@@ -1,16 +1,33 @@
 import React from "react";
-import { cp, mkdir, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import {
+  link as createHardLink,
+  lstat,
+  mkdir,
+  readdir,
+  rename,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { join } from "node:path";
 import type { AppContext } from "../../context.ts";
 import {
   resolvePhysicalHostClaudeConfigDir,
   resolveIsolateProfilePaths,
 } from "../../infra/fs/path-utils.ts";
+import { getUiText } from "../../i18n/index.ts";
 import { renderInkHost } from "../../ui/ink/render-ink.ts";
 import { IsolateBootstrapInkScreen } from "../../ui/ink/isolate-bootstrap-ink-screen.ts";
-import { promptForIsolateBootstrapMode, type IsolateBootstrapMode } from "../../ui/prompts/isolate-bootstrap-mode.ts";
-import { DomainError } from "../errors/domain-error.ts";
-import type { OverlayProfile } from "../model/profile.ts";
+import type {
+  IsolateSessionContinuityMetadata,
+  OverlayProfile,
+} from "../model/profile.ts";
+import {
+  ensureLinkedClaudeProjectSessionStore,
+  findLatestClaudeProjectSession,
+  type ImportClaudeProjectSessionResult,
+} from "./isolate-session-continuity.ts";
 
 interface IsolateManifest {
   readonly schemaVersion: 1;
@@ -24,6 +41,21 @@ interface IsolateManifest {
 interface EnsureIsolateHomeReadyInput {
   readonly context: AppContext;
   readonly profile: OverlayProfile;
+  readonly bootstrap?: IsolateBootstrapOptions;
+}
+
+export interface EnsureIsolateHomeReadyResult {
+  readonly claudeHomeDir: string;
+  readonly continuityImport?: ImportClaudeProjectSessionResult;
+  readonly continuityWarning?: string;
+}
+
+export type IsolateBootstrapMode = "import-host" | "clean";
+
+export interface IsolateBootstrapOptions {
+  readonly seedMode?: IsolateBootstrapMode;
+  readonly importLatestHostSession?: boolean;
+  readonly importLatestHostSessionOnNativeContinue?: boolean;
 }
 
 const HOST_LITE_ENTRIES = [
@@ -47,35 +79,76 @@ const STALE_LOCK_MS = 15_000;
 
 export async function ensureIsolateHomeReady(
   input: EnsureIsolateHomeReadyInput,
-): Promise<string> {
+): Promise<EnsureIsolateHomeReadyResult> {
   const { context, profile } = input;
+  const bootstrap = input.bootstrap ?? {};
   const isolatePaths = resolveIsolateProfilePaths(context.runtime.paths, profile.id);
   const sourceConfigDir = resolvePhysicalHostClaudeConfigDir(context.process.env);
 
   if (await hasPreparedIsolateHome(isolatePaths.claudeHomeDir, isolatePaths.manifestFile)) {
-    await persistIsolateMetadata(context, profile, isolatePaths.claudeHomeDir, isolatePaths.manifestFile, sourceConfigDir);
-    return isolatePaths.claudeHomeDir;
-  }
-
-  if (!context.process.stdin.isTTY || !context.process.stdout.isTTY) {
-    throw new DomainError(
-      "ISOLATE_SETUP_REQUIRED",
-      "The isolate home is not ready yet.",
-      { profileId: profile.id },
+    const continuity = await maybeBridgeHostSessionContinuity({
+      context,
+      profile,
+      sourceConfigDir,
+      isolateConfigDir: isolatePaths.claudeHomeDir,
+      forceImport: bootstrap.importLatestHostSession === true,
+      importOnNativeContinue:
+        bootstrap.importLatestHostSessionOnNativeContinue === true,
+    });
+    await persistIsolateMetadata(
+      context,
+      profile,
+      isolatePaths.claudeHomeDir,
+      isolatePaths.manifestFile,
+      sourceConfigDir,
+      undefined,
+      continuity.continuityImport
+        ? toIsolateContinuityMetadata(continuity.continuityImport)
+        : undefined,
     );
+    return {
+      claudeHomeDir: isolatePaths.claudeHomeDir,
+      continuityImport: continuity.continuityImport,
+      continuityWarning: continuity.warningMessage,
+    };
   }
 
   await mkdir(isolatePaths.root, { recursive: true });
 
   return await withIsolateLock(isolatePaths.root, async () => {
     if (await hasPreparedIsolateHome(isolatePaths.claudeHomeDir, isolatePaths.manifestFile)) {
-      await persistIsolateMetadata(context, profile, isolatePaths.claudeHomeDir, isolatePaths.manifestFile, sourceConfigDir);
-      return isolatePaths.claudeHomeDir;
+      const continuity = await maybeBridgeHostSessionContinuity({
+        context,
+        profile,
+        sourceConfigDir,
+        isolateConfigDir: isolatePaths.claudeHomeDir,
+        forceImport: bootstrap.importLatestHostSession === true,
+        importOnNativeContinue:
+          bootstrap.importLatestHostSessionOnNativeContinue === true,
+      });
+      await persistIsolateMetadata(
+        context,
+        profile,
+        isolatePaths.claudeHomeDir,
+        isolatePaths.manifestFile,
+        sourceConfigDir,
+        undefined,
+        continuity.continuityImport
+          ? toIsolateContinuityMetadata(continuity.continuityImport)
+          : undefined,
+      );
+      return {
+        claudeHomeDir: isolatePaths.claudeHomeDir,
+        continuityImport: continuity.continuityImport,
+        continuityWarning: continuity.warningMessage,
+      };
     }
 
     await renderInkHost(
       React.createElement(IsolateBootstrapInkScreen, {
         claudeHomeDir: isolatePaths.claudeHomeDir,
+        seedMode: bootstrap.seedMode ?? "import-host",
+        importLatestHostSession: bootstrap.importLatestHostSession === true,
         locale: context.runtime.locale,
       }),
       {
@@ -86,15 +159,29 @@ export async function ensureIsolateHomeReady(
     );
     context.process.stdout.write("\n");
 
-    const seedMode = await promptForIsolateBootstrapMode(profile.id);
+    const seedMode = bootstrap.seedMode ?? "import-host";
     await mkdir(isolatePaths.claudeHomeDir, { recursive: true });
+    let continuityImport: ImportClaudeProjectSessionResult | undefined;
+    let continuityWarning: string | undefined;
 
     if (
       seedMode === "import-host" &&
       await isDirectoryEmpty(isolatePaths.claudeHomeDir)
     ) {
-      await copyHostLiteSeed(sourceConfigDir, isolatePaths.claudeHomeDir);
+      await linkHostLiteSeed(sourceConfigDir, isolatePaths.claudeHomeDir);
     }
+
+    const continuity = await maybeBridgeHostSessionContinuity({
+      context,
+      profile,
+      sourceConfigDir,
+      isolateConfigDir: isolatePaths.claudeHomeDir,
+      forceImport: bootstrap.importLatestHostSession === true,
+      importOnNativeContinue:
+        bootstrap.importLatestHostSessionOnNativeContinue === true,
+    });
+    continuityImport = continuity.continuityImport;
+    continuityWarning = continuity.warningMessage;
 
     const manifest = buildManifest(
       profile.id,
@@ -110,9 +197,16 @@ export async function ensureIsolateHomeReady(
       isolatePaths.manifestFile,
       sourceConfigDir,
       manifest.createdAt,
+      continuityImport
+        ? toIsolateContinuityMetadata(continuityImport)
+        : undefined,
     );
 
-    return isolatePaths.claudeHomeDir;
+    return {
+      claudeHomeDir: isolatePaths.claudeHomeDir,
+      continuityImport,
+      continuityWarning,
+    };
   });
 }
 
@@ -123,14 +217,14 @@ async function persistIsolateMetadata(
   manifestFile: string,
   sourceConfigDir: string,
   seededAt?: string,
+  continuity?: IsolateSessionContinuityMetadata,
 ): Promise<void> {
-  if (profile.isolate) {
-    return;
-  }
-
   const now = context.runtime.now().toISOString();
+  const latest = await context.runtime.profileStore.get(profile.id);
+  const baseProfile = latest ?? profile;
+  const existingIsolate = baseProfile.isolate;
   await context.runtime.profileStore.put({
-    ...profile,
+    ...baseProfile,
     updatedAt: now,
     isolate: {
       enabled: true,
@@ -143,8 +237,12 @@ async function persistIsolateMetadata(
         configDir: sourceConfigDir,
       },
       manifestPath: manifestFile,
-      lastSeededAt: seededAt,
-      lastSyncedAt: seededAt,
+      lastSeededAt: seededAt ?? existingIsolate?.lastSeededAt,
+      lastSyncedAt:
+        continuity?.importedAt ??
+        seededAt ??
+        existingIsolate?.lastSyncedAt,
+      continuity: continuity ?? existingIsolate?.continuity,
     },
   });
 }
@@ -181,7 +279,7 @@ async function hasPreparedIsolateHome(
   return (await pathExists(claudeHomeDir)) && (await pathExists(manifestFile));
 }
 
-async function copyHostLiteSeed(
+async function linkHostLiteSeed(
   sourceDir: string,
   targetDir: string,
 ): Promise<void> {
@@ -195,12 +293,136 @@ async function copyHostLiteSeed(
       continue;
     }
 
-    await cp(sourcePath, join(targetDir, entry), {
-      force: false,
-      recursive: true,
-      dereference: true,
-    });
+    await linkHostLiteEntry(sourcePath, join(targetDir, entry));
   }
+}
+
+async function linkHostLiteEntry(
+  sourcePath: string,
+  targetPath: string,
+): Promise<void> {
+  if (await pathExists(targetPath)) {
+    return;
+  }
+
+  const metadata = await lstat(sourcePath);
+  if (metadata.isDirectory()) {
+    await symlink(
+      sourcePath,
+      targetPath,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    return;
+  }
+
+  try {
+    await symlink(sourcePath, targetPath, "file");
+  } catch (error) {
+    const errno = (error as NodeJS.ErrnoException).code;
+    if (
+      errno !== "EPERM" &&
+      errno !== "EEXIST" &&
+      errno !== "EINVAL" &&
+      errno !== "UNKNOWN"
+    ) {
+      throw error;
+    }
+
+    if (errno === "EEXIST") {
+      return;
+    }
+
+    await createHardLink(sourcePath, targetPath);
+  }
+}
+
+async function maybeImportHostSessionContinuity(input: {
+  readonly context: AppContext;
+  readonly profile: OverlayProfile;
+  readonly sourceConfigDir: string;
+  readonly isolateConfigDir: string;
+}): Promise<{
+  readonly continuityImport?: ImportClaudeProjectSessionResult;
+  readonly warningMessage?: string;
+}> {
+  const { context, profile, sourceConfigDir } = input;
+  const text = getUiText(context.runtime.locale);
+
+  try {
+    const latestSession = await findLatestClaudeProjectSession(
+      sourceConfigDir,
+      context.process.cwd(),
+    );
+    if (!latestSession) {
+      return {
+        warningMessage: text.misc.isolateContinuityMissingWarning(profile.id),
+      };
+    }
+
+    return {
+      continuityImport: {
+        importedAt: context.runtime.now().toISOString(),
+        projectKey: latestSession.projectKey,
+        sessionId: latestSession.sessionId,
+        sourceFile: latestSession.sessionFile,
+        targetFile: latestSession.sessionFile,
+      },
+    };
+  } catch (error) {
+    return {
+      warningMessage: text.misc.isolateContinuityImportWarning(profile.id),
+    };
+  }
+}
+
+async function maybeBridgeHostSessionContinuity(input: {
+  readonly context: AppContext;
+  readonly profile: OverlayProfile;
+  readonly sourceConfigDir: string;
+  readonly isolateConfigDir: string;
+  readonly forceImport: boolean;
+  readonly importOnNativeContinue: boolean;
+}): Promise<{
+  readonly continuityImport?: ImportClaudeProjectSessionResult;
+  readonly warningMessage?: string;
+}> {
+  const {
+    context,
+    forceImport,
+    importOnNativeContinue,
+    isolateConfigDir,
+  } = input;
+
+  if (!forceImport && !importOnNativeContinue) {
+    await ensureLinkedClaudeProjectSessionStore({
+      hostConfigDir: input.sourceConfigDir,
+      isolateConfigDir,
+      cwd: context.process.cwd(),
+    });
+    return {};
+  }
+
+  await ensureLinkedClaudeProjectSessionStore({
+    hostConfigDir: input.sourceConfigDir,
+    isolateConfigDir,
+    cwd: context.process.cwd(),
+  });
+
+  if (!forceImport && importOnNativeContinue) {
+    return {};
+  }
+
+  return await maybeImportHostSessionContinuity(input);
+}
+
+function toIsolateContinuityMetadata(
+  continuityImport: ImportClaudeProjectSessionResult,
+): IsolateSessionContinuityMetadata {
+  return {
+    importedSessionId: continuityImport.sessionId,
+    projectKey: continuityImport.projectKey,
+    importedAt: continuityImport.importedAt,
+  };
 }
 
 async function pathExists(path: string): Promise<boolean> {

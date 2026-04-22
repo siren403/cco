@@ -52,8 +52,9 @@ That will bootstrap a fresh isolate home under the new path.
 - `cco` or `cco <profile>` launches Claude with host or overlay auth.
 - `cco <profile> [claude args...]` passes trailing Claude args through unchanged.
 - `cco --isolate <profile>` launches Claude in a separate `cco`-owned Claude home.
-- The first `cco --isolate <profile>` run bootstraps that home with either `Import current host setup` or `Start clean`.
+- The first `cco --isolate <profile>` run bootstraps that home with linked host-facing setup by default.
 - `cco isolate status/remove/fresh <profile>` inspects or resets the isolate home.
+- Advanced isolate bootstrap lives on `cco isolate fresh <profile>` with flags such as `--clean` and `--import-latest-host-session`.
 - `cco host` launches with host auth explicitly.
 - `cco auth add <profile>` guides setup-token capture and verifies the token.
 - `cco auth add <profile>` also lets you choose the profile's subprocess auth-env policy.
@@ -75,13 +76,17 @@ cco --isolate work
 cco --isolate work -c
 cco isolate status work
 cco isolate fresh work
+cco isolate fresh --clean work
+cco isolate fresh --import-latest-host-session work
 ```
 
 Behavior summary:
 
 - overlay mode keeps the host Claude home and changes auth only for the launched Claude process
 - isolate mode launches Claude against a separate Claude home under `~/.cco/profiles/<profile>/isolate/claude`
-- the isolate home is prepared on first use and then reused on later runs
+- the isolate home is prepared on first use with linked host-facing setup and then reused on later runs
+- the current project's Claude session store is linked into the isolate so native `-c` stays continuous across host and isolate runs
+- clean bootstrap and explicit first-launch resume are advanced `isolate fresh` options
 - isolate mode uses native Claude login inside that separate home instead of the overlay token file
 
 ## Bypass-Permission Re-runs

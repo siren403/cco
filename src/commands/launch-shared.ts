@@ -2,13 +2,18 @@ import React from "react";
 import { intro, outro } from "@clack/prompts";
 import type { AppContext } from "../context.ts";
 import { buildLaunchPlan } from "../core/services/build-launch-plan.ts";
+import { resolveIsolateLaunchArgs } from "../core/services/isolate-launch-args.ts";
 import { listProfiles } from "../core/services/list-profiles.ts";
 import {
   requestsBypassPermissions,
   resolveShellSubprocessEnvScrubMode,
 } from "../core/services/permission-mode.ts";
 import { resolveProfile } from "../core/services/resolve-profile.ts";
-import { ensureIsolateHomeReady } from "../core/services/isolate-bootstrap.ts";
+import {
+  ensureIsolateHomeReady,
+  type IsolateBootstrapOptions,
+  type EnsureIsolateHomeReadyResult,
+} from "../core/services/isolate-bootstrap.ts";
 import {
   resolveSubprocessEnvScrubMode,
   type OverlayProfile,
@@ -16,7 +21,12 @@ import {
   type SubprocessEnvScrubMode,
 } from "../core/model/profile.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
+import {
+  findLatestClaudeProjectSession,
+  importClaudeProjectSession,
+} from "../core/services/isolate-session-continuity.ts";
 import { getStaticUiText } from "../i18n/index.ts";
+import { resolveHostClaudeConfigDir } from "../infra/fs/path-utils.ts";
 import { spawnClaudeInteractive } from "../infra/bun/spawn-claude.ts";
 import {
   PermissionModeDecisionInkScreen,
@@ -33,6 +43,7 @@ export interface LaunchProfileOptions {
   readonly requestedProfileId?: string;
   readonly claudeArgs?: readonly string[];
   readonly isolate?: boolean;
+  readonly isolateBootstrap?: IsolateBootstrapOptions;
 }
 
 export async function launchClaudeForProfile(
@@ -43,8 +54,13 @@ export async function launchClaudeForProfile(
   const profile = options.requestedProfileId
     ? await resolveProfile(context.runtime.profileStore, options.requestedProfileId)
     : await chooseProfile(profiles);
-  const isolateConfigDir = options.isolate
-    ? await resolveIsolateConfigDir(context, profile)
+  const isolateLaunch = options.isolate
+    ? await resolveIsolateLaunch(
+        context,
+        profile,
+        options.isolateBootstrap,
+        options.claudeArgs,
+      )
     : undefined;
   const token = options.isolate ? null : await resolveToken(context, profile);
   const subprocessEnvScrubOverride = options.isolate
@@ -58,16 +74,28 @@ export async function launchClaudeForProfile(
     outro(text.misc.noChangesMade);
     return;
   }
+
+  if (!options.isolate && profile.kind === "overlay") {
+    await maybeBridgeIsolateSessionBackToHost(context, profile, options.claudeArgs);
+  }
+
+  if (isolateLaunch?.continuityWarning) {
+    context.process.stderr.write(`${isolateLaunch.continuityWarning}\n`);
+  }
+
   const plan = buildLaunchPlan({
     profile,
     binary: context.runtime.resolveClaudeBinary(),
     cwd: context.process.cwd(),
     parentEnv: context.process.env,
     token: token ?? undefined,
-    explicitArgs: options.claudeArgs,
-    envOverrides: isolateConfigDir
+    explicitArgs: resolveIsolateLaunchArgs(
+      options.claudeArgs,
+      isolateLaunch?.continuityImport?.sessionId,
+    ),
+    envOverrides: isolateLaunch?.claudeHomeDir
       ? {
-          CLAUDE_CONFIG_DIR: isolateConfigDir,
+          CLAUDE_CONFIG_DIR: isolateLaunch.claudeHomeDir,
           CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: undefined,
         }
       : undefined,
@@ -118,10 +146,12 @@ async function resolveToken(
   return token;
 }
 
-async function resolveIsolateConfigDir(
+async function resolveIsolateLaunch(
   context: AppContext,
   profile: Profile,
-): Promise<string> {
+  bootstrap: IsolateBootstrapOptions | undefined,
+  claudeArgs: readonly string[] | undefined,
+): Promise<EnsureIsolateHomeReadyResult> {
   if (profile.kind !== "overlay") {
     throw new DomainError(
       "ISOLATE_OVERLAY_ONLY",
@@ -133,7 +163,26 @@ async function resolveIsolateConfigDir(
   return await ensureIsolateHomeReady({
     context,
     profile,
+    bootstrap: {
+      ...bootstrap,
+      importLatestHostSessionOnNativeContinue:
+        bootstrap?.importLatestHostSession !== true &&
+        requestsNativeContinueWithoutExplicitResume(claudeArgs),
+    },
   });
+}
+
+function requestsNativeContinueWithoutExplicitResume(
+  claudeArgs: readonly string[] | undefined,
+): boolean {
+  const args = claudeArgs ?? [];
+  if (
+    args.some((arg) => arg === "--resume" || arg.startsWith("--resume="))
+  ) {
+    return false;
+  }
+
+  return args.some((arg) => arg === "-c" || arg === "--continue");
 }
 
 async function touchOverlayProfile(
@@ -141,8 +190,10 @@ async function touchOverlayProfile(
   profile: OverlayProfile,
 ): Promise<void> {
   const now = context.runtime.now().toISOString();
+  const latest = await context.runtime.profileStore.get(profile.id);
+  const nextProfile = latest ?? profile;
   await context.runtime.profileStore.put({
-    ...profile,
+    ...nextProfile,
     updatedAt: now,
     lastUsedAt: now,
   });
@@ -237,4 +288,62 @@ async function maybeResolvePermissionModeOverride(
   context.process.stdout.write("\n");
 
   return choice === "compat" ? "0" : "1";
+}
+
+async function maybeBridgeIsolateSessionBackToHost(
+  context: AppContext,
+  profile: OverlayProfile,
+  claudeArgs: readonly string[] | undefined,
+): Promise<void> {
+  if (!requestsNativeContinueWithoutExplicitResume(claudeArgs)) {
+    return;
+  }
+
+  const isolateConfigDir = profile.isolate?.homeDir;
+  if (!isolateConfigDir) {
+    return;
+  }
+
+  const isolateLatest = await findLatestClaudeProjectSession(
+    isolateConfigDir,
+    context.process.cwd(),
+  );
+  if (!isolateLatest) {
+    return;
+  }
+
+  const hostConfigDir = resolveHostClaudeConfigDir(context.process.env);
+  const hostLatest = await findLatestClaudeProjectSession(
+    hostConfigDir,
+    context.process.cwd(),
+  );
+  if (hostLatest && hostLatest.updatedAt >= isolateLatest.updatedAt) {
+    return;
+  }
+
+  const importedAt = context.runtime.now().toISOString();
+  await importClaudeProjectSession({
+    isolateConfigDir: hostConfigDir,
+    importedAt,
+    session: isolateLatest,
+  });
+
+  const latestProfile = await context.runtime.profileStore.get(profile.id);
+  if (!latestProfile?.isolate) {
+    return;
+  }
+
+  await context.runtime.profileStore.put({
+    ...latestProfile,
+    updatedAt: importedAt,
+    isolate: {
+      ...latestProfile.isolate,
+      lastSyncedAt: importedAt,
+      continuity: {
+        importedSessionId: isolateLatest.sessionId,
+        projectKey: isolateLatest.projectKey,
+        importedAt,
+      },
+    },
+  });
 }

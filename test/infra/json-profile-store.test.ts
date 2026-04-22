@@ -115,6 +115,11 @@ test("store normalizes isolate metadata from profiles.json", async () => {
               manifestPath: `${fakeCcoHome}\\profiles\\work\\isolate\\manifest.json`,
               lastSeededAt: "2026-04-15T00:00:00.000Z",
               lastSyncedAt: "2026-04-15T00:00:00.000Z",
+              continuity: {
+                importedSessionId: "session-123",
+                projectKey: "D--workspace--cco",
+                importedAt: "2026-04-15T00:01:00.000Z",
+              },
             },
           },
         ],
@@ -133,4 +138,6 @@ test("store normalizes isolate metadata from profiles.json", async () => {
   expect(profile?.isolate?.seedPreset).toBe("host-lite");
   expect(profile?.isolate?.source.profileId).toBe("work");
   expect(profile?.isolate?.source.configDir).toBe(fakeClaudeHome);
+  expect(profile?.isolate?.continuity?.importedSessionId).toBe("session-123");
+  expect(profile?.isolate?.continuity?.projectKey).toBe("D--workspace--cco");
 });

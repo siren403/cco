@@ -13,6 +13,12 @@ export interface IsolateProfileSource {
   readonly fingerprint?: string;
 }
 
+export interface IsolateSessionContinuityMetadata {
+  readonly importedSessionId: string;
+  readonly projectKey: string;
+  readonly importedAt: string;
+}
+
 export interface IsolateProfileMetadata {
   readonly enabled: boolean;
   readonly homeDir: string;
@@ -22,6 +28,7 @@ export interface IsolateProfileMetadata {
   readonly manifestPath: string;
   readonly lastSeededAt?: string;
   readonly lastSyncedAt?: string;
+  readonly continuity?: IsolateSessionContinuityMetadata;
 }
 
 export interface HostProfile {

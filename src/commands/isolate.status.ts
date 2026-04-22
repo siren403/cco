@@ -38,6 +38,9 @@ export const isolateStatusCommand = buildCommand<{}, [profileId: string], AppCon
           status.manifest?.sourceConfigDir ??
           profile.isolate?.source.configDir ??
           text.profiles.missingBadge,
+        continuitySessionId: profile.isolate?.continuity?.importedSessionId,
+        continuityProjectKey: profile.isolate?.continuity?.projectKey,
+        continuityImportedAt: profile.isolate?.continuity?.importedAt,
         locale: this.runtime.locale,
       }),
       {
