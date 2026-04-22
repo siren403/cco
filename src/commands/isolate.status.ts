@@ -16,7 +16,7 @@ export const isolateStatusCommand = buildCommand<{}, [profileId: string], AppCon
     if (profile.kind !== "overlay") {
       throw new DomainError(
         "ISOLATE_OVERLAY_ONLY",
-        "Isolate mode currently supports saved overlay profiles only.",
+        "Isolate mode currently supports saved profiles only.",
         { profileId },
       );
     }

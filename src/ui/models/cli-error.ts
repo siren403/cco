@@ -143,6 +143,21 @@ export function buildCliErrorModel(error: unknown, locale: AppLocale): CliErrorM
             },
           ],
         };
+      case "REMOVED_LAUNCH_FLAG":
+        return {
+          title: error.message,
+          tone: "warn",
+          commands: [
+            {
+              command: `cco ${profileId ?? "work"}`,
+              description: text.rootHelp.quickStartLaunch,
+            },
+            {
+              command: `cco isolate status ${profileId ?? "work"}`,
+              description: text.rootHelp.commandSurfaceIsolate,
+            },
+          ],
+        };
       case "MISPLACED_LAUNCH_FLAG":
         return {
           title: text.errors.misplacedLaunchFlagTitle(String(error.details.flag ?? "--isolate")),
@@ -181,7 +196,7 @@ export function buildCliErrorModel(error: unknown, locale: AppLocale): CliErrorM
           summary: text.errors.isolateSetupRequiredSummary,
           commands: [
             {
-              command: `cco --isolate ${profileId ?? "work"}`,
+              command: `cco ${profileId ?? "work"}`,
               description: text.errors.isolateSetupRequiredDescription(profileId ?? "work"),
             },
           ],
@@ -193,7 +208,7 @@ export function buildCliErrorModel(error: unknown, locale: AppLocale): CliErrorM
           summary: text.errors.exitCodeSummary(String(error.details.exitCode ?? "unknown")),
           commands: [
             {
-              command: `cco --isolate ${profileId ?? "work"}`,
+              command: `cco ${profileId ?? "work"}`,
               description: text.errors.isolateLoginRetryDescription(profileId ?? "work"),
             },
           ],

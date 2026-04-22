@@ -16,7 +16,7 @@ export type Invocation = DirectLaunchInvocation | StricliInvocation;
 
 const ROOT_HELP_FLAGS = new Set(["--help", "-h", "help"]);
 const ROOT_VERSION_FLAGS = new Set(["--version", "-v", "version"]);
-const LAUNCH_FLAGS = new Set(["--isolate"]);
+const REMOVED_LAUNCH_FLAGS = new Set(["--isolate"]);
 const STRICT_CLI_COMMANDS = new Set([
   "auth",
   "config",
@@ -65,20 +65,18 @@ export function resolveInvocation(argv: readonly string[]): Invocation {
     mode: "direct-launch",
     profileId: launchParse.profileId,
     claudeArgs: launchParse.claudeArgs,
-    isolate: launchParse.isolate,
+    isolate: launchParse.profileId !== "host",
   };
 }
 
 interface ParsedLaunchInvocation {
   readonly profileId: string;
   readonly claudeArgs: readonly string[];
-  readonly isolate: boolean;
 }
 
 function parseLaunchInvocation(
   argv: readonly string[],
 ): ParsedLaunchInvocation | null {
-  let isolate = false;
   let index = 0;
 
   while (index < argv.length) {
@@ -88,10 +86,8 @@ function parseLaunchInvocation(
       return null;
     }
 
-    if (LAUNCH_FLAGS.has(token)) {
-      isolate = true;
-      index += 1;
-      continue;
+    if (REMOVED_LAUNCH_FLAGS.has(token)) {
+      throw removedLaunchFlagError(argv[index + 1]);
     }
 
     if (token.startsWith("-")) {
@@ -105,7 +101,6 @@ function parseLaunchInvocation(
     return {
       profileId: token,
       claudeArgs: parseClaudeArgs(argv.slice(index + 1), token),
-      isolate,
     };
   }
 
@@ -121,17 +116,21 @@ function parseClaudeArgs(
   }
 
   for (const token of argv) {
-    if (LAUNCH_FLAGS.has(token)) {
-      throw new DomainError(
-        "MISPLACED_LAUNCH_FLAG",
-        `"${token}" is a cco launch option and must appear before <profile>. Try: cco ${token} ${profileId}`,
-        {
-          flag: token,
-          profileId,
-        },
-      );
+    if (REMOVED_LAUNCH_FLAGS.has(token)) {
+      throw removedLaunchFlagError(profileId);
     }
   }
 
   return argv;
+}
+
+function removedLaunchFlagError(profileId: string | undefined): DomainError {
+  return new DomainError(
+    "REMOVED_LAUNCH_FLAG",
+    'The "--isolate" launch flag was removed. Use `cco <profile>` for profiled runs or `cco isolate ...` for maintenance.',
+    {
+      flag: "--isolate",
+      profileId,
+    },
+  );
 }

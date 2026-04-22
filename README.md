@@ -1,9 +1,10 @@
 # cco
 
-`cco` is a local Claude Code launcher with two explicit run modes:
+`cco` is a local Claude Code launcher for:
 
-- overlay: keep the host Claude home and swap runtime auth with `CLAUDE_CODE_OAUTH_TOKEN`
-- isolate: launch against a separate Claude home for team-compatible runs
+- linked host-facing setup
+- separate Claude homes per saved profile
+- per-profile OAuth switching with official `claude setup-token` tokens
 
 ## Breaking Change in 0.2.0
 
@@ -11,30 +12,31 @@ The old experimental `teams` surface has been removed.
 
 - `cco --teams <profile>` is gone
 - `cco teams ...` is gone
+- `cco --isolate <profile>` has been folded into `cco <profile>`
 - internal isolate storage moved from `~/.cco/profiles/<profile>/teams/` to `~/.cco/profiles/<profile>/isolate/`
 - there is no automatic migration for old experimental isolate homes
 
 If you used pre-`0.2.0` experimental builds, re-run:
 
 ```bash
-cco --isolate <profile>
+cco <profile>
 ```
 
 That will bootstrap a fresh isolate home under the new path.
 
 ## Positioning
 
-- Host Claude settings, plugins, and local sessions stay where they are.
+- Host-facing Claude settings stay where they are and are linked into profile homes.
 - Claude's own flags are passed through for direct launches such as `cco work -c`.
-- Overlay profiles use official `claude setup-token` tokens.
-- Isolate runs use a `cco`-owned Claude home and native Claude login inside that home.
+- Saved profiles use official `claude setup-token` tokens.
+- Profile runs use a `cco`-owned Claude home under `~/.cco/profiles/<profile>/isolate/claude`.
 - The tool is local-only and launcher-only. It is not an OAuth proxy or credential broker.
 - `cco` must not rely on a global "active profile" switch. Every launch is explicit and process-local.
 
 ## Isolation Rules
 
-- Overlay auth is applied only to the spawned Claude process.
-- Isolate runs redirect only the spawned Claude process to a separate Claude home.
+- Profile auth is applied only to the spawned Claude process.
+- Profile runs redirect only the spawned Claude process to a separate Claude home.
 - `cco` never mutates the parent shell environment.
 - `cco` never rewrites host vendor credential storage.
 - Different terminals can run different profiles concurrently without sharing a global auth state.
@@ -49,10 +51,9 @@ That will bootstrap a fresh isolate home under the new path.
 
 ## Current scaffold
 
-- `cco` or `cco <profile>` launches Claude with host or overlay auth.
+- `cco` or `cco <profile>` launches Claude with host auth or a saved profile.
 - `cco <profile> [claude args...]` passes trailing Claude args through unchanged.
-- `cco --isolate <profile>` launches Claude in a separate `cco`-owned Claude home.
-- The first `cco --isolate <profile>` run bootstraps that home with linked host-facing setup by default.
+- The first `cco <profile>` run bootstraps a separate `cco`-owned Claude home with linked host-facing setup by default.
 - `cco isolate status/remove/fresh <profile>` inspects or resets the isolate home.
 - Advanced isolate bootstrap lives on `cco isolate fresh <profile>` with flags such as `--clean` and `--import-latest-host-session`.
 - `cco host` launches with host auth explicitly.
@@ -67,13 +68,13 @@ That will bootstrap a fresh isolate home under the new path.
 - `cco doctor` checks binary resolution, env conflicts, and local storage layout with a structured diagnostics screen.
 - `cco showcase [topic]` previews the CLI's help, doctor, profile inventory, and recovery states without launching Claude.
 
-## Isolate Mode
+## Profile Runs
 
-Use isolate mode when the normal auth overlay is not enough, especially for Claude team or teammate workflows.
+Use `cco <profile>` as the normal path. It gives you linked host-facing setup, a separate Claude home, and the saved profile auth in one command.
 
 ```bash
-cco --isolate work
-cco --isolate work -c
+cco work
+cco work -c
 cco isolate status work
 cco isolate fresh work
 cco isolate fresh --clean work
@@ -82,12 +83,12 @@ cco isolate fresh --import-latest-host-session work
 
 Behavior summary:
 
-- overlay mode keeps the host Claude home and changes auth only for the launched Claude process
-- isolate mode launches Claude against a separate Claude home under `~/.cco/profiles/<profile>/isolate/claude`
-- the isolate home is prepared on first use with linked host-facing setup and then reused on later runs
-- the current project's Claude session store is linked into the isolate so native `-c` stays continuous across host and isolate runs
-- clean bootstrap and explicit first-launch resume are advanced `isolate fresh` options
-- isolate mode uses native Claude login inside that separate home instead of the overlay token file
+- `cco host` keeps the host Claude login and host Claude home untouched
+- `cco <profile>` launches Claude against `~/.cco/profiles/<profile>/isolate/claude`
+- that profile home links safe host-facing setup such as settings, MCP config, plugins, skills, hooks, commands, and statusline scripts
+- `cco <profile>` injects the saved profile token into the launched Claude process
+- the current project's Claude session store is linked into the profile home so native `-c` stays continuous across host plain `claude`, `cco host`, and `cco <profile>`
+- clean bootstrap and explicit first-launch resume are advanced `cco isolate fresh <profile>` options
 
 ## Bypass-Permission Re-runs
 
@@ -168,8 +169,8 @@ Typical screens now render as structured terminal panels instead of flat line li
 
 ```text
 ┌─ Doctor [ready] ──────────────────────────────────────────────┐
-│ Runtime looks ready for host launches and process-local auth  │
-│ overlays. No conflicting auth environment variables were      │
+│ Runtime looks ready for host launches and isolated profile    │
+│ launches. No conflicting auth environment variables were      │
 │ detected in the current shell.                                │
 └───────────────────────────────────────────────────────────────┘
 ```
@@ -178,20 +179,18 @@ Typical screens now render as structured terminal panels instead of flat line li
 ┌─ Problem [error] ─────────────────────────────────────────────┐
 │ Unknown profile: missing-profile                              │
 │                                                               │
-│ Create the local alias first, or inspect the saved overlay   │
-│ profiles.                                                     │
+│ Create the local alias first, or inspect the saved profiles.  │
 └───────────────────────────────────────────────────────────────┘
 ```
 
 ## Notes
 
 - Tokens are currently stored locally in plain text under `~/.cco/tokens/` for MVP simplicity.
-- Overlay runtime policy is stored in `~/.cco/profiles.json`, including per-profile `env` values such as `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`.
+- Saved profile runtime policy is stored in `~/.cco/profiles.json`, including per-profile `env` values such as `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`.
 - That means you can adjust a saved profile later by editing `profiles.json` directly.
 - Session management is intentionally left to Claude Code itself in MVP.
-- Overlay launches preserve the host shell's `CLAUDE_CONFIG_DIR` if one is already set.
-- Isolate launches set `CLAUDE_CONFIG_DIR` only for the spawned Claude process so it uses the isolate home.
+- Host launches preserve the host shell's `CLAUDE_CONFIG_DIR` if one is already set.
+- Profile launches set `CLAUDE_CONFIG_DIR` only for the spawned Claude process so it uses the isolate home.
 - Cross-terminal isolation is a hard requirement for future session binding work.
-- Overlay runs are not team-aware. Teammate Claude instances may still fall back to host login because Claude Code does not currently propagate `CLAUDE_CODE_OAUTH_TOKEN` into teammate spawn env.
-- `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0` does not fix that teammate limitation by itself. It only affects subprocess env handling, not teammate auth propagation.
-- If teammate or team compatibility matters more than overlay continuity, prefer isolate mode.
+- The current project's session store is intentionally shared between host and profile homes so native `-c` continuity works in both directions.
+- Do not open the exact same session concurrently from host and profile processes.

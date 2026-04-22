@@ -7,7 +7,7 @@
 - local-only
 - launcher-only
 - host `~/.claude` preserved
-- runtime auth overlay via `CLAUDE_CODE_OAUTH_TOKEN`
+- linked host-facing setup plus per-profile isolated Claude homes
 - no ambient global profile state
 - no custom session manager in MVP
 
@@ -33,7 +33,7 @@ It does not become:
 
 1. User runs `cco`
 2. If multiple profiles exist, show a short profile picker
-3. Spawn Claude with host login or overlay token
+3. Spawn Claude with host login or the selected profile's isolated home and auth
 4. Keep stdin/stdout/stderr inherited so the Claude UX stays native
 5. Do not persist a global "current profile" across terminals
 6. Let Claude-native flags such as `-c` continue to work through direct pass-through
@@ -78,7 +78,7 @@ That means:
 
 ### Auth isolation
 
-- overlay auth exists only in the child env passed to `claude`
+- profile auth exists only in the child env passed to `claude`
 - host login remains the default when `cco` is not involved
 - two terminals running `cco work` and `cco personal` must not interfere
 
@@ -130,7 +130,7 @@ That means:
 
 ## Next Build Steps
 
-1. Add fake-claude integration tests for direct launch and env overlay behavior
+1. Add fake-claude integration tests for direct launch and profiled isolated-home behavior
 2. Upgrade token storage from plain files to OS-backed secret storage
 3. Improve help/examples around `cco work -c` and `cco host --resume ...`
 4. Add structured diagnostics for invalid tokens and missing Claude binary

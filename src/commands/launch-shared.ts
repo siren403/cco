@@ -54,7 +54,10 @@ export async function launchClaudeForProfile(
   const profile = options.requestedProfileId
     ? await resolveProfile(context.runtime.profileStore, options.requestedProfileId)
     : await chooseProfile(profiles);
-  const isolateLaunch = options.isolate
+  const useIsolate = profile.kind === "overlay"
+    ? options.isolate ?? true
+    : false;
+  const isolateLaunch = useIsolate
     ? await resolveIsolateLaunch(
         context,
         profile,
@@ -62,20 +65,18 @@ export async function launchClaudeForProfile(
         options.claudeArgs,
       )
     : undefined;
-  const token = options.isolate ? null : await resolveToken(context, profile);
-  const subprocessEnvScrubOverride = options.isolate
-    ? undefined
-    : await maybeResolvePermissionModeOverride(
-        context,
-        profile,
-        options.claudeArgs,
-      );
+  const token = await resolveToken(context, profile);
+  const subprocessEnvScrubOverride = await maybeResolvePermissionModeOverride(
+    context,
+    profile,
+    options.claudeArgs,
+  );
   if (subprocessEnvScrubOverride === "exit") {
     outro(text.misc.noChangesMade);
     return;
   }
 
-  if (!options.isolate && profile.kind === "overlay") {
+  if (!useIsolate && profile.kind === "overlay") {
     await maybeBridgeIsolateSessionBackToHost(context, profile, options.claudeArgs);
   }
 
@@ -96,7 +97,6 @@ export async function launchClaudeForProfile(
     envOverrides: isolateLaunch?.claudeHomeDir
       ? {
           CLAUDE_CONFIG_DIR: isolateLaunch.claudeHomeDir,
-          CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: undefined,
         }
       : undefined,
     subprocessEnvScrubOverride,
@@ -155,7 +155,7 @@ async function resolveIsolateLaunch(
   if (profile.kind !== "overlay") {
     throw new DomainError(
       "ISOLATE_OVERLAY_ONLY",
-      "Isolate mode currently supports saved overlay profiles only.",
+      "Isolate mode currently supports saved profiles only.",
       { profileId: profile.id },
     );
   }

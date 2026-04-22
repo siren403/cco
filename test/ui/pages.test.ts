@@ -10,7 +10,7 @@ test("root help uses panel-based sections", () => {
 
   expect(output).toContain("빠른 시작");
   expect(output).toContain("명령 표면");
-  expect(output).toContain("오버레이 + 격리");
+  expect(output).toContain("프로필 런처");
   expect(output).toContain("CLAUDE_CODE_SUBPROCESS_ENV_SCRUB");
   expect(output).toContain("isolate status work");
 });
@@ -48,7 +48,7 @@ test("doctor page shows runtime snapshot and suggested action", () => {
     profiles: 1,
     hostConfigDir: "/tmp/.claude",
     conflicts: [],
-    launchMode: "호스트 구성 + 프로세스 로컬 인증 오버레이",
+    launchMode: "링크된 host setup + 분리 Claude home + 프로필 인증",
     shellSubprocessEnvScrub: undefined,
   });
 

@@ -10,12 +10,12 @@ afterEach(async () => {
   await Promise.all(createdDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
 
-test("overlay launch injects overlay token and preserves host config env", async () => {
+test("profile launch bootstraps isolate home, injects the saved token, and links host-lite config", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
+  await seedHostClaudeConfig(sandbox.root);
 
   const result = await runCli(["work", "-c"], sandbox, {
-    CLAUDE_CONFIG_DIR: join(sandbox.root, "host-config"),
     ANTHROPIC_API_KEY: "should-be-scrubbed",
   });
 
@@ -24,69 +24,11 @@ test("overlay launch injects overlay token and preserves host config env", async
   const log = await readFakeClaudeLog(sandbox.logPath);
   expect(log.args).toEqual(["-c"]);
   expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBe("overlay-token");
-  expect(log.env.CLAUDE_CONFIG_DIR).toBe(join(sandbox.root, "host-config"));
-  expect(log.env.ANTHROPIC_API_KEY).toBeNull();
-  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("1");
-});
-
-test("overlay native continue bridges the latest isolate session back into the host store", async () => {
-  const sandbox = await createSandbox();
-  const repoRoot = resolve(import.meta.dir, "..", "..");
-  const projectKey = encodeClaudeProjectKey(repoRoot);
-  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1", true);
-  await seedIsolateProjectSession(
-    sandbox.ccoHome,
-    "work",
-    repoRoot,
-    "session-back-123",
-  );
-
-  const result = await runCli(["work", "-c"], sandbox, {});
-
-  expect(result.exitCode).toBe(0);
-
-  const log = await readFakeClaudeLog(sandbox.logPath);
-  expect(log.args).toEqual(["-c"]);
-  expect(
-    await readFile(
-      join(
-        sandbox.root,
-        ".claude",
-        "projects",
-        projectKey,
-        "session-back-123.jsonl",
-      ),
-      "utf8",
-    ),
-  ).toContain("\"isolate-backflow\"");
-});
-
-test("misplaced isolate launch flag is rejected before Claude is spawned", async () => {
-  const sandbox = await createSandbox();
-  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
-
-  const result = await runCli(["work", "--isolate"], sandbox, {});
-
-  expect(result.exitCode).toBe(1);
-  expect(result.stderr).toContain("--isolate");
-  expect(result.stderr).toContain("cco --isolate work");
-});
-
-test("isolate first launch bootstraps host-lite by default", async () => {
-  const sandbox = await createSandbox();
-  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
-  await seedHostClaudeConfig(sandbox.root);
-
-  const result = await runCli(["--isolate", "work", "-c"], sandbox, {});
-
-  expect(result.exitCode).toBe(0);
-
-  const log = await readFakeClaudeLog(sandbox.logPath);
-  expect(log.args).toEqual(["-c"]);
   expect(log.env.CLAUDE_CONFIG_DIR).toBe(
     join(sandbox.ccoHome, "profiles", "work", "isolate", "claude"),
   );
-  expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBeNull();
+  expect(log.env.ANTHROPIC_API_KEY).toBeNull();
+  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("1");
   expect(
     await readFile(
       join(sandbox.ccoHome, "profiles", "work", "isolate", "claude", "settings.json"),
@@ -95,14 +37,25 @@ test("isolate first launch bootstraps host-lite by default", async () => {
   ).toContain("\"theme\": \"host-default\"");
 });
 
-test("isolate native continue on first launch imports the latest host session into the isolate store", async () => {
+test("removed isolate launch flag is rejected before Claude is spawned", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
+
+  const result = await runCli(["work", "--isolate"], sandbox, {});
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("--isolate");
+  expect(result.stderr).toContain("cco <profile>");
+});
+
+test("profile native continue on first launch links the latest host session into the isolate store", async () => {
   const sandbox = await createSandbox();
   const repoRoot = resolve(import.meta.dir, "..", "..");
   const projectKey = encodeClaudeProjectKey(repoRoot);
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
   await seedHostClaudeProjectSession(sandbox.root, repoRoot, "session-continue-123");
 
-  const result = await runCli(["--isolate", "work", "-c"], sandbox, {});
+  const result = await runCli(["work", "-c"], sandbox, {});
 
   expect(result.exitCode).toBe(0);
 
@@ -125,12 +78,12 @@ test("isolate native continue on first launch imports the latest host session in
   ).toContain("\"continuity\"");
 });
 
-test("isolate launch uses the dedicated Claude home and omits overlay auth env", async () => {
+test("profile launch uses the dedicated Claude home and the saved profile auth env", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
   await seedIsolateHome(sandbox.ccoHome, "work");
 
-  const result = await runCli(["--isolate", "work", "-c"], sandbox, {
+  const result = await runCli(["work", "-c"], sandbox, {
     CLAUDE_CONFIG_DIR: join(sandbox.root, "host-config"),
   });
 
@@ -141,29 +94,23 @@ test("isolate launch uses the dedicated Claude home and omits overlay auth env",
   expect(log.env.CLAUDE_CONFIG_DIR).toBe(
     join(sandbox.ccoHome, "profiles", "work", "isolate", "claude"),
   );
-  expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBeNull();
-  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBeNull();
+  expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBe("overlay-token");
+  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("1");
 });
 
-test("isolate launch does not require the saved overlay token once isolate home exists", async () => {
+test("profile launch still requires the saved token even when the isolate home exists", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token");
   await seedIsolateHome(sandbox.ccoHome, "work");
   await rm(join(sandbox.ccoHome, "tokens", "work.token"), { force: true });
 
-  const result = await runCli(["--isolate", "work", "-c"], sandbox, {});
+  const result = await runCli(["work", "-c"], sandbox, {});
 
-  expect(result.exitCode).toBe(0);
-
-  const log = await readFakeClaudeLog(sandbox.logPath);
-  expect(log.args).toEqual(["-c"]);
-  expect(log.env.CLAUDE_CONFIG_DIR).toBe(
-    join(sandbox.ccoHome, "profiles", "work", "isolate", "claude"),
-  );
-  expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBeNull();
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("Run \"cco auth add work\"");
 });
 
-test("isolate native continue bridges the latest host session when the isolate home exists but has no local session", async () => {
+test("profile native continue bridges the latest host session when the isolate home exists but has no local session", async () => {
   const sandbox = await createSandbox();
   const repoRoot = resolve(import.meta.dir, "..", "..");
   const projectKey = encodeClaudeProjectKey(repoRoot);
@@ -171,7 +118,7 @@ test("isolate native continue bridges the latest host session when the isolate h
   await seedIsolateHome(sandbox.ccoHome, "work");
   await seedHostClaudeProjectSession(sandbox.root, repoRoot, "session-continue-existing");
 
-  const result = await runCli(["--isolate", "work", "-c"], sandbox, {});
+  const result = await runCli(["work", "-c"], sandbox, {});
 
   expect(result.exitCode).toBe(0);
 
@@ -194,7 +141,7 @@ test("isolate native continue bridges the latest host session when the isolate h
   ).toContain("\"continuity\"");
 });
 
-test("overlay launch respects per-profile subprocess env policy", async () => {
+test("profile launch respects per-profile subprocess env policy", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "compat", "overlay-token", "0");
 
@@ -276,7 +223,7 @@ test("non-interactive safe profile with bypassPermissions errors without explici
   expect(result.stderr).toContain("CLAUDE_CODE_SUBPROCESS_ENV_SCRUB");
 });
 
-test("host launch omits overlay token and still preserves host config env", async () => {
+test("host launch omits profile token injection and still preserves host config env", async () => {
   const sandbox = await createSandbox();
 
   const result = await runCli(["host", "--resume", "abc123"], sandbox, {
@@ -311,7 +258,7 @@ test("auth list renders through Ink host in non-interactive mode", async () => {
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("Profiles");
   expect(result.stdout).toContain("host [host] [host login]");
-  expect(result.stdout).toContain("work [overlay] [stored] [compat mode]");
+  expect(result.stdout).toContain("work [profile] [stored] [compat mode]");
   expect(result.stderr).toBe("");
 });
 
@@ -331,7 +278,7 @@ test("doctor renders through Ink host in non-interactive mode", async () => {
   expect(result.stderr).toBe("");
 });
 
-test("config get prints saved overlay scrub mode", async () => {
+test("config get prints saved profile scrub mode", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "0");
 
@@ -342,7 +289,7 @@ test("config get prints saved overlay scrub mode", async () => {
   expect(result.stdout).toContain("0 (compat mode)");
 });
 
-test("config set updates saved overlay scrub mode", async () => {
+test("config set updates saved profile scrub mode", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
 

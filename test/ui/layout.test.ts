@@ -36,7 +36,7 @@ test("renderPanel adds ansi styling in color mode", () => {
 
 test("command and key-value lists remain readable without color", () => {
   const commands = renderCommandList([
-    { command: "cco work", description: "Launch with overlay auth." },
+    { command: "cco work", description: "Launch with linked host setup and profile auth." },
   ]);
   const kv = renderKeyValueList([
     { label: "profiles", value: "2" },

@@ -6,21 +6,21 @@ test("plain profile invocation is treated as direct Claude launch", () => {
     mode: "direct-launch",
     profileId: "work",
     claudeArgs: [],
-    isolate: false,
+    isolate: true,
   });
 
   expect(resolveInvocation(["work", "-c"])).toEqual({
     mode: "direct-launch",
     profileId: "work",
     claudeArgs: ["-c"],
-    isolate: false,
+    isolate: true,
   });
 
   expect(resolveInvocation(["teams"])).toEqual({
     mode: "direct-launch",
     profileId: "teams",
     claudeArgs: [],
-    isolate: false,
+    isolate: true,
   });
 });
 
@@ -33,18 +33,13 @@ test("host invocation passes trailing args through to Claude", () => {
   });
 });
 
-test("launch flags before profile stay on the direct launch path", () => {
-  expect(resolveInvocation(["--isolate", "work", "-c"])).toEqual({
-    mode: "direct-launch",
-    profileId: "work",
-    claudeArgs: ["-c"],
-    isolate: true,
-  });
-});
+test("removed isolate launch flag is rejected with the new canonical guidance", () => {
+  expect(() => resolveInvocation(["--isolate", "work", "-c"])).toThrow(
+    'The "--isolate" launch flag was removed. Use `cco <profile>` for profiled runs or `cco isolate ...` for maintenance.',
+  );
 
-test("launch flags after profile are rejected with a targeted error", () => {
   expect(() => resolveInvocation(["work", "--isolate"])).toThrow(
-    '"--isolate" is a cco launch option and must appear before <profile>. Try: cco --isolate work',
+    'The "--isolate" launch flag was removed. Use `cco <profile>` for profiled runs or `cco isolate ...` for maintenance.',
   );
 });
 

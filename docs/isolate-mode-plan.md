@@ -16,56 +16,56 @@ Supporting references:
 
 ## Goal
 
-Ship a second launch mode for `cco` that keeps the fast overlay path intact
-while giving Claude team workflows their own Claude home.
+Ship a canonical profiled run path for `cco` that uses linked host-facing
+setup, a separate Claude home, and saved profile auth in one launch.
 
 The public UX remains:
 
-- `cco <profile>`: overlay launch
-- `cco --isolate <profile>`: isolate launch
+- `cco <profile>`: canonical profiled run
+- `cco host`: host run
 - `cco isolate status|remove|fresh <profile>`: isolate maintenance
 - advanced bootstrap overrides live on `cco isolate fresh <profile>`
 
 ## Product Model
 
-`cco` has one saved overlay profile record per alias such as `work` or
+`cco` has one saved profile record per alias such as `work` or
 `backup`.
 
-Isolate mode is not a second profile system. It is a derived runtime attached
-to an existing overlay profile.
+The isolate home is not a second profile system. It is a derived runtime
+attached to an existing saved profile.
 
 That means:
 
 - the profile name stays the user-facing handle
-- overlay and isolate are run modes, not separate top-level objects
+- host vs profiled run is the public launch split
+- overlay remains an internal auth-storage concept, not a public run mode
 - the isolate home is owned by `cco` and can be removed safely without touching
   the host Claude home
 - `cco` does not become a custom session manager
 
 ## Runtime Model
 
-### Overlay
+### Host Run
 
 - Uses the host Claude home.
-- Injects `CLAUDE_CODE_OAUTH_TOKEN` only into the spawned Claude process.
+- Does not inject a saved profile token.
 - Keeps host sessions and host configuration continuity.
-- Best default for normal single-agent usage.
+- Used only when the caller explicitly runs `cco host`.
 
-### Isolate
+### Profile Run
 
 - Uses a separate Claude home under
   `~/.cco/profiles/<profile>/isolate/claude`.
-- Does not inject the overlay token into the launched Claude process.
-- Uses native Claude login inside that isolate home.
-- Best option for team or teammate workflows where runtime token overlay is
-  insufficient.
+- Links safe host-facing setup into that profile home.
+- Injects the saved profile token into the launched Claude process.
+- Is the default public path for `cco <profile>`.
 
 ## Bootstrap Model
 
-The first isolate launch is lazy-bootstrapped from the run command itself.
+The first profiled launch is lazy-bootstrapped from the run command itself.
 
 ```bash
-cco --isolate work
+cco work
 ```
 
 If the isolate home is missing:
@@ -104,9 +104,8 @@ native `-c` continues to work across host and isolate launches.
 
 ### Goal
 
-Allow host plain `claude -c`, `cco <profile> -c`, and
-`cco --isolate <profile> -c` to keep working across account-switched isolate
-runs.
+Allow host plain `claude -c`, `cco host -c`, and `cco <profile> -c` to keep
+working across account-switched profile runs.
 
 This requires shared visibility of the current project's Claude session store
 between the host and isolate homes.
@@ -154,8 +153,7 @@ What we will not do:
 
 ### UX rules
 
-- Do not ask seed or session questions on the default `cco --isolate <profile>`
-  path.
+- Do not ask seed or session questions on the default `cco <profile>` path.
 - Make the default isolate bootstrap implicitly preserve safe host-facing
   setup.
 - Keep explicit first-launch resume advanced, but make baseline native
@@ -163,9 +161,9 @@ What we will not do:
 - Expose advanced bootstrap controls through `cco isolate fresh <profile>`
   flags instead of first-run prompts.
 - Preserve the Claude-native mental model:
-  - `cco --isolate <profile>` starts a normal isolate launch.
-  - `cco --isolate <profile> -c` continues the shared current-project session.
-  - `cco --isolate <profile> --resume <sessionId>` resumes a session already
+  - `cco <profile>` starts a normal profiled launch.
+  - `cco <profile> -c` continues the shared current-project session.
+  - `cco <profile> --resume <sessionId>` resumes a session already
     present in the isolate home.
 
 The linked project session store is the persistent continuity policy.
@@ -274,8 +272,7 @@ Normalize it in `src/infra/fs/json-profile-store.ts`.
 
 Use the existing isolate recovery flow.
 
-- missing bootstrap: ask the user to run `cco --isolate <profile>`
-  interactively
+- missing bootstrap: ask the user to run `cco <profile>` interactively
 - broken isolate home: guide the user to `cco isolate fresh <profile>`
 
 ### Continuity import failure
@@ -306,8 +303,9 @@ continuity metadata together with isolate metadata.
 
 - The parent shell environment is never mutated.
 - Host credential storage is never rewritten.
-- Overlay and isolate launches can run concurrently in different terminals.
-- Runtime-state linking between host and isolate remains prohibited.
+- Host and profiled launches can run concurrently in different terminals.
+- Runtime-state linking between host and isolate remains prohibited except for
+  the explicit current-project session-store link.
 - `isolate fresh` is the main recovery path when an isolate home becomes stale
   or confusing.
 
@@ -333,7 +331,7 @@ availability and runtime behavior, not just conversation history.
 
 ### Implemented baseline
 
-- `--isolate` launch flag
+- `cco <profile>` canonical profiled launch
 - `isolate status`
 - `isolate remove`
 - `isolate fresh`
