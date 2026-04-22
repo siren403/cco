@@ -51,11 +51,9 @@ That will bootstrap a fresh isolate home under the new path.
 
 ## Current scaffold
 
-- `cco` or `cco <profile>` launches Claude with host auth or a saved profile.
+- `cco` opens the picker and launches host or a saved profile.
 - `cco <profile> [claude args...]` passes trailing Claude args through unchanged.
 - The first `cco <profile>` run bootstraps a separate `cco`-owned Claude home with linked host-facing setup by default.
-- `cco isolate status/remove/fresh <profile>` inspects or resets the isolate home.
-- Advanced isolate bootstrap lives on `cco isolate fresh <profile>` with flags such as `--clean` and `--import-latest-host-session`.
 - `cco host` launches with host auth explicitly.
 - `cco auth add <profile>` guides setup-token capture and verifies the token.
 - `cco auth add <profile>` also lets you choose the profile's subprocess auth-env policy.
@@ -75,10 +73,7 @@ Use `cco <profile>` as the normal path. It gives you linked host-facing setup, a
 ```bash
 cco work
 cco work -c
-cco isolate status work
-cco isolate fresh work
-cco isolate fresh --clean work
-cco isolate fresh --import-latest-host-session work
+cco host
 ```
 
 Behavior summary:
@@ -89,6 +84,17 @@ Behavior summary:
 - `cco <profile>` injects the saved profile token into the launched Claude process
 - the current project's Claude session store is linked into the profile home so native `-c` stays continuous across host plain `claude`, `cco host`, and `cco <profile>`
 - clean bootstrap and explicit first-launch resume are advanced `cco isolate fresh <profile>` options
+
+## Maintenance
+
+Use these only when you need to inspect or recover the profile home.
+
+```bash
+cco isolate status work
+cco isolate fresh work
+cco isolate fresh --clean work
+cco isolate fresh --import-latest-host-session work
+```
 
 ## Bypass-Permission Re-runs
 

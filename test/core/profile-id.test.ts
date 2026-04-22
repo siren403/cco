@@ -7,6 +7,7 @@ test("profile ids reject reserved names", () => {
   expect(() => assertProfileIdUsable("auth")).toThrowError(DomainError);
   expect(() => assertProfileIdUsable("isolate")).toThrowError(DomainError);
   expect(() => assertProfileIdUsable("showcase")).toThrowError(DomainError);
+  expect(() => assertProfileIdUsable("teams")).toThrowError(DomainError);
 });
 
 test("profile ids reject invalid characters", () => {
@@ -17,5 +18,5 @@ test("profile ids reject invalid characters", () => {
 test("profile ids accept simple local aliases", () => {
   expect(() => assertProfileIdUsable("work")).not.toThrow();
   expect(() => assertProfileIdUsable("backup_2")).not.toThrow();
-  expect(() => assertProfileIdUsable("teams")).not.toThrow();
+  expect(() => assertProfileIdUsable("work_backup")).not.toThrow();
 });

@@ -1,7 +1,7 @@
 {
   "name": "@qkrsogusl3/cco",
   "version": "0.2.0",
-  "description": "Claude Code overlay/isolate launcher for local multi-profile switching",
+  "description": "Claude Code launcher for linked host setup, isolated profile homes, and per-profile OAuth switching",
   "type": "module",
   "private": false,
   "publishConfig": {

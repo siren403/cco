@@ -475,6 +475,17 @@ test("unknown subcommands render through Stricli Ink interception", async () => 
   expect(result.stdout).toBe("");
 });
 
+test("removed teams surface is no longer treated as a launchable profile alias", async () => {
+  const sandbox = await createSandbox();
+
+  const result = await runCli(["teams"], sandbox, {});
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("실험용 `teams` 명령은 제거되었습니다.");
+  expect(result.stderr).not.toContain("cco auth add teams");
+  expect(result.stdout).toBe("");
+});
+
 interface Sandbox {
   readonly root: string;
   readonly ccoHome: string;

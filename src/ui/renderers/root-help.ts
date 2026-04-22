@@ -47,12 +47,8 @@ export function renderRootHelp(options: RenderOptions = {}): string {
               description: text.rootHelp.quickStartContinue,
             },
             {
-              command: `${APP_NAME} isolate status work`,
-              description: text.rootHelp.quickStartIsolate,
-            },
-            {
-              command: `${APP_NAME} work -- --resume abc123`,
-              description: text.rootHelp.launchSyntaxAdvancedDescription,
+              command: `${APP_NAME} host`,
+              description: text.rootHelp.quickStartHost,
             },
             {
               command: `${APP_NAME} showcase auth`,
@@ -82,25 +78,6 @@ export function renderRootHelp(options: RenderOptions = {}): string {
           ),
           "",
           `${renderBadge({ label: text.rootHelp.localAliasBadge, tone: "accent" }, options)} ${text.rootHelp.localAliasSummary.replace("`work`", theme.code("work")).replace("`backup`", theme.code("backup"))}`,
-        ],
-      },
-      options,
-    ),
-    renderPanel(
-      {
-        title: text.rootHelp.launchSyntaxTitle,
-        tone: "accent",
-        body: [
-          text.rootHelp.launchSyntaxSummary,
-          "",
-          renderBulletList(
-            [
-              text.rootHelp.launchSyntaxEasy,
-              text.rootHelp.launchSyntaxAdvanced,
-              text.rootHelp.launchSyntaxAdvancedDescription,
-            ],
-            options,
-          ),
         ],
       },
       options,

@@ -41,7 +41,7 @@ export interface UiText {
     readonly quickStartAuthAdd: string;
     readonly quickStartLaunch: string;
     readonly quickStartContinue: string;
-    readonly quickStartIsolate: string;
+    readonly quickStartHost: string;
     readonly quickStartShowcase: string;
     readonly commandSurfaceTitle: string;
     readonly commandSurfaceProfile: string;
@@ -338,8 +338,7 @@ const KO_TEXT: UiText = {
     quickStartAuthAdd: "공식 Claude setup-token용 로컬 프로필을 만듭니다.",
     quickStartLaunch: "host 설정 링크와 분리 Claude home에서 work 프로필로 Claude를 실행합니다.",
     quickStartContinue: "같은 프로필과 현재 프로젝트 세션을 Claude native continue로 이어갑니다.",
-    quickStartIsolate:
-      "격리 홈 상태를 확인하거나 문제가 있으면 fresh/remove로 정리합니다.",
+    quickStartHost: "프로필 대신 호스트 Claude 로그인 그대로 실행합니다.",
     quickStartShowcase: "Claude를 실행하지 않고 온보딩 화면을 미리 봅니다.",
     commandSurfaceTitle: "명령 표면",
     commandSurfaceProfile:
@@ -565,16 +564,16 @@ const KO_TEXT: UiText = {
       "env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB는 `0` 또는 `1`만 허용합니다.",
     misplacedLaunchFlagTitle: (flag) => `${flag} 위치가 잘못되었습니다.`,
     misplacedLaunchFlagSummary:
-      "cco 전용 실행 플래그는 `<profile>` 앞에 와야 합니다.",
+      "이전 cco 실행 플래그 문법은 더 이상 지원되지 않습니다.",
     misplacedLaunchFlagDescription: (profileId, flag) =>
-      `${flag}를 앞쪽으로 옮겨 \`cco ${flag} ${profileId}\` 형태로 다시 실행하세요.`,
-    isolateModeNotImplementedTitle: "격리 실행 모드는 아직 연결되지 않았습니다.",
+      `\`cco ${profileId}\` 또는 유지보수 명령 \`cco isolate ...\`로 다시 실행하세요.`,
+    isolateModeNotImplementedTitle: "이 빌드에서는 해당 실행 경로를 사용할 수 없습니다.",
     isolateModeNotImplementedDescription:
-      "문법 자리는 확보했지만, isolate 전용 Claude home bootstrap은 아직 이 빌드에 포함되지 않았습니다.",
+      "현재 빌드는 canonical profile launch와 isolate maintenance 경로만 지원합니다.",
     isolateSetupRequiredTitle:
       "격리 home이 아직 준비되지 않아 비대화형으로는 시작할 수 없습니다.",
     isolateSetupRequiredSummary:
-      "첫 격리 실행에서는 초기화 방식 선택과 isolate home 준비가 필요합니다.",
+      "먼저 한 번 대화형으로 실행해 isolate home 준비를 마쳐야 합니다.",
     isolateSetupRequiredDescription: (profileId) =>
       `터미널에서 한 번 \`cco ${profileId}\`를 대화형으로 실행해 격리 home을 준비하세요.`,
     isolateLoginFailedTitle: "격리 프로필 실행 준비가 완료되지 않았습니다.",
@@ -693,8 +692,7 @@ const EN_TEXT: UiText = {
     quickStartAuthAdd: "Create a local profile for an official Claude setup-token.",
     quickStartLaunch: "Launch Claude in the work profile's isolated home with linked host-facing setup.",
     quickStartContinue: "Continue the same profile and current-project session with Claude's native continue flag.",
-    quickStartIsolate:
-      "Inspect the isolate home or recover it with fresh/remove when needed.",
+    quickStartHost: "Run Claude with the host login unchanged instead of a saved profile.",
     quickStartShowcase: "Preview the onboarding panels without launching Claude.",
     commandSurfaceTitle: "Command Surface",
     commandSurfaceProfile:
@@ -921,16 +919,16 @@ const EN_TEXT: UiText = {
       "env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB only accepts `0` or `1`.",
     misplacedLaunchFlagTitle: (flag) => `${flag} is in the wrong position.`,
     misplacedLaunchFlagSummary:
-      "cco launch flags must appear before `<profile>`.",
+      "This old cco launch-flag form is no longer supported.",
     misplacedLaunchFlagDescription: (profileId, flag) =>
-      `Move ${flag} before the profile and re-run as \`cco ${flag} ${profileId}\`.`,
-    isolateModeNotImplementedTitle: "Isolate launch mode is not wired yet.",
+      `Re-run with \`cco ${profileId}\` or use an isolate maintenance command under \`cco isolate ...\`.`,
+    isolateModeNotImplementedTitle: "This launch path is not available in the current build.",
     isolateModeNotImplementedDescription:
-      "The launch syntax is reserved, but the isolate-specific Claude home bootstrap is not included in this build yet.",
+      "This build supports the canonical profiled launch path and isolate maintenance commands only.",
     isolateSetupRequiredTitle:
       "The isolate home is not ready yet, so this launch cannot run non-interactively.",
     isolateSetupRequiredSummary:
-      "The first isolate launch needs one setup choice and an isolated home bootstrap step.",
+      "Run the profile once interactively to finish preparing the isolate home first.",
     isolateSetupRequiredDescription: (profileId) =>
       `Run \`cco ${profileId}\` once in an interactive terminal to prepare the isolate home.`,
     isolateLoginFailedTitle: "The profiled isolate launch did not finish preparing successfully.",

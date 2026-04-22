@@ -54,7 +54,11 @@ It does not become:
 - `cco auth add <profile>`
 - `cco auth list`
 - `cco auth remove <profile>`
+- `cco config get -p <profile>`
+- `cco config set ... -p <profile>`
+- `cco isolate status|remove|fresh <profile>`
 - `cco doctor`
+- `cco showcase [topic]`
 
 ### Deferred commands
 
@@ -84,9 +88,10 @@ That means:
 
 ### Session behavior
 
-- `cco` does not choose, create, or track Claude sessions in MVP
+- `cco` does not create its own session system in MVP
 - users rely on Claude's own native flags such as `-c`, `--continue`, or `--resume`
-- `cco` only changes auth at launch time and passes the remaining args through
+- `cco` links the current project's Claude session store between host and profiled homes
+- `cco` may add a one-time `--resume` assist during explicit isolate bootstrap handoff, but normal continuation stays Claude-native
 
 ## Technical Architecture
 

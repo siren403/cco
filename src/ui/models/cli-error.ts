@@ -145,16 +145,41 @@ export function buildCliErrorModel(error: unknown, locale: AppLocale): CliErrorM
         };
       case "REMOVED_LAUNCH_FLAG":
         return {
-          title: error.message,
+          title:
+            locale === "en"
+              ? `The \`${String(error.details.flag ?? "--isolate")}\` launch flag was removed.`
+              : `\`${String(error.details.flag ?? "--isolate")}\` 실행 플래그는 제거되었습니다.`,
           tone: "warn",
+          summary:
+            locale === "en"
+              ? "Use `cco <profile>` for profiled runs or `cco isolate ...` for maintenance."
+              : "`cco <profile>`로 실행하거나 유지보수에는 `cco isolate ...`를 사용하세요.",
           commands: [
             {
               command: `cco ${profileId ?? "work"}`,
               description: text.rootHelp.quickStartLaunch,
             },
+          ],
+        };
+      case "REMOVED_COMMAND_SURFACE":
+        return {
+          title:
+            locale === "en"
+              ? `The experimental \`${String(error.details.command ?? "teams")}\` command was removed.`
+              : `실험용 \`${String(error.details.command ?? "teams")}\` 명령은 제거되었습니다.`,
+          tone: "warn",
+          summary:
+            locale === "en"
+              ? "Use `cco <profile>` for profiled runs or `cco isolate ...` for maintenance."
+              : "`cco <profile>`로 실행하거나 유지보수에는 `cco isolate ...`를 사용하세요.",
+          commands: [
             {
-              command: `cco isolate status ${profileId ?? "work"}`,
-              description: text.rootHelp.commandSurfaceIsolate,
+              command: "cco auth list",
+              description: text.errors.inspectProfilesDescription,
+            },
+            {
+              command: `cco ${profileId ?? "work"}`,
+              description: text.rootHelp.quickStartLaunch,
             },
           ],
         };

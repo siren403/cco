@@ -16,12 +16,6 @@ test("plain profile invocation is treated as direct Claude launch", () => {
     isolate: true,
   });
 
-  expect(resolveInvocation(["teams"])).toEqual({
-    mode: "direct-launch",
-    profileId: "teams",
-    claudeArgs: [],
-    isolate: true,
-  });
 });
 
 test("host invocation passes trailing args through to Claude", () => {
@@ -35,11 +29,15 @@ test("host invocation passes trailing args through to Claude", () => {
 
 test("removed isolate launch flag is rejected with the new canonical guidance", () => {
   expect(() => resolveInvocation(["--isolate", "work", "-c"])).toThrow(
-    'The "--isolate" launch flag was removed. Use `cco <profile>` for profiled runs or `cco isolate ...` for maintenance.',
+    "This old cco launch flag was removed. Use `cco <profile>` for profiled runs or `cco isolate ...` for maintenance.",
   );
 
   expect(() => resolveInvocation(["work", "--isolate"])).toThrow(
-    'The "--isolate" launch flag was removed. Use `cco <profile>` for profiled runs or `cco isolate ...` for maintenance.',
+    "This old cco launch flag was removed. Use `cco <profile>` for profiled runs or `cco isolate ...` for maintenance.",
+  );
+
+  expect(() => resolveInvocation(["--teams", "work"])).toThrow(
+    "This old cco launch flag was removed. Use `cco <profile>` for profiled runs or `cco isolate ...` for maintenance.",
   );
 });
 
@@ -51,6 +49,12 @@ test("reserved CLI commands stay on the Stricli path", () => {
   expect(resolveInvocation(["showcase"])).toEqual({ mode: "stricli" });
   expect(resolveInvocation(["--help"])).toEqual({ mode: "stricli" });
   expect(resolveInvocation(["host", "--help"])).toEqual({ mode: "stricli" });
+});
+
+test("removed teams command is rejected with migration guidance", () => {
+  expect(() => resolveInvocation(["teams"])).toThrow(
+    "The experimental `teams` command was removed. Use `cco <profile>` for profiled runs or `cco isolate ...` for maintenance.",
+  );
 });
 
 test("root help and version requests are detected explicitly", () => {

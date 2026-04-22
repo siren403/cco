@@ -51,8 +51,8 @@ export function RootHelpInkScreen(props: { readonly locale: AppLocale }): ReactN
             description: text.rootHelp.quickStartContinue,
           },
           {
-            command: `${APP_NAME} isolate status work`,
-            description: text.rootHelp.quickStartIsolate,
+            command: `${APP_NAME} host`,
+            description: text.rootHelp.quickStartHost,
           },
           {
             command: `${APP_NAME} showcase auth`,

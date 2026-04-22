@@ -25,7 +25,7 @@ export const configGetCommand = buildCommand<ConfigGetFlags, [], AppContext>({
     if (profile.kind !== "overlay") {
       throw new DomainError(
         "HOST_CONFIG_NOT_SUPPORTED",
-        "The host profile does not have editable overlay config.",
+        "The host profile does not have editable profile config.",
         { profileId },
       );
     }

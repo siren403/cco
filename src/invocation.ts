@@ -16,7 +16,8 @@ export type Invocation = DirectLaunchInvocation | StricliInvocation;
 
 const ROOT_HELP_FLAGS = new Set(["--help", "-h", "help"]);
 const ROOT_VERSION_FLAGS = new Set(["--version", "-v", "version"]);
-const REMOVED_LAUNCH_FLAGS = new Set(["--isolate"]);
+const REMOVED_LAUNCH_FLAGS = new Set(["--isolate", "--teams"]);
+const REMOVED_COMMANDS = new Set(["teams"]);
 const STRICT_CLI_COMMANDS = new Set([
   "auth",
   "config",
@@ -41,6 +42,10 @@ export function resolveInvocation(argv: readonly string[]): Invocation {
 
   if (!first) {
     return { mode: "stricli" };
+  }
+
+  if (REMOVED_COMMANDS.has(first)) {
+    throw removedCommandSurfaceError(first);
   }
 
   if (STRICT_CLI_COMMANDS.has(first)) {
@@ -87,7 +92,7 @@ function parseLaunchInvocation(
     }
 
     if (REMOVED_LAUNCH_FLAGS.has(token)) {
-      throw removedLaunchFlagError(argv[index + 1]);
+      throw removedLaunchFlagError(token, argv[index + 1]);
     }
 
     if (token.startsWith("-")) {
@@ -117,20 +122,33 @@ function parseClaudeArgs(
 
   for (const token of argv) {
     if (REMOVED_LAUNCH_FLAGS.has(token)) {
-      throw removedLaunchFlagError(profileId);
+      throw removedLaunchFlagError(token, profileId);
     }
   }
 
   return argv;
 }
 
-function removedLaunchFlagError(profileId: string | undefined): DomainError {
+function removedLaunchFlagError(
+  flag: string,
+  profileId: string | undefined,
+): DomainError {
   return new DomainError(
     "REMOVED_LAUNCH_FLAG",
-    'The "--isolate" launch flag was removed. Use `cco <profile>` for profiled runs or `cco isolate ...` for maintenance.',
+    "This old cco launch flag was removed. Use `cco <profile>` for profiled runs or `cco isolate ...` for maintenance.",
     {
-      flag: "--isolate",
+      flag,
       profileId,
+    },
+  );
+}
+
+function removedCommandSurfaceError(command: string): DomainError {
+  return new DomainError(
+    "REMOVED_COMMAND_SURFACE",
+    `The experimental \`${command}\` command was removed. Use \`cco <profile>\` for profiled runs or \`cco isolate ...\` for maintenance.`,
+    {
+      command,
     },
   );
 }
