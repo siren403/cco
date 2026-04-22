@@ -1,4 +1,3 @@
-import React from "react";
 import { intro, outro } from "@clack/prompts";
 import type { AppContext } from "../context.ts";
 import { buildLaunchPlan } from "../core/services/build-launch-plan.ts";
@@ -28,14 +27,7 @@ import {
 import { getStaticUiText } from "../i18n/index.ts";
 import { resolveHostClaudeConfigDir } from "../infra/fs/path-utils.ts";
 import { spawnClaudeInteractive } from "../infra/bun/spawn-claude.ts";
-import {
-  PermissionModeDecisionInkScreen,
-  PermissionModeGuidanceInkScreen,
-  PermissionModeWarningInkScreen,
-} from "../ui/ink/permission-mode-ink-screen.ts";
-import { renderInkHost } from "../ui/ink/render-ink.ts";
 import { promptForProfile } from "../ui/prompts/profile-picker.ts";
-import { promptForPermissionModeOverride } from "../ui/prompts/permission-mode-override.ts";
 
 const text = getStaticUiText();
 
@@ -71,10 +63,6 @@ export async function launchClaudeForProfile(
     profile,
     options.claudeArgs,
   );
-  if (subprocessEnvScrubOverride === "exit") {
-    outro(text.misc.noChangesMade);
-    return;
-  }
 
   if (!useIsolate && profile.kind === "overlay") {
     await maybeBridgeIsolateSessionBackToHost(context, profile, options.claudeArgs);
@@ -203,7 +191,7 @@ async function maybeResolvePermissionModeOverride(
   context: AppContext,
   profile: Profile,
   claudeArgs: readonly string[] | undefined,
-): Promise<SubprocessEnvScrubMode | "exit" | undefined> {
+): Promise<SubprocessEnvScrubMode | undefined> {
   if (profile.kind !== "overlay") {
     return undefined;
   }
@@ -218,76 +206,10 @@ async function maybeResolvePermissionModeOverride(
 
   const shellScrubMode = resolveShellSubprocessEnvScrubMode(context.process.env);
   if (shellScrubMode) {
-    await renderInkHost(
-      React.createElement(PermissionModeDecisionInkScreen, {
-        mode: shellScrubMode === "0" ? "compat" : "safe",
-        locale: context.runtime.locale,
-      }),
-      {
-        stdin: context.process.stdin,
-        stdout: context.process.stdout,
-        stderr: context.process.stderr,
-      },
-    );
-    context.process.stdout.write("\n");
     return shellScrubMode;
   }
 
-  if (!context.process.stdin.isTTY || !context.process.stdout.isTTY) {
-    throw new DomainError(
-      "SUBPROCESS_ENV_SCRUB_REQUIRED",
-      text.errors.subprocessEnvScrubRequiredTitle,
-      {
-        profileId: profile.id,
-        profilesFile: context.runtime.paths.profilesFile,
-      },
-    );
-  }
-
-  await renderInkHost(
-    React.createElement(PermissionModeWarningInkScreen, {
-      profileId: profile.id,
-      locale: context.runtime.locale,
-    }),
-    {
-      stdin: context.process.stdin,
-      stdout: context.process.stdout,
-      stderr: context.process.stderr,
-    },
-  );
-  context.process.stdout.write("\n");
-
-  const choice = await promptForPermissionModeOverride(profile.id);
-  if (choice === "guide") {
-    await renderInkHost(
-      React.createElement(PermissionModeGuidanceInkScreen, {
-        profileId: profile.id,
-        locale: context.runtime.locale,
-      }),
-      {
-        stdin: context.process.stdin,
-        stdout: context.process.stdout,
-        stderr: context.process.stderr,
-      },
-    );
-    context.process.stdout.write("\n");
-    return "exit";
-  }
-
-  await renderInkHost(
-    React.createElement(PermissionModeDecisionInkScreen, {
-      mode: choice === "compat" ? "compat" : "safe",
-      locale: context.runtime.locale,
-    }),
-    {
-      stdin: context.process.stdin,
-      stdout: context.process.stdout,
-      stderr: context.process.stderr,
-    },
-  );
-  context.process.stdout.write("\n");
-
-  return choice === "compat" ? "0" : "1";
+  return "0";
 }
 
 async function maybeBridgeIsolateSessionBackToHost(

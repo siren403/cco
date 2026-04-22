@@ -81,27 +81,5 @@ export function RootHelpInkScreen(props: { readonly locale: AppLocale }): ReactN
       h(Text, null, ""),
       h(Text, null, `[${text.rootHelp.localAliasBadge}] ${text.rootHelp.localAliasSummary}`),
     ),
-    h(
-      InkPanel,
-      {
-        title: text.rootHelp.permissionScrubTitle,
-        tone: "warn",
-        badge: text.rootHelp.permissionScrubBadge,
-      },
-      h(Text, null, text.rootHelp.permissionScrubSummary),
-      h(Text, null, ""),
-      ...InkCommandList({
-        entries: [
-          {
-            command: "$env:CLAUDE_CODE_SUBPROCESS_ENV_SCRUB='0'; cco work --permission-mode bypassPermissions -c",
-            description: text.rootHelp.permissionScrubCompatDescription,
-          },
-          {
-            command: "cco config set env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 -p work",
-            description: text.rootHelp.permissionScrubPersistDescription,
-          },
-        ],
-      }),
-    ),
   );
 }

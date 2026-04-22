@@ -11,7 +11,6 @@ test("root help uses panel-based sections", () => {
   expect(output).toContain("빠른 시작");
   expect(output).toContain("명령 표면");
   expect(output).toContain("프로필 런처");
-  expect(output).toContain("CLAUDE_CODE_SUBPROCESS_ENV_SCRUB");
   expect(output).toContain("isolate status work");
 });
 

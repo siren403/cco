@@ -209,7 +209,7 @@ test("non-interactive shell scrub env can keep safe mode explicitly", async () =
   expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("1");
 });
 
-test("non-interactive safe profile with bypassPermissions errors without explicit policy", async () => {
+test("non-interactive safe profile auto-uses compat for bypassPermissions", async () => {
   const sandbox = await createSandbox();
   await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
 
@@ -219,8 +219,11 @@ test("non-interactive safe profile with bypassPermissions errors without explici
     {},
   );
 
-  expect(result.exitCode).toBe(1);
-  expect(result.stderr).toContain("CLAUDE_CODE_SUBPROCESS_ENV_SCRUB");
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.args).toEqual(["--permission-mode", "bypassPermissions", "-c"]);
+  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
 });
 
 test("host launch omits profile token injection and still preserves host config env", async () => {

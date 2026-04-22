@@ -82,32 +82,5 @@ export function renderRootHelp(options: RenderOptions = {}): string {
       },
       options,
     ),
-    renderPanel(
-      {
-        title: text.rootHelp.permissionScrubTitle,
-        tone: "warn",
-        badge: { label: text.rootHelp.permissionScrubBadge, tone: "warn" },
-        body: [
-          text.rootHelp.permissionScrubSummary,
-          "",
-          renderCommandList(
-            [
-              {
-                command:
-                  "$env:CLAUDE_CODE_SUBPROCESS_ENV_SCRUB='0'; cco work --permission-mode bypassPermissions -c",
-                description: text.rootHelp.permissionScrubCompatDescription,
-              },
-              {
-                command:
-                  "cco config set env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 -p work",
-                description: text.rootHelp.permissionScrubPersistDescription,
-              },
-            ],
-            options,
-          ),
-        ],
-      },
-      options,
-    ),
   ]);
 }

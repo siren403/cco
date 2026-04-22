@@ -59,10 +59,6 @@ That will bootstrap a fresh isolate home under the new path.
 - `cco auth add <profile>` also lets you choose the profile's subprocess auth-env policy.
 - `cco auth list` and `cco auth remove <profile>` manage local profiles with dashboard-style terminal output.
 - `cco config get -p <profile>` shows the saved per-profile config.
-- `cco config set env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 -p <profile>` updates the saved scrub mode without editing JSON by hand.
-- If a launch passes `--permission-mode bypassPermissions` or `--dangerously-skip-permissions` while the profile is still in safe mode, `cco` now warns before launch.
-- Interactive launches can continue in compat mode for that run, keep safe mode, or exit and show scrub/config examples.
-- Non-interactive launches can still re-run by setting `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0` for that command, or by changing the saved profile to compat mode.
 - `cco doctor` checks binary resolution, env conflicts, and local storage layout with a structured diagnostics screen.
 - `cco showcase [topic]` previews the CLI's help, doctor, profile inventory, and recovery states without launching Claude.
 
@@ -94,16 +90,6 @@ cco isolate status work
 cco isolate fresh work
 cco isolate fresh --clean work
 cco isolate fresh --import-latest-host-session work
-```
-
-## Bypass-Permission Re-runs
-
-```powershell
-$env:CLAUDE_CODE_SUBPROCESS_ENV_SCRUB='0'
-cco work --permission-mode bypassPermissions -c
-
-$env:CLAUDE_CODE_SUBPROCESS_ENV_SCRUB='0'
-cco work --dangerously-skip-permissions -c
 ```
 
 ## Dev
