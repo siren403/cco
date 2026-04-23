@@ -234,6 +234,7 @@ export interface UiText {
     readonly actionColumnTitle: string;
     readonly detailColumnTitle: string;
     readonly explainColumnTitle: string;
+    readonly confirmColumnTitle: string;
     readonly helpColumnTitle: string;
     readonly stableModeSummary: string;
     readonly richModeSummary: string;
@@ -258,6 +259,13 @@ export interface UiText {
     readonly explainSessionLink: (cwd: string) => string;
     readonly explainHostSession: string;
     readonly noFilterResults: string;
+    readonly confirmFreshSummary: (profileId: string) => string;
+    readonly confirmCleanSummary: (profileId: string) => string;
+    readonly confirmWarning: string;
+    readonly confirmDefault: string;
+    readonly confirmCancel: string;
+    readonly confirmProceed: string;
+    readonly confirmCompactKeyHelp: string;
     readonly overlayActionDisabled: string;
     readonly pickProfile: string;
     readonly pickSavedProfile: string;
@@ -626,6 +634,7 @@ const KO_TEXT: UiText = {
     actionColumnTitle: "작업",
     detailColumnTitle: "현재 선택",
     explainColumnTitle: "동작 원리",
+    confirmColumnTitle: "실행 확인",
     helpColumnTitle: "도움말",
     stableModeSummary: "stable mode는 emoji, gradient, 동적 resize badge를 쓰지 않습니다.",
     richModeSummary: "rich mode는 컬러 accent와 폭이 안정적인 Unicode 심볼만 제한적으로 씁니다.",
@@ -650,6 +659,15 @@ const KO_TEXT: UiText = {
     explainSessionLink: (cwd) => `현재 작업 디렉터리 세션 store는 profile home과 연결되어 native -c가 이어집니다: ${cwd}`,
     explainHostSession: "host는 Claude native session store를 그대로 사용합니다.",
     noFilterResults: "필터와 일치하는 프로필이 없습니다.",
+    confirmFreshSummary: (profileId) =>
+      `"${profileId}" isolate home을 제거한 뒤 host-linked bootstrap으로 다시 실행합니다.`,
+    confirmCleanSummary: (profileId) =>
+      `"${profileId}" isolate home을 제거한 뒤 host 구성을 링크하지 않는 clean bootstrap으로 다시 실행합니다.`,
+    confirmWarning: "Claude home, 링크/세션 메타데이터, 로컬 isolate 상태가 초기화될 수 있습니다. 프로젝트 파일은 삭제하지 않습니다.",
+    confirmDefault: "기본 선택은 취소입니다. 실행하려면 [!] 실행을 명시적으로 선택하세요.",
+    confirmCancel: "취소",
+    confirmProceed: "[!] 실행",
+    confirmCompactKeyHelp: "Left/Right choose | Enter confirm | y proceed | n/Esc cancel",
     overlayActionDisabled: "저장 프로필을 선택해야 사용할 수 있습니다.",
     pickProfile: "프로필을 선택하세요",
     pickSavedProfile: "저장된 프로필을 선택하세요",
@@ -1045,6 +1063,7 @@ const EN_TEXT: UiText = {
     actionColumnTitle: "Actions",
     detailColumnTitle: "Current selection",
     explainColumnTitle: "Runtime Topology",
+    confirmColumnTitle: "Confirm Action",
     helpColumnTitle: "Help",
     stableModeSummary: "Stable mode avoids emoji, gradients, and dynamic resize badges.",
     richModeSummary: "Rich mode keeps decoration limited to color accents and width-stable Unicode symbols.",
@@ -1069,6 +1088,15 @@ const EN_TEXT: UiText = {
     explainSessionLink: (cwd) => `The current working directory session store is linked so native -c stays continuous: ${cwd}`,
     explainHostSession: "The host profile uses Claude's native session store directly.",
     noFilterResults: "No profiles match the filter.",
+    confirmFreshSummary: (profileId) =>
+      `Remove the "${profileId}" isolate home and launch again through host-linked bootstrap.`,
+    confirmCleanSummary: (profileId) =>
+      `Remove the "${profileId}" isolate home and launch again through clean bootstrap without linked host setup.`,
+    confirmWarning: "Claude home, link/session metadata, and local isolate state may be reset. Project files are not deleted.",
+    confirmDefault: "The default choice is cancel. Select [!] proceed explicitly to continue.",
+    confirmCancel: "Cancel",
+    confirmProceed: "[!] Proceed",
+    confirmCompactKeyHelp: "Left/Right choose | Enter confirm | y proceed | n/Esc cancel",
     overlayActionDisabled: "Select a saved profile to use this action.",
     pickProfile: "Pick a profile",
     pickSavedProfile: "Pick a saved profile",

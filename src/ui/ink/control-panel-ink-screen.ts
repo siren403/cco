@@ -17,7 +17,13 @@ const dimColorProps = { dimColor: true } as const;
 
 export type ControlPanelAppearance = "stable" | "rich";
 
-type ControlPanelView = "dashboard" | "explain" | "doctor" | "status" | "help";
+type ControlPanelView =
+  | "dashboard"
+  | "explain"
+  | "doctor"
+  | "status"
+  | "confirm"
+  | "help";
 type ControlPanelActionId =
   | "continue"
   | "run"
@@ -41,15 +47,22 @@ interface ControlPanelActionItem {
   readonly label: string;
   readonly hint?: string;
   readonly disabled?: boolean;
+  readonly dangerous?: boolean;
 }
 
 interface ControlPanelTheme {
   readonly selectedMarker: string;
   readonly idleMarker: string;
+  readonly dangerMarker: string;
   readonly statusReadyPrefix: string;
   readonly statusMissingPrefix: string;
   readonly statusBrokenPrefix: string;
   readonly selectedRowInverse: boolean;
+}
+
+interface PendingFreshAction {
+  readonly profileId: string;
+  readonly clean: boolean;
 }
 
 type ControlPanelLayout =
@@ -92,6 +105,7 @@ export type ControlPanelOutcome =
       readonly kind: "fresh";
       readonly profileId: string;
       readonly clean: boolean;
+      readonly confirmed?: boolean;
     }
   | {
       readonly kind: "reload";
@@ -116,6 +130,8 @@ export function ControlPanelInkScreen(props: ControlPanelInkScreenProps): ReactN
   const [actionIndex, setActionIndex] = useState(0);
   const [filterActive, setFilterActive] = useState(false);
   const [filter, setFilter] = useState("");
+  const [pendingFreshAction, setPendingFreshAction] = useState<PendingFreshAction>();
+  const [confirmIndex, setConfirmIndex] = useState(0);
 
   const appearance = props.appearance ?? "stable";
   const theme = resolveControlPanelTheme(appearance);
@@ -136,6 +152,42 @@ export function ControlPanelInkScreen(props: ControlPanelInkScreenProps): ReactN
   const layout = resolveLayout(viewportColumns);
 
   useInput((input, key) => {
+    if (pendingFreshAction) {
+      if (input === "y" || input === "Y") {
+        submitFreshAction(pendingFreshAction, props.onSubmit, exit);
+        return;
+      }
+
+      if (input === "n" || input === "N" || input === "q" || key.escape) {
+        setPendingFreshAction(undefined);
+        setConfirmIndex(0);
+        setView("dashboard");
+        return;
+      }
+
+      if (key.leftArrow || key.upArrow) {
+        setConfirmIndex((current) => wrapIndex(current - 1, 2));
+        return;
+      }
+
+      if (key.rightArrow || key.downArrow || key.tab) {
+        setConfirmIndex((current) => wrapIndex(current + 1, 2));
+        return;
+      }
+
+      if (key.return) {
+        if (confirmIndex === 1) {
+          submitFreshAction(pendingFreshAction, props.onSubmit, exit);
+          return;
+        }
+
+        setPendingFreshAction(undefined);
+        setConfirmIndex(0);
+        setView("dashboard");
+      }
+      return;
+    }
+
     if (filterActive) {
       if (key.escape) {
         setFilterActive(false);
@@ -210,17 +262,28 @@ export function ControlPanelInkScreen(props: ControlPanelInkScreenProps): ReactN
     if (key.leftArrow) {
       setProfileIndex((current) => wrapIndex(current - 1, visibleProfiles.length));
       setView("dashboard");
+      setPendingFreshAction(undefined);
       return;
     }
 
     if (key.rightArrow || key.tab) {
       setProfileIndex((current) => wrapIndex(current + 1, visibleProfiles.length));
       setView("dashboard");
+      setPendingFreshAction(undefined);
       return;
     }
 
     if (key.return) {
-      handleAction(selectedAction, selectedProfile, selectedOverlay, setView, props.onSubmit, exit);
+      handleAction(
+        selectedAction,
+        selectedProfile,
+        selectedOverlay,
+        setView,
+        setPendingFreshAction,
+        setConfirmIndex,
+        props.onSubmit,
+        exit,
+      );
     }
   });
 
@@ -247,6 +310,8 @@ export function ControlPanelInkScreen(props: ControlPanelInkScreenProps): ReactN
       view,
       profile: selectedProfile,
       overlay: selectedOverlay,
+      pendingFreshAction,
+      confirmIndex,
       appearance,
       theme,
     }),
@@ -256,6 +321,7 @@ export function ControlPanelInkScreen(props: ControlPanelInkScreenProps): ReactN
       filterActive,
       columns: viewportColumns,
       repaintEpoch: props.repaintEpoch ?? 0,
+      confirmActive: pendingFreshAction != null,
     }),
   );
 }
@@ -307,6 +373,7 @@ function buildActions(
         ? text.controlPanel.overlayActionDisabled
         : text.controlPanel.actionFreshHint,
       disabled: overlayOnly,
+      dangerous: true,
     },
     {
       id: "clean",
@@ -315,6 +382,7 @@ function buildActions(
         ? text.controlPanel.overlayActionDisabled
         : text.controlPanel.actionCleanHint,
       disabled: overlayOnly,
+      dangerous: true,
     },
     {
       id: "quit",
@@ -395,6 +463,8 @@ function renderMainLayout(props: {
   readonly view: ControlPanelView;
   readonly profile: Profile;
   readonly overlay?: OverlayProfile;
+  readonly pendingFreshAction?: PendingFreshAction;
+  readonly confirmIndex: number;
   readonly appearance: ControlPanelAppearance;
   readonly theme: ControlPanelTheme;
 }): ReactNode {
@@ -541,6 +611,7 @@ function renderActionsPanel(props: {
     ...props.actions.map((action, index) => {
       const selected = index === props.selectedActionIndex;
       const marker = selected ? props.theme.selectedMarker : props.theme.idleMarker;
+      const dangerMarker = action.dangerous ? `${props.theme.dangerMarker} ` : "";
 
       return h(
         Box,
@@ -556,7 +627,7 @@ function renderActionsPanel(props: {
             inverse: selected && !action.disabled && props.theme.selectedRowInverse,
             wrap: "truncate-end",
           },
-          `${marker} ${action.label}`,
+          `${marker} ${dangerMarker}${action.label}`,
         ),
         action.hint
           ? h(Text, { dimColor: true, wrap: "truncate-end" }, `  ${action.hint}`)
@@ -569,12 +640,27 @@ function renderActionsPanel(props: {
 function resolveActionColor(
   action: ControlPanelActionItem,
   selected: boolean,
-): "gray" | "cyan" | undefined {
+): "gray" | "cyan" | "yellow" | undefined {
   if (action.disabled) {
     return "gray";
   }
 
+  if (action.dangerous) {
+    return "yellow";
+  }
+
   return selected ? "cyan" : undefined;
+}
+
+function resolveConfirmChoiceColor(
+  index: number,
+  confirmIndex: number,
+): "cyan" | "yellow" | undefined {
+  if (index === 1) {
+    return "yellow";
+  }
+
+  return confirmIndex === index ? "cyan" : undefined;
 }
 
 function renderDetailPanel(props: {
@@ -582,8 +668,11 @@ function renderDetailPanel(props: {
   readonly view: ControlPanelView;
   readonly profile: Profile;
   readonly overlay?: OverlayProfile;
+  readonly pendingFreshAction?: PendingFreshAction;
+  readonly confirmIndex: number;
   readonly appearance: ControlPanelAppearance;
   readonly width: number;
+  readonly theme: ControlPanelTheme;
 }): ReactNode {
   switch (props.view) {
     case "explain":
@@ -592,6 +681,14 @@ function renderDetailPanel(props: {
       return renderDoctorDetail(props.model, props.width);
     case "status":
       return renderStatusDetail(props.model, props.overlay, props.width);
+    case "confirm":
+      return renderConfirmDetail(
+        props.model,
+        props.pendingFreshAction,
+        props.confirmIndex,
+        props.theme,
+        props.width,
+      );
     case "help":
       return renderHelpDetail(props.model.locale, props.appearance, props.width);
     case "dashboard":
@@ -873,6 +970,84 @@ function renderStatusDetail(
   );
 }
 
+function renderConfirmDetail(
+  model: ControlPanelModel,
+  action: PendingFreshAction | undefined,
+  confirmIndex: number,
+  theme: ControlPanelTheme,
+  width: number,
+): ReactNode {
+  const text = getUiText(model.locale);
+  if (!action) {
+    return h(
+      InkPanel,
+      {
+        title: text.controlPanel.confirmColumnTitle,
+        tone: "warn",
+        width,
+      },
+      h(Text, null, text.controlPanel.overlayActionDisabled),
+    );
+  }
+
+  const summary = action.clean
+    ? text.controlPanel.confirmCleanSummary(action.profileId)
+    : text.controlPanel.confirmFreshSummary(action.profileId);
+  const command = action.clean
+    ? `cco isolate fresh --clean ${action.profileId}`
+    : `cco isolate fresh ${action.profileId}`;
+
+  return h(
+    InkPanel,
+    {
+      title: text.controlPanel.confirmColumnTitle,
+      tone: "warn",
+      badge: action.profileId,
+      width,
+    },
+    ...InkBulletList({
+      items: [
+        summary,
+        text.controlPanel.confirmWarning,
+        text.controlPanel.confirmDefault,
+      ],
+    }),
+    h(Text, null, ""),
+    ...InkKeyValueList({
+      entries: [
+        {
+          label: "command",
+          value: command,
+          tone: "warn",
+        },
+        {
+          label: "mode",
+          value: action.clean
+            ? text.controlPanel.actionClean
+            : text.controlPanel.actionFresh,
+          tone: "warn",
+        },
+      ],
+    }),
+    h(Text, null, ""),
+    ...[
+      text.controlPanel.confirmCancel,
+      text.controlPanel.confirmProceed,
+    ].map((label, index) =>
+      h(
+        Text,
+        {
+          key: label,
+          color: resolveConfirmChoiceColor(index, confirmIndex),
+          inverse: confirmIndex === index && index === 0 && theme.selectedRowInverse,
+          wrap: "truncate-end",
+        },
+        `${confirmIndex === index ? theme.selectedMarker : theme.idleMarker} ${label}`,
+      ),
+    ),
+  );
+}
+
 function renderHelpDetail(
   locale: AppLocale,
   appearance: ControlPanelAppearance,
@@ -908,12 +1083,16 @@ function renderFooter(props: {
   readonly filterActive: boolean;
   readonly columns: number;
   readonly repaintEpoch: number;
+  readonly confirmActive: boolean;
 }): ReactNode {
   const text = getUiText(props.locale);
   const filter = props.filter || props.filterActive
     ? `  filter=${props.filterActive ? "/" : ""}${props.filter}`
     : "";
   const repaintMarker = props.repaintEpoch % 2 === 0 ? "" : " ";
+  const keyHelp = props.confirmActive
+    ? text.controlPanel.confirmCompactKeyHelp
+    : text.controlPanel.compactKeyHelp;
 
   return h(
     Box,
@@ -924,7 +1103,7 @@ function renderFooter(props: {
       marginTop: 1,
       width: props.columns,
     },
-    h(Text, dimColorProps, `${text.controlPanel.compactKeyHelp}${filter}${repaintMarker}`),
+    h(Text, dimColorProps, `${keyHelp}${filter}${repaintMarker}`),
   );
 }
 
@@ -947,6 +1126,8 @@ function handleAction(
   profile: Profile,
   overlay: OverlayProfile | undefined,
   setView: (view: ControlPanelView) => void,
+  setPendingFreshAction: (action: PendingFreshAction | undefined) => void,
+  setConfirmIndex: (index: number) => void,
   onSubmit: (outcome: ControlPanelOutcome) => void,
   exit: () => void,
 ): void {
@@ -979,26 +1160,39 @@ function handleAction(
       return;
     case "fresh":
       if (overlay) {
-        submitAndExit(
-          { kind: "fresh", profileId: overlay.id, clean: false },
-          onSubmit,
-          exit,
-        );
+        setPendingFreshAction({ profileId: overlay.id, clean: false });
+        setConfirmIndex(0);
+        setView("confirm");
       }
       return;
     case "clean":
       if (overlay) {
-        submitAndExit(
-          { kind: "fresh", profileId: overlay.id, clean: true },
-          onSubmit,
-          exit,
-        );
+        setPendingFreshAction({ profileId: overlay.id, clean: true });
+        setConfirmIndex(0);
+        setView("confirm");
       }
       return;
     case "quit":
       submitAndExit({ kind: "quit" }, onSubmit, exit);
       return;
   }
+}
+
+function submitFreshAction(
+  action: PendingFreshAction,
+  onSubmit: (outcome: ControlPanelOutcome) => void,
+  exit: () => void,
+): void {
+  submitAndExit(
+    {
+      kind: "fresh",
+      profileId: action.profileId,
+      clean: action.clean,
+      confirmed: true,
+    },
+    onSubmit,
+    exit,
+  );
 }
 
 function submitAndExit(
@@ -1192,6 +1386,7 @@ function resolveControlPanelTheme(
     return {
       selectedMarker: "›",
       idleMarker: " ",
+      dangerMarker: "[!]",
       statusReadyPrefix: "● ",
       statusMissingPrefix: "○ ",
       statusBrokenPrefix: "◆ ",
@@ -1202,6 +1397,7 @@ function resolveControlPanelTheme(
   return {
     selectedMarker: ">",
     idleMarker: " ",
+    dangerMarker: "[!]",
     statusReadyPrefix: "",
     statusMissingPrefix: "",
     statusBrokenPrefix: "",

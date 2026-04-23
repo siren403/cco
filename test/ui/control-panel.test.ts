@@ -59,6 +59,7 @@ test("control panel renders the live TUI shell", () => {
   expect(output).toContain("프로필");
   expect(output).toContain("작업");
   expect(output).toContain("프로필 이어가기");
+  expect(output).toContain("[!] 격리 fresh");
   expect(output).toContain("work");
 });
 

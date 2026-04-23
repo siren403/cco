@@ -286,7 +286,12 @@ async function runControlPanelOutcome(
       });
       return;
     case "fresh":
-      await recreateIsolateAndLaunch(context, outcome.profileId, outcome.clean);
+      await recreateIsolateAndLaunch(
+        context,
+        outcome.profileId,
+        outcome.clean,
+        outcome.confirmed === true,
+      );
       return;
     case "reload":
     case "quit":
@@ -298,6 +303,7 @@ async function recreateIsolateAndLaunch(
   context: AppContext,
   profileId: string,
   clean: boolean,
+  confirmed: boolean,
 ): Promise<void> {
   const profile = await context.runtime.profileStore.get(profileId);
   if (!profile) {
@@ -305,9 +311,9 @@ async function recreateIsolateAndLaunch(
   }
 
   const current = await inspectIsolateHome(context, profile);
-  if (current.homeExists || current.metadataExists) {
-    const confirmed = await promptToConfirmIsolateRemove(profile.id);
-    if (!confirmed) {
+  if (!confirmed && (current.homeExists || current.metadataExists)) {
+    const removalConfirmed = await promptToConfirmIsolateRemove(profile.id);
+    if (!removalConfirmed) {
       context.process.stdout.write(`${text.misc.noChangesMade}\n`);
       return;
     }
