@@ -42,6 +42,9 @@ const HOST_LINK_ENTRIES = [
   "statusline.bat",
 ] as const;
 
+const CLEAR_TERMINAL = "\u001B[2J\u001B[H";
+const RESIZE_REPAINT_DELAY_MS = 20;
+
 interface UiFlags {
   readonly rich?: boolean;
 }
@@ -207,15 +210,20 @@ async function renderControlPanel(
   appearance: "stable" | "rich",
 ): Promise<ControlPanelOutcome | undefined> {
   let outcome: ControlPanelOutcome | undefined;
+  let repaintEpoch = 0;
 
-  const app = render(
+  const createScreen = () =>
     React.createElement(ControlPanelInkScreen, {
       model,
       appearance,
+      repaintEpoch,
       onSubmit: (nextOutcome) => {
         outcome = nextOutcome;
       },
-    }),
+    });
+
+  const app = render(
+    createScreen(),
     {
       stdin: context.process.stdin,
       stdout: context.process.stdout,
@@ -227,8 +235,32 @@ async function renderControlPanel(
     },
   );
 
-  await app.waitUntilExit();
-  return outcome;
+  let resizeTimer: Timer | undefined;
+  const repaintAfterResize = () => {
+    if (resizeTimer) {
+      clearTimeout(resizeTimer);
+    }
+
+    resizeTimer = setTimeout(() => {
+      repaintEpoch += 1;
+      app.clear();
+      context.process.stdout.write(CLEAR_TERMINAL);
+      app.rerender(createScreen());
+    }, RESIZE_REPAINT_DELAY_MS);
+  };
+
+  context.process.stdout.on("resize", repaintAfterResize);
+
+  try {
+    await app.waitUntilExit();
+    return outcome;
+  } finally {
+    if (resizeTimer) {
+      clearTimeout(resizeTimer);
+    }
+
+    context.process.stdout.off("resize", repaintAfterResize);
+  }
 }
 
 async function runControlPanelOutcome(

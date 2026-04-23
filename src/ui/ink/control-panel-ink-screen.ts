@@ -103,6 +103,7 @@ export type ControlPanelOutcome =
 export interface ControlPanelInkScreenProps {
   readonly model: ControlPanelModel;
   readonly appearance?: ControlPanelAppearance;
+  readonly repaintEpoch?: number;
   readonly onSubmit: (outcome: ControlPanelOutcome) => void;
 }
 
