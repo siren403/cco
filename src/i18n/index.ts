@@ -225,6 +225,19 @@ export interface UiText {
     readonly actionClean: string;
     readonly actionCleanHint: string;
     readonly actionQuit: string;
+    readonly richGroupLaunch: string;
+    readonly richGroupInspect: string;
+    readonly richGroupDanger: string;
+    readonly richGroupSystem: string;
+    readonly richChipActive: string;
+    readonly richChipAuth: string;
+    readonly richChipIsolate: string;
+    readonly richChipLinks: string;
+    readonly richChipSession: string;
+    readonly richCardIdentity: string;
+    readonly richCardRuntime: string;
+    readonly richCardContinuity: string;
+    readonly richTopologyTitle: string;
     readonly liveSummary: string;
     readonly keyHelp: string;
     readonly compactKeyHelp: string;
@@ -625,6 +638,19 @@ const KO_TEXT: UiText = {
     actionClean: "격리 clean fresh",
     actionCleanHint: "cco isolate fresh --clean <profile>",
     actionQuit: "종료",
+    richGroupLaunch: "Launch",
+    richGroupInspect: "Inspect",
+    richGroupDanger: "Danger Zone",
+    richGroupSystem: "System",
+    richChipActive: "ACTIVE",
+    richChipAuth: "AUTH",
+    richChipIsolate: "ISOLATE",
+    richChipLinks: "LINKS",
+    richChipSession: "SESSION",
+    richCardIdentity: "Identity",
+    richCardRuntime: "Runtime",
+    richCardContinuity: "Continuity",
+    richTopologyTitle: "Topology",
     liveSummary: "기본 화면은 실행 가능 상태를, explain은 실제 백엔드 동작을 보여줍니다.",
     keyHelp: "↑↓ 작업 선택 · ←→/Tab 프로필 전환 · Enter 실행 · / 필터 · x 설명 · d 진단 · s 상태 · r 새로고침 · ? 도움말 · q 종료",
     compactKeyHelp: "Up/Down action | Left/Right profile | Enter run | / filter | x explain | d doctor | s status | r reload | ? help | q quit",
@@ -637,7 +663,7 @@ const KO_TEXT: UiText = {
     confirmColumnTitle: "실행 확인",
     helpColumnTitle: "도움말",
     stableModeSummary: "stable mode는 emoji, gradient, 동적 resize badge를 쓰지 않습니다.",
-    richModeSummary: "rich mode는 컬러 accent와 폭이 안정적인 Unicode 심볼만 제한적으로 씁니다.",
+    richModeSummary: "rich mode는 상태 chip, 작업 그룹, danger zone, topology flow로 빠른 상태 판독을 돕습니다.",
     hostProfileBadge: "host",
     hostClaudeHome: "호스트 Claude home",
     hostConfigSummary: "호스트 구성 직접 사용",
@@ -1054,6 +1080,19 @@ const EN_TEXT: UiText = {
     actionClean: "Clean fresh isolate",
     actionCleanHint: "cco isolate fresh --clean <profile>",
     actionQuit: "Quit",
+    richGroupLaunch: "Launch",
+    richGroupInspect: "Inspect",
+    richGroupDanger: "Danger Zone",
+    richGroupSystem: "System",
+    richChipActive: "ACTIVE",
+    richChipAuth: "AUTH",
+    richChipIsolate: "ISOLATE",
+    richChipLinks: "LINKS",
+    richChipSession: "SESSION",
+    richCardIdentity: "Identity",
+    richCardRuntime: "Runtime",
+    richCardContinuity: "Continuity",
+    richTopologyTitle: "Topology",
     liveSummary: "The default view shows launch readiness; explain shows the actual backend topology.",
     keyHelp: "↑↓ action · ←→/Tab profile · Enter run · / filter · x explain · d doctor · s status · r reload · ? help · q quit",
     compactKeyHelp: "Up/Down action | Left/Right profile | Enter run | / filter | x explain | d doctor | s status | r reload | ? help | q quit",
@@ -1066,7 +1105,7 @@ const EN_TEXT: UiText = {
     confirmColumnTitle: "Confirm Action",
     helpColumnTitle: "Help",
     stableModeSummary: "Stable mode avoids emoji, gradients, and dynamic resize badges.",
-    richModeSummary: "Rich mode keeps decoration limited to color accents and width-stable Unicode symbols.",
+    richModeSummary: "Rich mode adds status chips, grouped actions, a danger zone, and topology flow for faster scanning.",
     hostProfileBadge: "host",
     hostClaudeHome: "host Claude home",
     hostConfigSummary: "uses host config directly",

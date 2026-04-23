@@ -34,6 +34,7 @@ type ControlPanelActionId =
   | "fresh"
   | "clean"
   | "quit";
+type ControlPanelActionGroup = "launch" | "inspect" | "danger" | "system";
 
 export interface HostLinkEntryStatus {
   readonly name: string;
@@ -44,6 +45,7 @@ export interface HostLinkEntryStatus {
 
 interface ControlPanelActionItem {
   readonly id: ControlPanelActionId;
+  readonly group: ControlPanelActionGroup;
   readonly label: string;
   readonly hint?: string;
   readonly disabled?: boolean;
@@ -335,31 +337,37 @@ function buildActions(
   return [
     {
       id: "continue",
+      group: "launch",
       label: text.controlPanel.actionContinue,
       hint: text.controlPanel.actionContinueHint,
     },
     {
       id: "run",
+      group: "launch",
       label: text.controlPanel.actionRun,
       hint: text.controlPanel.actionRunHint,
     },
     {
       id: "host",
+      group: "launch",
       label: text.controlPanel.actionHost,
       hint: text.controlPanel.actionHostHint,
     },
     {
       id: "explain",
+      group: "inspect",
       label: text.controlPanel.actionExplain,
       hint: text.controlPanel.actionExplainHint,
     },
     {
       id: "doctor",
+      group: "inspect",
       label: text.controlPanel.actionDoctor,
       hint: text.controlPanel.actionDoctorHint,
     },
     {
       id: "status",
+      group: "inspect",
       label: text.controlPanel.actionStatus,
       hint: overlayOnly
         ? text.controlPanel.overlayActionDisabled
@@ -368,6 +376,7 @@ function buildActions(
     },
     {
       id: "fresh",
+      group: "danger",
       label: text.controlPanel.actionFresh,
       hint: overlayOnly
         ? text.controlPanel.overlayActionDisabled
@@ -377,6 +386,7 @@ function buildActions(
     },
     {
       id: "clean",
+      group: "danger",
       label: text.controlPanel.actionClean,
       hint: overlayOnly
         ? text.controlPanel.overlayActionDisabled
@@ -386,6 +396,7 @@ function buildActions(
     },
     {
       id: "quit",
+      group: "system",
       label: text.controlPanel.actionQuit,
       hint: "q",
     },
@@ -407,6 +418,7 @@ function renderHeader(props: {
     props.model.tokenPresence,
     props.model.locale,
   );
+  const authTone = resolveAuthTone(props.profile, props.model.tokenPresence);
   const isolateBadge = resolveIsolateBadge(
     props.profile,
     props.model.isolateStatuses,
@@ -425,6 +437,7 @@ function renderHeader(props: {
   const filterSuffix = props.filter
     ? `  filter=${props.filterActive ? "/" : ""}${props.filter}`
     : "";
+  const statusLine = `active=${props.profile.id}  auth=${tokenBadge}  isolate=${isolateBadge}  host-links=${hostLinks.label}  session=${session}`;
 
   return h(
     Box,
@@ -443,12 +456,71 @@ function renderHeader(props: {
       h(Text, dimColorProps, "  Profile Control Center"),
       h(Text, { color: "gray", wrap: "truncate-end" }, `  [${modeBadge}]${filterSuffix}`),
     ),
-    h(
-      Text,
-      { wrap: "truncate-end" },
-      `active=${props.profile.id}  auth=${tokenBadge}  isolate=${isolateBadge}  host-links=${hostLinks.label}  session=${session}`,
-    ),
+    props.appearance === "rich"
+      ? renderRichHeaderChips({
+          text,
+          profileId: props.profile.id,
+          tokenBadge,
+          authTone,
+          isolateBadge,
+          hostLinks: hostLinks.label,
+          hostLinksTone: hostLinks.tone,
+          session,
+        })
+      : h(Text, { wrap: "truncate-end" }, statusLine),
   );
+}
+
+function renderRichHeaderChips(props: {
+  readonly text: ReturnType<typeof getUiText>;
+  readonly profileId: string;
+  readonly tokenBadge: string;
+  readonly authTone: InkTone;
+  readonly isolateBadge: string;
+  readonly hostLinks: string;
+  readonly hostLinksTone: InkTone;
+  readonly session: string;
+}): ReactNode {
+  return h(
+    Box,
+    { flexDirection: "row", flexWrap: "wrap" },
+    renderRichChip(props.text.controlPanel.richChipActive, props.profileId, "magenta"),
+    renderRichChip(props.text.controlPanel.richChipAuth, props.tokenBadge, toRichChipColor(props.authTone)),
+    renderRichChip(props.text.controlPanel.richChipIsolate, props.isolateBadge, "cyan"),
+    renderRichChip(
+      props.text.controlPanel.richChipLinks,
+      props.hostLinks,
+      toRichChipColor(props.hostLinksTone),
+    ),
+    renderRichChip(props.text.controlPanel.richChipSession, props.session, "blue"),
+  );
+}
+
+function renderRichChip(
+  label: string,
+  value: string,
+  color: "cyan" | "green" | "yellow" | "magenta" | "gray" | "blue",
+): ReactNode {
+  return h(
+    Text,
+    { color, wrap: "truncate-end" },
+    ` ${label} ${value} `,
+  );
+}
+
+function toRichChipColor(
+  tone: InkTone,
+): "cyan" | "green" | "yellow" | "magenta" | "gray" | "blue" {
+  switch (tone) {
+    case "ok":
+      return "green";
+    case "warn":
+      return "yellow";
+    case "dim":
+      return "gray";
+    case "accent":
+      return "cyan";
+  }
 }
 
 function renderMainLayout(props: {
@@ -595,9 +667,44 @@ function renderActionsPanel(props: {
   readonly width?: number;
   readonly marginRight: number;
   readonly marginBottom: number;
+  readonly appearance: ControlPanelAppearance;
   readonly theme: ControlPanelTheme;
 }): ReactNode {
   const text = getUiText(props.model.locale);
+  const actionRows = props.actions.flatMap((action, index) => {
+    const selected = index === props.selectedActionIndex;
+    const marker = selected ? props.theme.selectedMarker : props.theme.idleMarker;
+    const dangerMarker = action.dangerous ? `${props.theme.dangerMarker} ` : "";
+    const groupHeader = props.appearance === "rich" && isFirstActionInGroup(
+      props.actions,
+      action,
+      index,
+    )
+      ? renderActionGroupHeader(action.group, text)
+      : undefined;
+    const row = h(
+      Box,
+      {
+        key: action.id,
+        flexDirection: "column",
+        marginBottom: 1,
+      },
+      h(
+        Text,
+        {
+          color: resolveActionColor(action, selected),
+          inverse: selected && !action.disabled && props.theme.selectedRowInverse,
+          wrap: "truncate-end",
+        },
+        `${marker} ${renderActionPrefix(action, props.appearance)}${dangerMarker}${action.label}`,
+      ),
+      action.hint
+        ? h(Text, { dimColor: true, wrap: "truncate-end" }, `  ${action.hint}`)
+        : undefined,
+    );
+
+    return groupHeader ? [groupHeader, row] : [row];
+  });
 
   return h(
     InkPanel,
@@ -608,33 +715,77 @@ function renderActionsPanel(props: {
       marginRight: props.marginRight,
       marginBottom: props.marginBottom,
     },
-    ...props.actions.map((action, index) => {
-      const selected = index === props.selectedActionIndex;
-      const marker = selected ? props.theme.selectedMarker : props.theme.idleMarker;
-      const dangerMarker = action.dangerous ? `${props.theme.dangerMarker} ` : "";
-
-      return h(
-        Box,
-        {
-          key: action.id,
-          flexDirection: "column",
-          marginBottom: 1,
-        },
-        h(
-          Text,
-          {
-            color: resolveActionColor(action, selected),
-            inverse: selected && !action.disabled && props.theme.selectedRowInverse,
-            wrap: "truncate-end",
-          },
-          `${marker} ${dangerMarker}${action.label}`,
-        ),
-        action.hint
-          ? h(Text, { dimColor: true, wrap: "truncate-end" }, `  ${action.hint}`)
-          : undefined,
-      );
-    }),
+    ...actionRows,
   );
+}
+
+function isFirstActionInGroup(
+  actions: readonly ControlPanelActionItem[],
+  action: ControlPanelActionItem,
+  index: number,
+): boolean {
+  return index === 0 || actions[index - 1]?.group !== action.group;
+}
+
+function renderActionGroupHeader(
+  group: ControlPanelActionGroup,
+  text: ReturnType<typeof getUiText>,
+): ReactNode {
+  return h(
+    Text,
+    {
+      key: `group:${group}`,
+      color: group === "danger" ? "yellow" : "magenta",
+      bold: true,
+      wrap: "truncate-end",
+    },
+    `─ ${resolveActionGroupLabel(group, text)} ─`,
+  );
+}
+
+function resolveActionGroupLabel(
+  group: ControlPanelActionGroup,
+  text: ReturnType<typeof getUiText>,
+): string {
+  switch (group) {
+    case "launch":
+      return text.controlPanel.richGroupLaunch;
+    case "inspect":
+      return text.controlPanel.richGroupInspect;
+    case "danger":
+      return text.controlPanel.richGroupDanger;
+    case "system":
+      return text.controlPanel.richGroupSystem;
+  }
+}
+
+function renderActionPrefix(
+  action: ControlPanelActionItem,
+  appearance: ControlPanelAppearance,
+): string {
+  if (appearance !== "rich") {
+    return "";
+  }
+
+  switch (action.id) {
+    case "continue":
+      return "▶ ";
+    case "run":
+      return "● ";
+    case "host":
+      return "⌂ ";
+    case "explain":
+      return "◇ ";
+    case "doctor":
+      return "◆ ";
+    case "status":
+      return "◌ ";
+    case "fresh":
+    case "clean":
+      return "⚠ ";
+    case "quit":
+      return "× ";
+  }
 }
 
 function resolveActionColor(
@@ -650,6 +801,17 @@ function resolveActionColor(
   }
 
   return selected ? "cyan" : undefined;
+}
+
+function resolveAuthTone(
+  profile: Profile,
+  tokenPresence: ReadonlyMap<string, boolean>,
+): InkTone {
+  if (profile.kind === "host" || tokenPresence.get(profile.id)) {
+    return "ok";
+  }
+
+  return "warn";
 }
 
 function resolveConfirmChoiceColor(
@@ -676,7 +838,13 @@ function renderDetailPanel(props: {
 }): ReactNode {
   switch (props.view) {
     case "explain":
-      return renderExplainDetail(props.model, props.profile, props.overlay, props.width);
+      return renderExplainDetail(
+        props.model,
+        props.profile,
+        props.overlay,
+        props.appearance,
+        props.width,
+      );
     case "doctor":
       return renderDoctorDetail(props.model, props.width);
     case "status":
@@ -726,6 +894,17 @@ function renderDashboardDetail(
       tone: "ok",
       width,
     },
+    ...(appearance === "rich"
+      ? renderRichStatusCards({
+          text,
+          profile,
+          tokenBadge,
+          isolateBadge,
+          hostLinks: hostLinks.label,
+          hostLinksTone: hostLinks.tone,
+          session: summarizeSession(profile, model.isolateStatuses, model.locale),
+        })
+      : []),
     ...InkKeyValueList({
       entries: [
         { label: "profile", value: profile.id, tone: "accent" },
@@ -737,7 +916,7 @@ function renderDashboardDetail(
         {
           label: "auth",
           value: tokenBadge,
-          tone: profile.kind === "host" || model.tokenPresence.get(profile.id) ? "ok" : "warn",
+          tone: resolveAuthTone(profile, model.tokenPresence),
         },
         {
           label: "claude-home",
@@ -798,6 +977,56 @@ function resolveClaudeHomeSummary(
   return status?.homeDir ?? text.profiles.missingBadge;
 }
 
+function renderRichStatusCards(props: {
+  readonly text: ReturnType<typeof getUiText>;
+  readonly profile: Profile;
+  readonly tokenBadge: string;
+  readonly isolateBadge: string;
+  readonly hostLinks: string;
+  readonly hostLinksTone: InkTone;
+  readonly session: string;
+}): ReactNode[] {
+  return [
+    h(
+      Box,
+      {
+        key: "rich-status-cards",
+        flexDirection: "row",
+        flexWrap: "wrap",
+        marginBottom: 1,
+      },
+      renderRichStatusCard(
+        props.text.controlPanel.richCardIdentity,
+        props.profile.id,
+        "magenta",
+      ),
+      renderRichStatusCard(
+        props.text.controlPanel.richCardRuntime,
+        `${props.tokenBadge} / ${props.isolateBadge}`,
+        "cyan",
+      ),
+      renderRichStatusCard(
+        props.text.controlPanel.richCardContinuity,
+        `${props.hostLinks} / ${props.session}`,
+        toRichChipColor(props.hostLinksTone),
+      ),
+    ),
+    h(Text, { key: "rich-status-space" }, ""),
+  ];
+}
+
+function renderRichStatusCard(
+  label: string,
+  value: string,
+  color: "cyan" | "green" | "yellow" | "magenta" | "gray" | "blue",
+): ReactNode {
+  return h(
+    Text,
+    { color, wrap: "truncate-end" },
+    ` ${label}: ${value} `,
+  );
+}
+
 function resolveConfigSummary(
   profile: Profile,
   status: IsolateHomeStatus | undefined,
@@ -814,10 +1043,33 @@ function resolveConfigSummary(
   return text.controlPanel.hostLinkedConfigSummary;
 }
 
+function renderTopologyFlow(
+  model: ControlPanelModel,
+  profile: Profile,
+  overlay: OverlayProfile | undefined,
+  status: IsolateHomeStatus | undefined,
+): ReactNode[] {
+  const text = getUiText(model.locale);
+  const source = profile.kind === "host"
+    ? text.controlPanel.hostClaudeHome
+    : status?.manifest?.sourceConfigDir ?? overlay?.isolate?.source.configDir ?? text.profiles.missingBadge;
+  const home = profile.kind === "host"
+    ? text.controlPanel.hostClaudeHome
+    : status?.homeDir ?? overlay?.isolate?.homeDir ?? text.profiles.missingBadge;
+  const processLabel = profile.kind === "host" ? "claude host" : `claude ${profile.id}`;
+
+  return [
+    h(Text, { key: "topology-title", color: "magenta", bold: true }, text.controlPanel.richTopologyTitle),
+    h(Text, { key: "topology-flow", color: "cyan", wrap: "truncate-end" }, `${source} → ${home} → ${processLabel}`),
+    h(Text, { key: "topology-space" }, ""),
+  ];
+}
+
 function renderExplainDetail(
   model: ControlPanelModel,
   profile: Profile,
   overlay: OverlayProfile | undefined,
+  appearance: ControlPanelAppearance,
   width: number,
 ): ReactNode {
   const text = getUiText(model.locale);
@@ -833,6 +1085,9 @@ function renderExplainDetail(
       badge: profile.id,
       width,
     },
+    ...(appearance === "rich"
+      ? renderTopologyFlow(model, profile, overlay, status)
+      : []),
     ...InkBulletList({
       items: [
         profile.kind === "host"

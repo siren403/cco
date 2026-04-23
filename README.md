@@ -102,7 +102,7 @@ cco ui
 cco ui --rich
 ```
 
-The default UI is the stable mode: no emoji, no gradients, no live resize badge. `--rich` enables restrained color accents and width-stable Unicode markers for terminals that render them cleanly.
+The default UI is the stable mode: no emoji, no gradients, no live resize badge. `--rich` switches to a cockpit-style layout with status chips, grouped actions, stronger danger-zone treatment, status cards, and Unicode topology markers for terminals that render them cleanly.
 
 Primary keys:
 

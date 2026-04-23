@@ -100,4 +100,9 @@ test("control panel rich mode renders restrained decorative markers", () => {
 
   expect(output).toContain("[rich]");
   expect(output).toContain("› host");
+  expect(output).toContain("ACTIVE");
+  expect(output).toContain("─ Launch ─");
+  expect(output).toContain("▶ 프로필 이어가기");
+  expect(output).toContain("─ Danger Zone ─");
+  expect(output).toContain("Identity: host");
 });
