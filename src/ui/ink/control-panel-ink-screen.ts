@@ -255,6 +255,7 @@ export function ControlPanelInkScreen(props: ControlPanelInkScreenProps): ReactN
       filter,
       filterActive,
       columns: viewportColumns,
+      repaintEpoch: props.repaintEpoch ?? 0,
     }),
   );
 }
@@ -906,11 +907,13 @@ function renderFooter(props: {
   readonly filter: string;
   readonly filterActive: boolean;
   readonly columns: number;
+  readonly repaintEpoch: number;
 }): ReactNode {
   const text = getUiText(props.locale);
   const filter = props.filter || props.filterActive
     ? `  filter=${props.filterActive ? "/" : ""}${props.filter}`
     : "";
+  const repaintMarker = props.repaintEpoch % 2 === 0 ? "" : " ";
 
   return h(
     Box,
@@ -921,7 +924,7 @@ function renderFooter(props: {
       marginTop: 1,
       width: props.columns,
     },
-    h(Text, dimColorProps, `${text.controlPanel.compactKeyHelp}${filter}`),
+    h(Text, dimColorProps, `${text.controlPanel.compactKeyHelp}${filter}${repaintMarker}`),
   );
 }
 
