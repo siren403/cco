@@ -52,6 +52,25 @@ interface ControlPanelTheme {
   readonly selectedRowInverse: boolean;
 }
 
+type ControlPanelLayout =
+  | {
+      readonly kind: "wide";
+      readonly columns: number;
+      readonly profileWidth: number;
+      readonly actionWidth: number;
+      readonly detailWidth: number;
+    }
+  | {
+      readonly kind: "medium";
+      readonly columns: number;
+      readonly leftWidth: number;
+      readonly detailWidth: number;
+    }
+  | {
+      readonly kind: "narrow";
+      readonly columns: number;
+    };
+
 export interface ControlPanelModel {
   readonly profiles: readonly Profile[];
   readonly tokenPresence: ReadonlyMap<string, boolean>;
@@ -112,7 +131,8 @@ export function ControlPanelInkScreen(props: ControlPanelInkScreenProps): ReactN
     profileIndex,
     maxProfileRows,
   );
-  const layout = resolveLayout(columns);
+  const viewportColumns = resolveViewportColumns(columns);
+  const layout = resolveLayout(viewportColumns);
 
   useInput((input, key) => {
     if (filterActive) {
@@ -212,6 +232,7 @@ export function ControlPanelInkScreen(props: ControlPanelInkScreenProps): ReactN
       appearance,
       filter,
       filterActive,
+      columns: viewportColumns,
     }),
     renderMainLayout({
       model: props.model,
@@ -232,6 +253,7 @@ export function ControlPanelInkScreen(props: ControlPanelInkScreenProps): ReactN
       locale: props.model.locale,
       filter,
       filterActive,
+      columns: viewportColumns,
     }),
   );
 }
@@ -306,6 +328,7 @@ function renderHeader(props: {
   readonly appearance: ControlPanelAppearance;
   readonly filter: string;
   readonly filterActive: boolean;
+  readonly columns: number;
 }): ReactNode {
   const text = getUiText(props.model.locale);
   const theme = resolveControlPanelTheme(props.appearance);
@@ -341,6 +364,7 @@ function renderHeader(props: {
       paddingX: 1,
       marginBottom: 1,
       flexDirection: "column",
+      width: props.columns,
     },
     h(
       Box,
@@ -359,7 +383,7 @@ function renderHeader(props: {
 
 function renderMainLayout(props: {
   readonly model: ControlPanelModel;
-  readonly layout: "wide" | "medium" | "narrow";
+  readonly layout: ControlPanelLayout;
   readonly profiles: readonly Profile[];
   readonly offset: number;
   readonly selectedProfileIndex: number;
@@ -372,36 +396,66 @@ function renderMainLayout(props: {
   readonly appearance: ControlPanelAppearance;
   readonly theme: ControlPanelTheme;
 }): ReactNode {
-  if (props.layout === "wide") {
+  if (props.layout.kind === "wide") {
     return h(
       Box,
-      { flexDirection: "row" },
-      renderProfilesPanel({ ...props, width: 32, marginRight: 1, marginBottom: 0 }),
-      renderActionsPanel({ ...props, width: 30, marginRight: 1, marginBottom: 0 }),
-      renderDetailPanel(props),
+      { flexDirection: "row", width: props.layout.columns },
+      renderProfilesPanel({
+        ...props,
+        width: props.layout.profileWidth,
+        marginRight: 1,
+        marginBottom: 0,
+      }),
+      renderActionsPanel({
+        ...props,
+        width: props.layout.actionWidth,
+        marginRight: 1,
+        marginBottom: 0,
+      }),
+      renderDetailPanel({ ...props, width: props.layout.detailWidth }),
     );
   }
 
-  if (props.layout === "medium") {
+  if (props.layout.kind === "medium") {
     return h(
       Box,
-      { flexDirection: "row" },
+      { flexDirection: "row", width: props.layout.columns },
       h(
         Box,
-        { flexDirection: "column", width: 34, marginRight: 1 },
-        renderProfilesPanel({ ...props, width: 34, marginRight: 0, marginBottom: 1 }),
-        renderActionsPanel({ ...props, width: 34, marginRight: 0, marginBottom: 0 }),
+        { flexDirection: "column", width: props.layout.leftWidth, marginRight: 1 },
+        renderProfilesPanel({
+          ...props,
+          width: props.layout.leftWidth,
+          marginRight: 0,
+          marginBottom: 1,
+        }),
+        renderActionsPanel({
+          ...props,
+          width: props.layout.leftWidth,
+          marginRight: 0,
+          marginBottom: 0,
+        }),
       ),
-      renderDetailPanel(props),
+      renderDetailPanel({ ...props, width: props.layout.detailWidth }),
     );
   }
 
   return h(
     Box,
-    { flexDirection: "column" },
-    renderProfilesPanel({ ...props, width: undefined, marginRight: 0, marginBottom: 1 }),
-    renderActionsPanel({ ...props, width: undefined, marginRight: 0, marginBottom: 1 }),
-    renderDetailPanel(props),
+    { flexDirection: "column", width: props.layout.columns },
+    renderProfilesPanel({
+      ...props,
+      width: props.layout.columns,
+      marginRight: 0,
+      marginBottom: 1,
+    }),
+    renderActionsPanel({
+      ...props,
+      width: props.layout.columns,
+      marginRight: 0,
+      marginBottom: 1,
+    }),
+    renderDetailPanel({ ...props, width: props.layout.columns }),
   );
 }
 
@@ -527,19 +581,26 @@ function renderDetailPanel(props: {
   readonly profile: Profile;
   readonly overlay?: OverlayProfile;
   readonly appearance: ControlPanelAppearance;
+  readonly width: number;
 }): ReactNode {
   switch (props.view) {
     case "explain":
-      return renderExplainDetail(props.model, props.profile, props.overlay);
+      return renderExplainDetail(props.model, props.profile, props.overlay, props.width);
     case "doctor":
-      return renderDoctorDetail(props.model);
+      return renderDoctorDetail(props.model, props.width);
     case "status":
-      return renderStatusDetail(props.model, props.overlay);
+      return renderStatusDetail(props.model, props.overlay, props.width);
     case "help":
-      return renderHelpDetail(props.model.locale, props.appearance);
+      return renderHelpDetail(props.model.locale, props.appearance, props.width);
     case "dashboard":
     default:
-      return renderDashboardDetail(props.model, props.profile, props.overlay, props.appearance);
+      return renderDashboardDetail(
+        props.model,
+        props.profile,
+        props.overlay,
+        props.appearance,
+        props.width,
+      );
   }
 }
 
@@ -548,6 +609,7 @@ function renderDashboardDetail(
   profile: Profile,
   overlay: OverlayProfile | undefined,
   appearance: ControlPanelAppearance,
+  width: number,
 ): ReactNode {
   const text = getUiText(model.locale);
   const tokenBadge = resolveTokenBadge(profile, model.tokenPresence, model.locale);
@@ -563,6 +625,7 @@ function renderDashboardDetail(
     {
       title: text.controlPanel.detailColumnTitle,
       tone: "ok",
+      width,
     },
     ...InkKeyValueList({
       entries: [
@@ -656,6 +719,7 @@ function renderExplainDetail(
   model: ControlPanelModel,
   profile: Profile,
   overlay: OverlayProfile | undefined,
+  width: number,
 ): ReactNode {
   const text = getUiText(model.locale);
   const status = overlay ? model.isolateStatuses.get(overlay.id) : undefined;
@@ -668,6 +732,7 @@ function renderExplainDetail(
       title: text.controlPanel.explainColumnTitle,
       tone: "accent",
       badge: profile.id,
+      width,
     },
     ...InkBulletList({
       items: [
@@ -717,7 +782,7 @@ function renderExplainDetail(
   );
 }
 
-function renderDoctorDetail(model: ControlPanelModel): ReactNode {
+function renderDoctorDetail(model: ControlPanelModel, width: number): ReactNode {
   const page = buildDoctorPageModel(model.doctorData, model.locale);
 
   return h(
@@ -726,6 +791,7 @@ function renderDoctorDetail(model: ControlPanelModel): ReactNode {
       title: page.title,
       tone: page.titleTone,
       badge: page.badge,
+      width,
     },
     ...page.introLines.map((line) => h(Text, null, line)),
     h(Text, null, ""),
@@ -740,6 +806,7 @@ function renderDoctorDetail(model: ControlPanelModel): ReactNode {
 function renderStatusDetail(
   model: ControlPanelModel,
   overlay: OverlayProfile | undefined,
+  width: number,
 ): ReactNode {
   const text = getUiText(model.locale);
   if (!overlay) {
@@ -748,6 +815,7 @@ function renderStatusDetail(
       {
         title: text.misc.isolateStatusTitle,
         tone: "warn",
+        width,
       },
       h(Text, null, text.controlPanel.overlayActionDisabled),
     );
@@ -763,6 +831,7 @@ function renderStatusDetail(
       title: text.misc.isolateStatusTitle,
       tone,
       badge: overlay.id,
+      width,
     },
     ...InkKeyValueList({
       entries: [
@@ -805,6 +874,7 @@ function renderStatusDetail(
 function renderHelpDetail(
   locale: AppLocale,
   appearance: ControlPanelAppearance,
+  width: number,
 ): ReactNode {
   const text = getUiText(locale);
   const modeBadge = appearance === "rich"
@@ -817,6 +887,7 @@ function renderHelpDetail(
       title: text.controlPanel.helpColumnTitle,
       tone: "dim",
       badge: modeBadge,
+      width,
     },
     ...InkBulletList({
       items: [
@@ -833,6 +904,7 @@ function renderFooter(props: {
   readonly locale: AppLocale;
   readonly filter: string;
   readonly filterActive: boolean;
+  readonly columns: number;
 }): ReactNode {
   const text = getUiText(props.locale);
   const filter = props.filter || props.filterActive
@@ -846,6 +918,7 @@ function renderFooter(props: {
       borderColor: "gray",
       paddingX: 1,
       marginTop: 1,
+      width: props.columns,
     },
     h(Text, dimColorProps, `${text.controlPanel.compactKeyHelp}${filter}`),
   );
@@ -1132,16 +1205,41 @@ function resolveControlPanelTheme(
   };
 }
 
-function resolveLayout(columns: number): "wide" | "medium" | "narrow" {
+function resolveViewportColumns(columns: number): number {
+  return Math.max(1, columns - 1);
+}
+
+function resolveLayout(columns: number): ControlPanelLayout {
   if (columns >= 120) {
-    return "wide";
+    const profileWidth = 32;
+    const actionWidth = 30;
+    const gutterWidth = 2;
+
+    return {
+      kind: "wide",
+      columns,
+      profileWidth,
+      actionWidth,
+      detailWidth: columns - profileWidth - actionWidth - gutterWidth,
+    };
   }
 
   if (columns >= 90) {
-    return "medium";
+    const leftWidth = 34;
+    const gutterWidth = 1;
+
+    return {
+      kind: "medium",
+      columns,
+      leftWidth,
+      detailWidth: columns - leftWidth - gutterWidth,
+    };
   }
 
-  return "narrow";
+  return {
+    kind: "narrow",
+    columns,
+  };
 }
 
 function windowAround<T>(

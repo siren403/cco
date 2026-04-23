@@ -222,7 +222,7 @@ async function renderControlPanel(
       stderr: context.process.stderr,
       exitOnCtrlC: true,
       alternateScreen: true,
-      incrementalRendering: true,
+      incrementalRendering: false,
       maxFps: 15,
     },
   );
