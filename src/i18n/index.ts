@@ -412,7 +412,7 @@ const KO_TEXT: UiText = {
     isolateFresh:
       "현재 격리 실행 환경을 제거한 뒤 fresh bootstrap으로 다시 실행합니다",
     ui: "터미널 크기 변경에 반응하는 터미널 컨트롤 패널을 엽니다",
-    uiFlagRich: "컬러 accent와 Unicode 심볼을 쓰는 rich TUI 모드를 켭니다",
+    uiFlagRich: "상태 chip, 작업 그룹, topology flow를 쓰는 rich TUI 모드를 켭니다",
     showcaseArgTopic: "선택 사항: all, auth, help, profiles, errors, doctor, flows, ink",
     showcase: "Claude를 실행하지 않고 cco의 도움말, 오류, 흐름 화면을 미리 봅니다",
   },
@@ -853,7 +853,7 @@ const EN_TEXT: UiText = {
     isolateFresh:
       "Remove the current isolate home and launch again through a fresh bootstrap",
     ui: "Open a terminal control panel that reacts to terminal resize",
-    uiFlagRich: "Enable rich TUI mode with color accents and Unicode symbols",
+    uiFlagRich: "Enable rich TUI mode with status chips, grouped actions, and topology flow",
     showcaseArgTopic: "Optional showcase topic: all, auth, help, profiles, errors, doctor, flows, or ink",
     showcase: "Preview cco help, errors, and flow output without launching Claude",
   },
