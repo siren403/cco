@@ -42,6 +42,10 @@ const HOST_LINK_ENTRIES = [
   "statusline.bat",
 ] as const;
 
+const ENTER_ALTERNATE_SCREEN = "\u001B[?1049h";
+const EXIT_ALTERNATE_SCREEN = "\u001B[?1049l";
+const HIDE_CURSOR = "\u001B[?25l";
+const SHOW_CURSOR = "\u001B[?25h";
 const CLEAR_TERMINAL = "\u001B[2J\u001B[H";
 const RESIZE_REPAINT_DELAY_MS = 20;
 
@@ -222,6 +226,10 @@ async function renderControlPanel(
       },
     });
 
+  context.process.stdout.write(
+    `${ENTER_ALTERNATE_SCREEN}${HIDE_CURSOR}${CLEAR_TERMINAL}`,
+  );
+
   const app = render(
     createScreen(),
     {
@@ -229,7 +237,7 @@ async function renderControlPanel(
       stdout: context.process.stdout,
       stderr: context.process.stderr,
       exitOnCtrlC: true,
-      alternateScreen: true,
+      alternateScreen: false,
       incrementalRendering: false,
       maxFps: 15,
     },
@@ -260,6 +268,9 @@ async function renderControlPanel(
     }
 
     context.process.stdout.off("resize", repaintAfterResize);
+    context.process.stdout.write(
+      `${CLEAR_TERMINAL}${SHOW_CURSOR}${EXIT_ALTERNATE_SCREEN}`,
+    );
   }
 }
 
