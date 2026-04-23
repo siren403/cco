@@ -30,6 +30,8 @@ export interface UiText {
     readonly isolateRemove: string;
     readonly isolateFreshArg: string;
     readonly isolateFresh: string;
+    readonly ui: string;
+    readonly uiFlagRich: string;
     readonly showcaseArgTopic: string;
     readonly showcase: string;
   };
@@ -49,6 +51,7 @@ export interface UiText {
     readonly commandSurfaceConfig: string;
     readonly commandSurfaceDoctor: string;
     readonly commandSurfaceIsolate: string;
+    readonly commandSurfaceUi: string;
     readonly commandSurfaceShowcase: string;
     readonly localAliasBadge: string;
     readonly localAliasSummary: string;
@@ -202,6 +205,67 @@ export interface UiText {
     readonly guidanceSafeDescription: string;
     readonly guidancePersistDescription: string;
   };
+  readonly controlPanel: {
+    readonly title: string;
+    readonly actionPrompt: string;
+    readonly actionRun: string;
+    readonly actionRunHint: string;
+    readonly actionContinue: string;
+    readonly actionContinueHint: string;
+    readonly actionHost: string;
+    readonly actionHostHint: string;
+    readonly actionExplain: string;
+    readonly actionExplainHint: string;
+    readonly actionDoctor: string;
+    readonly actionDoctorHint: string;
+    readonly actionStatus: string;
+    readonly actionStatusHint: string;
+    readonly actionFresh: string;
+    readonly actionFreshHint: string;
+    readonly actionClean: string;
+    readonly actionCleanHint: string;
+    readonly actionQuit: string;
+    readonly liveSummary: string;
+    readonly keyHelp: string;
+    readonly compactKeyHelp: string;
+    readonly stableModeBadge: string;
+    readonly richModeBadge: string;
+    readonly profileColumnTitle: string;
+    readonly actionColumnTitle: string;
+    readonly detailColumnTitle: string;
+    readonly explainColumnTitle: string;
+    readonly helpColumnTitle: string;
+    readonly stableModeSummary: string;
+    readonly richModeSummary: string;
+    readonly hostProfileBadge: string;
+    readonly hostClaudeHome: string;
+    readonly hostConfigSummary: string;
+    readonly cleanConfigSummary: string;
+    readonly hostLinkedConfigSummary: string;
+    readonly hostSessionSummary: string;
+    readonly sessionLinkedSummary: string;
+    readonly sessionPendingSummary: string;
+    readonly hostLinksOk: (ready: number, total: number) => string;
+    readonly hostLinksPartial: (ready: number, total: number) => string;
+    readonly hostLinkLinked: string;
+    readonly hostLinkPresent: string;
+    readonly hostLinkMissingSource: string;
+    readonly hostLinkMissingTarget: string;
+    readonly explainProfileAuth: string;
+    readonly explainHostAuth: string;
+    readonly explainIsolateHome: (homeDir: string) => string;
+    readonly explainHostHome: string;
+    readonly explainSessionLink: (cwd: string) => string;
+    readonly explainHostSession: string;
+    readonly noFilterResults: string;
+    readonly overlayActionDisabled: string;
+    readonly pickProfile: string;
+    readonly pickSavedProfile: string;
+    readonly noSavedProfiles: string;
+    readonly notInteractive: string;
+    readonly cancelled: string;
+    readonly returning: string;
+  };
   readonly errors: {
     readonly problemTitle: string;
     readonly nextStepTitle: string;
@@ -326,6 +390,8 @@ const KO_TEXT: UiText = {
       "고급 플래그로 `--clean`, `--import-latest-host-session`를 사용할 수 있습니다",
     isolateFresh:
       "현재 격리 실행 환경을 제거한 뒤 fresh bootstrap으로 다시 실행합니다",
+    ui: "터미널 크기 변경에 반응하는 터미널 컨트롤 패널을 엽니다",
+    uiFlagRich: "컬러 accent와 Unicode 심볼을 쓰는 rich TUI 모드를 켭니다",
     showcaseArgTopic: "선택 사항: all, auth, help, profiles, errors, doctor, flows, ink",
     showcase: "Claude를 실행하지 않고 cco의 도움말, 오류, 흐름 화면을 미리 봅니다",
   },
@@ -349,6 +415,7 @@ const KO_TEXT: UiText = {
     commandSurfaceDoctor: "`cco doctor`는 런타임 연결 상태와 환경변수 우선순위를 점검합니다.",
     commandSurfaceIsolate:
       "`cco isolate status/remove/fresh <profile>`은 격리 실행 환경을 점검하거나 정리합니다.",
+    commandSurfaceUi: "`cco ui`는 기존 명령을 고르는 선택형 터미널 컨트롤 패널입니다.",
     commandSurfaceShowcase: "`cco showcase [topic]`은 Claude를 실행하지 않고 CLI 화면을 미리 봅니다.",
     localAliasBadge: "로컬 별칭",
     localAliasSummary:
@@ -530,6 +597,67 @@ const KO_TEXT: UiText = {
     guidancePersistDescription:
       "저장된 프로필을 영구 compat mode로 바꿉니다.",
   },
+  controlPanel: {
+    title: "cco 컨트롤 패널",
+    actionPrompt: "실행할 작업을 선택하세요",
+    actionRun: "프로필 실행",
+    actionRunHint: "cco <profile>",
+    actionContinue: "프로필 이어가기",
+    actionContinueHint: "cco <profile> -c",
+    actionHost: "호스트 실행",
+    actionHostHint: "cco host",
+    actionExplain: "동작 설명",
+    actionExplainHint: "auth/isolate/link/session 구조 확인",
+    actionDoctor: "진단",
+    actionDoctorHint: "cco doctor",
+    actionStatus: "격리 상태",
+    actionStatusHint: "cco isolate status <profile>",
+    actionFresh: "격리 fresh",
+    actionFreshHint: "cco isolate fresh <profile>",
+    actionClean: "격리 clean fresh",
+    actionCleanHint: "cco isolate fresh --clean <profile>",
+    actionQuit: "종료",
+    liveSummary: "기본 화면은 실행 가능 상태를, explain은 실제 백엔드 동작을 보여줍니다.",
+    keyHelp: "↑↓ 작업 선택 · ←→/Tab 프로필 전환 · Enter 실행 · / 필터 · x 설명 · d 진단 · s 상태 · r 새로고침 · ? 도움말 · q 종료",
+    compactKeyHelp: "Up/Down action | Left/Right profile | Enter run | / filter | x explain | d doctor | s status | r reload | ? help | q quit",
+    stableModeBadge: "stable",
+    richModeBadge: "rich",
+    profileColumnTitle: "프로필",
+    actionColumnTitle: "작업",
+    detailColumnTitle: "현재 선택",
+    explainColumnTitle: "동작 원리",
+    helpColumnTitle: "도움말",
+    stableModeSummary: "stable mode는 emoji, gradient, 동적 resize badge를 쓰지 않습니다.",
+    richModeSummary: "rich mode는 컬러 accent와 폭이 안정적인 Unicode 심볼만 제한적으로 씁니다.",
+    hostProfileBadge: "host",
+    hostClaudeHome: "호스트 Claude home",
+    hostConfigSummary: "호스트 구성 직접 사용",
+    cleanConfigSummary: "clean isolate home",
+    hostLinkedConfigSummary: "host 구성 링크",
+    hostSessionSummary: "호스트 native 세션",
+    sessionLinkedSummary: "현재 프로젝트 세션 링크",
+    sessionPendingSummary: "첫 continue 실행 시 링크",
+    hostLinksOk: (ready, total) => `${ready}/${total} ready`,
+    hostLinksPartial: (ready, total) => `${ready}/${total} 확인 필요`,
+    hostLinkLinked: "linked",
+    hostLinkPresent: "present",
+    hostLinkMissingSource: "host 없음",
+    hostLinkMissingTarget: "isolate 없음",
+    explainProfileAuth: "저장된 setup-token은 생성된 Claude 프로세스에만 주입됩니다.",
+    explainHostAuth: "host는 저장 토큰을 주입하지 않고 현재 호스트 Claude 로그인을 그대로 사용합니다.",
+    explainIsolateHome: (homeDir) => `Claude home은 isolate 위치로 리다이렉트됩니다: ${homeDir}`,
+    explainHostHome: "host 실행은 호스트 Claude home을 그대로 사용합니다.",
+    explainSessionLink: (cwd) => `현재 작업 디렉터리 세션 store는 profile home과 연결되어 native -c가 이어집니다: ${cwd}`,
+    explainHostSession: "host는 Claude native session store를 그대로 사용합니다.",
+    noFilterResults: "필터와 일치하는 프로필이 없습니다.",
+    overlayActionDisabled: "저장 프로필을 선택해야 사용할 수 있습니다.",
+    pickProfile: "프로필을 선택하세요",
+    pickSavedProfile: "저장된 프로필을 선택하세요",
+    noSavedProfiles: "저장된 프로필이 없습니다. 먼저 `cco auth add <profile>`을 실행하세요.",
+    notInteractive: "`cco ui`는 대화형 터미널에서만 사용할 수 있습니다.",
+    cancelled: "컨트롤 패널을 종료했습니다.",
+    returning: "작업이 끝났습니다. 컨트롤 패널로 돌아갑니다.",
+  },
   errors: {
     problemTitle: "문제",
     nextStepTitle: "다음 단계",
@@ -680,6 +808,8 @@ const EN_TEXT: UiText = {
       "Advanced flags include `--clean` and `--import-latest-host-session`",
     isolateFresh:
       "Remove the current isolate home and launch again through a fresh bootstrap",
+    ui: "Open a terminal control panel that reacts to terminal resize",
+    uiFlagRich: "Enable rich TUI mode with color accents and Unicode symbols",
     showcaseArgTopic: "Optional showcase topic: all, auth, help, profiles, errors, doctor, flows, or ink",
     showcase: "Preview cco help, errors, and flow output without launching Claude",
   },
@@ -703,6 +833,7 @@ const EN_TEXT: UiText = {
     commandSurfaceDoctor: "`cco doctor` inspects runtime wiring and env precedence.",
     commandSurfaceIsolate:
       "`cco isolate status/remove/fresh <profile>` inspects or resets the isolate home.",
+    commandSurfaceUi: "`cco ui` opens an optional terminal control panel for existing commands.",
     commandSurfaceShowcase: "`cco showcase [topic]` previews the CLI surface without launching Claude.",
     localAliasBadge: "local alias",
     localAliasSummary: "Profiles are names you choose, such as `work` or `backup`.",
@@ -884,6 +1015,67 @@ const EN_TEXT: UiText = {
       "Keep safe mode by re-running without bypass-permission flags.",
     guidancePersistDescription:
       "Make the saved profile persistently compat.",
+  },
+  controlPanel: {
+    title: "cco Control Panel",
+    actionPrompt: "Choose an action",
+    actionRun: "Run profile",
+    actionRunHint: "cco <profile>",
+    actionContinue: "Continue profile",
+    actionContinueHint: "cco <profile> -c",
+    actionHost: "Run host",
+    actionHostHint: "cco host",
+    actionExplain: "Explain runtime",
+    actionExplainHint: "inspect auth/isolate/link/session topology",
+    actionDoctor: "Doctor",
+    actionDoctorHint: "cco doctor",
+    actionStatus: "Isolate status",
+    actionStatusHint: "cco isolate status <profile>",
+    actionFresh: "Fresh isolate",
+    actionFreshHint: "cco isolate fresh <profile>",
+    actionClean: "Clean fresh isolate",
+    actionCleanHint: "cco isolate fresh --clean <profile>",
+    actionQuit: "Quit",
+    liveSummary: "The default view shows launch readiness; explain shows the actual backend topology.",
+    keyHelp: "↑↓ action · ←→/Tab profile · Enter run · / filter · x explain · d doctor · s status · r reload · ? help · q quit",
+    compactKeyHelp: "Up/Down action | Left/Right profile | Enter run | / filter | x explain | d doctor | s status | r reload | ? help | q quit",
+    stableModeBadge: "stable",
+    richModeBadge: "rich",
+    profileColumnTitle: "Profiles",
+    actionColumnTitle: "Actions",
+    detailColumnTitle: "Current selection",
+    explainColumnTitle: "Runtime Topology",
+    helpColumnTitle: "Help",
+    stableModeSummary: "Stable mode avoids emoji, gradients, and dynamic resize badges.",
+    richModeSummary: "Rich mode keeps decoration limited to color accents and width-stable Unicode symbols.",
+    hostProfileBadge: "host",
+    hostClaudeHome: "host Claude home",
+    hostConfigSummary: "uses host config directly",
+    cleanConfigSummary: "clean isolate home",
+    hostLinkedConfigSummary: "linked host setup",
+    hostSessionSummary: "host native session",
+    sessionLinkedSummary: "current project session linked",
+    sessionPendingSummary: "links on first continue launch",
+    hostLinksOk: (ready, total) => `${ready}/${total} ready`,
+    hostLinksPartial: (ready, total) => `${ready}/${total} need attention`,
+    hostLinkLinked: "linked",
+    hostLinkPresent: "present",
+    hostLinkMissingSource: "missing host source",
+    hostLinkMissingTarget: "missing isolate target",
+    explainProfileAuth: "The saved setup-token is injected only into the spawned Claude process.",
+    explainHostAuth: "The host profile does not inject a saved token and keeps the host Claude login.",
+    explainIsolateHome: (homeDir) => `Claude home is redirected to the isolate path: ${homeDir}`,
+    explainHostHome: "The host profile keeps the host Claude home.",
+    explainSessionLink: (cwd) => `The current working directory session store is linked so native -c stays continuous: ${cwd}`,
+    explainHostSession: "The host profile uses Claude's native session store directly.",
+    noFilterResults: "No profiles match the filter.",
+    overlayActionDisabled: "Select a saved profile to use this action.",
+    pickProfile: "Pick a profile",
+    pickSavedProfile: "Pick a saved profile",
+    noSavedProfiles: "No saved profiles are available. Run `cco auth add <profile>` first.",
+    notInteractive: "`cco ui` requires an interactive terminal.",
+    cancelled: "Control panel closed.",
+    returning: "Action completed. Returning to the control panel.",
   },
   errors: {
     problemTitle: "Problem",

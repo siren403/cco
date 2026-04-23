@@ -456,6 +456,28 @@ test("auth help renders through Stricli Ink interception", async () => {
   expect(result.stderr).toBe("");
 });
 
+test("ui help renders through Stricli Ink interception", async () => {
+  const sandbox = await createSandbox();
+
+  const result = await runCli(["ui", "--help"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("사용법");
+  expect(result.stdout).toContain("cco ui");
+  expect(result.stdout).toContain("터미널 컨트롤 패널");
+  expect(result.stderr).toBe("");
+});
+
+test("ui command requires an interactive terminal", async () => {
+  const sandbox = await createSandbox();
+
+  const result = await runCli(["ui"], sandbox, {});
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("`cco ui`는 대화형 터미널에서만 사용할 수 있습니다.");
+  expect(result.stdout).toBe("");
+});
+
 test("config get parse errors render through Stricli Ink interception", async () => {
   const sandbox = await createSandbox();
 

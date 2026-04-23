@@ -72,6 +72,7 @@ export function renderRootHelp(options: RenderOptions = {}): string {
               `${theme.code(`${APP_NAME} config get -p work`)} ${text.rootHelp.commandSurfaceConfig.replace("`cco config get -p <profile>`", "")}`.trim(),
               `${theme.code(`${APP_NAME} doctor`)} ${text.rootHelp.commandSurfaceDoctor.replace("`cco doctor`", "")}`.trim(),
               `${theme.code(`${APP_NAME} isolate status work`)} ${text.rootHelp.commandSurfaceIsolate.replace("`cco isolate status/remove/fresh <profile>`", "")}`.trim(),
+              `${theme.code(`${APP_NAME} ui`)} ${text.rootHelp.commandSurfaceUi.replace("`cco ui`", "")}`.trim(),
               `${theme.code(`${APP_NAME} showcase [topic]`)} ${text.rootHelp.commandSurfaceShowcase.replace("`cco showcase [topic]`", "")}`.trim(),
             ],
             options,

@@ -58,6 +58,7 @@ It does not become:
 - `cco config set ... -p <profile>`
 - `cco isolate status|remove|fresh <profile>`
 - `cco doctor`
+- `cco ui`
 - `cco showcase [topic]`
 
 ### Deferred commands

@@ -60,6 +60,7 @@ That will bootstrap a fresh isolate home under the new path.
 - `cco auth list` and `cco auth remove <profile>` manage local profiles with dashboard-style terminal output.
 - `cco config get -p <profile>` shows the saved per-profile config.
 - `cco doctor` checks binary resolution, env conflicts, and local storage layout with a structured diagnostics screen.
+- `cco ui` opens an optional interactive TUI that reflows on terminal resize and controls the same run, continue, host, doctor, and isolate maintenance actions.
 - `cco showcase [topic]` previews the CLI's help, doctor, profile inventory, and recovery states without launching Claude.
 
 ## Profile Runs
@@ -92,6 +93,35 @@ cco isolate fresh --clean work
 cco isolate fresh --import-latest-host-session work
 ```
 
+## Profile Control Center
+
+`cco ui` is optional. It does not manage Claude sessions directly; it keeps an interactive terminal UI mounted so profile status, launch actions, host-link state, and isolate details can re-render when the terminal size changes.
+
+```bash
+cco ui
+cco ui --rich
+```
+
+The default UI is the stable mode: no emoji, no gradients, no live resize badge. `--rich` enables restrained color accents and width-stable Unicode markers for terminals that render them cleanly.
+
+Primary keys:
+
+- `Up` / `Down`: select an action
+- `Left` / `Right` / `Tab`: switch profile
+- `Enter`: run the selected action
+- `x`: explain the selected profile's auth, isolate, host links, and session continuity
+- `r`: reload profile/status data
+- `?`: show contextual help
+- `q` / `Esc`: quit
+
+Primary actions:
+
+- run a saved profile
+- continue a saved profile
+- run host
+- run doctor
+- show isolate status
+- fresh or clean-fresh a profile home
 ## Dev
 
 ```bash

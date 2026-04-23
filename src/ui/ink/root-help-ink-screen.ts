@@ -75,6 +75,7 @@ export function RootHelpInkScreen(props: { readonly locale: AppLocale }): ReactN
           text.rootHelp.commandSurfaceConfig,
           text.rootHelp.commandSurfaceDoctor,
           text.rootHelp.commandSurfaceIsolate,
+          text.rootHelp.commandSurfaceUi,
           text.rootHelp.commandSurfaceShowcase,
         ],
       }),

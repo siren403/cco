@@ -25,6 +25,7 @@ const STRICT_CLI_COMMANDS = new Set([
   "isolate",
   "run",
   "showcase",
+  "ui",
   ...ROOT_HELP_FLAGS,
   ...ROOT_VERSION_FLAGS,
 ]);

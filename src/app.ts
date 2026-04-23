@@ -7,6 +7,7 @@ import { hostCommand } from "./commands/host.ts";
 import { isolateRoutes } from "./commands/isolate.routes.ts";
 import { runCommand } from "./commands/run.ts";
 import { showcaseCommand } from "./commands/showcase.ts";
+import { uiCommand } from "./commands/ui.ts";
 import { getStaticUiText, getStricliText } from "./i18n/index.ts";
 import { createStricliMarker } from "./ui/ink/stricli-ink-intercept.ts";
 
@@ -20,6 +21,7 @@ const routes = buildRouteMap({
     config: configRoutes,
     doctor: doctorCommand,
     isolate: isolateRoutes,
+    ui: uiCommand,
     showcase: showcaseCommand,
   },
   defaultCommand: "run",

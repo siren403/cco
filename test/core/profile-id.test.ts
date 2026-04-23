@@ -8,6 +8,7 @@ test("profile ids reject reserved names", () => {
   expect(() => assertProfileIdUsable("isolate")).toThrowError(DomainError);
   expect(() => assertProfileIdUsable("showcase")).toThrowError(DomainError);
   expect(() => assertProfileIdUsable("teams")).toThrowError(DomainError);
+  expect(() => assertProfileIdUsable("ui")).toThrowError(DomainError);
 });
 
 test("profile ids reject invalid characters", () => {

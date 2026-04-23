@@ -47,6 +47,7 @@ test("reserved CLI commands stay on the Stricli path", () => {
   expect(resolveInvocation(["doctor"])).toEqual({ mode: "stricli" });
   expect(resolveInvocation(["isolate", "status", "work"])).toEqual({ mode: "stricli" });
   expect(resolveInvocation(["showcase"])).toEqual({ mode: "stricli" });
+  expect(resolveInvocation(["ui"])).toEqual({ mode: "stricli" });
   expect(resolveInvocation(["--help"])).toEqual({ mode: "stricli" });
   expect(resolveInvocation(["host", "--help"])).toEqual({ mode: "stricli" });
 });
