@@ -511,6 +511,73 @@ test("removed teams surface is no longer treated as a launchable profile alias",
   expect(result.stdout).toBe("");
 });
 
+test("provider profile launch injects provider env instead of an oauth token and preserves the isolate config dir", async () => {
+  const sandbox = await createSandbox();
+  await seedProviderProfile(
+    sandbox.ccoHome,
+    "prov",
+    "fake-token",
+    "https://example.com/api",
+    "fake-model",
+  );
+  await seedHostClaudeConfig(sandbox.root);
+
+  const result = await runCli(["prov"], sandbox, {
+    ANTHROPIC_API_KEY: "should-be-scrubbed",
+  });
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.args).toEqual(["--model", "fake-model"]);
+  expect(log.env.ANTHROPIC_AUTH_TOKEN).toBe("fake-token");
+  expect(log.env.ANTHROPIC_BASE_URL).toBe("https://example.com/api");
+  expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBeNull();
+  expect(log.env.ANTHROPIC_API_KEY).toBeNull();
+  expect(log.env.CLAUDE_CONFIG_DIR).toBe(
+    join(sandbox.ccoHome, "profiles", "prov", "isolate", "claude"),
+  );
+});
+
+test("provider profile launch does not inject the default model when the user passes --model", async () => {
+  const sandbox = await createSandbox();
+  await seedProviderProfile(
+    sandbox.ccoHome,
+    "prov",
+    "fake-token",
+    "https://example.com/api",
+    "fake-model",
+  );
+
+  const result = await runCli(["prov", "--model", "user-model"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.args).toEqual(["--model", "user-model"]);
+});
+
+test("provider profile launch without a configured model injects baseUrl/token but no --model", async () => {
+  const sandbox = await createSandbox();
+  await seedProviderProfile(
+    sandbox.ccoHome,
+    "prov",
+    "fake-token",
+    "https://example.com/api",
+    undefined,
+  );
+
+  const result = await runCli(["prov"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.env.ANTHROPIC_BASE_URL).toBe("https://example.com/api");
+  expect(log.env.ANTHROPIC_AUTH_TOKEN).toBe("fake-token");
+  expect(log.env.CLAUDE_CODE_OAUTH_TOKEN).toBeNull();
+  expect(log.args).not.toContain("--model");
+});
+
 interface Sandbox {
   readonly root: string;
   readonly ccoHome: string;
@@ -581,6 +648,41 @@ async function seedOverlayProfile(
                   continuity,
                 }
               : undefined,
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+
+  await writeFile(join(ccoHome, "tokens", `${profileId}.token`), `${token}\n`, "utf8");
+}
+
+async function seedProviderProfile(
+  ccoHome: string,
+  profileId: string,
+  token: string,
+  baseUrl: string,
+  model?: string,
+): Promise<void> {
+  await writeFile(
+    join(ccoHome, "profiles.json"),
+    JSON.stringify(
+      {
+        profiles: [
+          {
+            id: profileId,
+            label: profileId,
+            kind: "overlay",
+            authKind: "provider",
+            createdAt: "2026-04-14T00:00:00.000Z",
+            updatedAt: "2026-04-14T00:00:00.000Z",
+            provider: {
+              baseUrl,
+              model,
+            },
           },
         ],
       },

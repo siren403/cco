@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { buildLaunchPlan } from "../../src/core/services/build-launch-plan.ts";
 import { HOST_PROFILE } from "../../src/core/model/profile.ts";
+import { buildProviderEnvOverrides } from "../../src/core/services/provider-env.ts";
 
 const baseEnv = {
   HOME: "/tmp/example",
@@ -118,4 +119,60 @@ test("env overrides can redirect the Claude config dir", () => {
 
   expect(plan.env.CLAUDE_CONFIG_DIR).toBe("/tmp/isolate-home");
   expect(plan.env.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined();
+});
+
+test("provider overlay launch injects the secret via envOverrides after scrub, no oauth token", () => {
+  const plan = buildLaunchPlan({
+    profile: {
+      id: "prov",
+      label: "prov",
+      kind: "overlay",
+      authKind: "provider",
+      createdAt: "",
+      updatedAt: "",
+      provider: {
+        baseUrl: "https://example.com/api",
+      },
+    },
+    binary: "claude",
+    cwd: "/tmp/example",
+    parentEnv: baseEnv,
+    token: undefined,
+    envOverrides: buildProviderEnvOverrides(
+      { baseUrl: "https://example.com/api" },
+      "fake-token",
+    ),
+  });
+
+  expect(plan.env.ANTHROPIC_AUTH_TOKEN).toBe("fake-token");
+  expect(plan.env.ANTHROPIC_BASE_URL).toBe("https://example.com/api");
+  expect(plan.env.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined();
+  expect(plan.env.ANTHROPIC_API_KEY).toBeUndefined();
+});
+
+test("provider overlay launch keeps CLAUDE_CONFIG_DIR applied after the provider env overrides", () => {
+  const plan = buildLaunchPlan({
+    profile: {
+      id: "prov",
+      label: "prov",
+      kind: "overlay",
+      authKind: "provider",
+      createdAt: "",
+      updatedAt: "",
+      provider: {
+        baseUrl: "https://example.com/api",
+      },
+    },
+    binary: "claude",
+    cwd: "/tmp/example",
+    parentEnv: baseEnv,
+    token: undefined,
+    envOverrides: {
+      ...buildProviderEnvOverrides({ baseUrl: "https://example.com/api" }, "fake-token"),
+      CLAUDE_CONFIG_DIR: "/tmp/isolate-home",
+    },
+  });
+
+  expect(plan.env.CLAUDE_CONFIG_DIR).toBe("/tmp/isolate-home");
+  expect(plan.env.ANTHROPIC_AUTH_TOKEN).toBe("fake-token");
 });

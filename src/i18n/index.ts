@@ -11,6 +11,8 @@ export interface UiText {
     readonly auth: string;
     readonly authAddArgProfile: string;
     readonly authAdd: string;
+    readonly authAddFlagProvider: string;
+    readonly authAddFlagFrom: string;
     readonly authList: string;
     readonly authRemoveArgProfile: string;
     readonly authRemove: string;
@@ -103,6 +105,11 @@ export interface UiText {
     readonly isolateContinuitySkipLabel: string;
     readonly isolateContinuitySkipHint: string;
     readonly isolateContinuityCancelled: string;
+    readonly providerBaseUrl: (profileId: string) => string;
+    readonly providerBaseUrlRequired: string;
+    readonly providerBaseUrlCancelled: string;
+    readonly confirmModelMappings: (summary: string) => string;
+    readonly confirmModelMappingsCancelled: string;
   };
   readonly authAdd: {
     readonly introTitle: string;
@@ -126,6 +133,23 @@ export interface UiText {
     readonly successConfigGet: (profileId: string) => string;
     readonly successConfigGetDescription: string;
     readonly successEditProfiles: string;
+    readonly providerIntroTitle: string;
+    readonly providerIntroLine1: string;
+    readonly providerIntroLine2: string;
+    readonly providerNextBaseUrl: string;
+    readonly providerNextBaseUrlDescription: string;
+    readonly providerNextToken: (profileId: string) => string;
+    readonly providerNextTokenDescription: string;
+    readonly providerFromFileNotice: (path: string) => string;
+    readonly providerProbeSuccess: (count: number) => string;
+    readonly providerProbeAuthWarn: string;
+    readonly providerProbeUnavailableWarn: string;
+    readonly providerMappingsApplied: (keys: string) => string;
+    readonly providerMappingsSkipped: string;
+    readonly providerDroppedKeysSummary: (keys: string) => string;
+    readonly providerNotice: (notice: string) => string;
+    readonly providerSuccessTitle: string;
+    readonly providerSuccessBaseUrl: (baseUrl: string) => string;
   };
   readonly config: {
     readonly getTitle: string;
@@ -181,6 +205,9 @@ export interface UiText {
     readonly shellScrubInherit: string;
     readonly shellScrubCompat: string;
     readonly shellScrubSafe: string;
+    readonly providerProfilesLabel: string;
+    readonly providerProfilesSummary: (count: number) => string;
+    readonly providerAuthEnvConflictNote: string;
   };
   readonly permissionMode: {
     readonly safeMode: string;
@@ -340,6 +367,13 @@ export interface UiText {
     readonly subprocessEnvScrubPersistDescription: string;
     readonly unexpectedError: string;
     readonly unknownShowcaseTopic: (topic: string) => string;
+    readonly ccswitchImportInvalidTitle: string;
+    readonly ccswitchImportInvalidDescription: string;
+    readonly ccswitchImportMissingEnvTitle: string;
+    readonly ccswitchImportMissingTokenTitle: string;
+    readonly ccswitchImportMissingBaseUrlTitle: string;
+    readonly ccswitchImportFileReadFailedTitle: string;
+    readonly ccswitchImportFileReadFailedDescription: (path: string) => string;
   };
   readonly showcase: {
     readonly authIntro: string;
@@ -388,6 +422,10 @@ const KO_TEXT: UiText = {
     auth: "저장된 프로필 토큰을 관리합니다",
     authAddArgProfile: "저장할 프로필 ID. 예: work, backup",
     authAdd: "공식 setup-token 흐름으로 저장 프로필을 생성하거나 교체합니다",
+    authAddFlagProvider:
+      "OAuth setup-token 대신 baseUrl+token 기반의 provider 프로필로 저장합니다",
+    authAddFlagFrom:
+      "ccswitch 스타일 JSON 설정 파일 경로. 지정하면 대화형 프롬프트 없이 가져옵니다",
     authList: "로컬 저장 프로필과 토큰 존재 여부를 표시합니다",
     authRemoveArgProfile: "삭제할 프로필 ID",
     authRemove: "저장된 프로필과 로컬 토큰 파일을 삭제합니다",
@@ -505,6 +543,12 @@ const KO_TEXT: UiText = {
     isolateContinuitySkipHint:
       "이번 isolate는 별도 대화 흐름으로 시작합니다. 이후 세션 활동도 isolate 내부에만 남습니다.",
     isolateContinuityCancelled: "세션 연속성 가져오기를 취소했습니다.",
+    providerBaseUrl: (profileId) => `"${profileId}"용 provider baseUrl을 입력하세요`,
+    providerBaseUrlRequired: "baseUrl이 필요합니다.",
+    providerBaseUrlCancelled: "baseUrl 입력을 취소했습니다.",
+    confirmModelMappings: (summary) =>
+      `프로브에서 찾은 모델로 다음 env 매핑을 채울까요?\n${summary}`,
+    confirmModelMappingsCancelled: "모델 매핑 제안을 취소했습니다.",
   },
   authAdd: {
     introTitle: "프로필 추가",
@@ -530,6 +574,27 @@ const KO_TEXT: UiText = {
     successConfigGet: (profileId) => `cco config get -p ${profileId}`,
     successConfigGetDescription: "저장된 프로필 설정과 현재 scrub 모드를 확인합니다.",
     successEditProfiles: "나중에 profiles.json을 직접 수정해 저장된 env 정책을 바꿀 수 있습니다.",
+    providerIntroTitle: "provider 프로필 추가",
+    providerIntroLine1:
+      "이 흐름은 OAuth setup-token 대신 baseUrl + token으로 동작하는 provider 프로필을 준비합니다.",
+    providerIntroLine2: "claude setup-token은 실행하지 않습니다.",
+    providerNextBaseUrl: "baseUrl 입력",
+    providerNextBaseUrlDescription: "Anthropic 호환 프록시/서비스의 baseUrl을 받습니다.",
+    providerNextToken: (profileId) => `${profileId}용 토큰 붙여넣기`,
+    providerNextTokenDescription: "숨김 입력으로 토큰을 받습니다. 별도 spawn 검증은 하지 않습니다.",
+    providerFromFileNotice: (path) => `"${path}"에서 provider 설정을 가져옵니다.`,
+    providerProbeSuccess: (count) =>
+      `/v1/models 프로브 성공: 모델 ${count}개 확인됨.`,
+    providerProbeAuthWarn:
+      "경고: /v1/models 프로브가 인증 실패로 응답했습니다. 토큰이 올바른지 확인하세요. baseUrl+token만으로 저장을 계속합니다.",
+    providerProbeUnavailableWarn:
+      "경고: /v1/models 프로브에 실패했습니다(엔드포인트 미구현 또는 타임아웃일 수 있음). baseUrl+token만으로 저장을 계속합니다.",
+    providerMappingsApplied: (keys) => `자동 매핑을 적용했습니다: ${keys}`,
+    providerMappingsSkipped: "자동 매핑 제안을 적용하지 않았습니다.",
+    providerDroppedKeysSummary: (keys) => `가져오지 않은 키(이름만): ${keys}`,
+    providerNotice: (notice) => `참고: ${notice}`,
+    providerSuccessTitle: "Provider 프로필 준비 완료",
+    providerSuccessBaseUrl: (baseUrl) => `baseUrl: ${baseUrl}`,
   },
   config: {
     getTitle: "프로필 설정",
@@ -588,6 +653,10 @@ const KO_TEXT: UiText = {
     shellScrubInherit: "상속 없음 (저장된 프로필/기본값 사용)",
     shellScrubCompat: "0 (이번 실행만 compat)",
     shellScrubSafe: "1 (이번 실행만 safe 유지)",
+    providerProfilesLabel: "provider-profiles",
+    providerProfilesSummary: (count) => `${count}개 (baseUrl+token, ccswitch 호환)`,
+    providerAuthEnvConflictNote:
+      "ccswitch류 도구를 쓰는 셸에서는 부모 셸에 ANTHROPIC_AUTH_TOKEN이 남아 있는 것이 정상입니다. cco 프로필 실행은 이 값을 읽지 않고 격리된 프로세스 env로만 주입합니다.",
   },
   permissionMode: {
     safeMode: "safe mode",
@@ -773,6 +842,15 @@ const KO_TEXT: UiText = {
     unexpectedError: "예상하지 못한 오류입니다.",
     unknownShowcaseTopic: (topic) =>
       `알 수 없는 showcase 주제 "${topic}". 사용 가능: all, auth, help, profiles, errors, doctor, flows, ink`,
+    ccswitchImportInvalidTitle: "가져오기 파일 형식이 올바르지 않습니다.",
+    ccswitchImportInvalidDescription: "ccswitch 스타일 JSON 객체여야 합니다.",
+    ccswitchImportMissingEnvTitle: "가져오기 파일에 \"env\" 객체가 없습니다.",
+    ccswitchImportMissingTokenTitle:
+      "가져오기 파일에 env.ANTHROPIC_AUTH_TOKEN이 없습니다.",
+    ccswitchImportMissingBaseUrlTitle:
+      "가져오기 파일에 env.ANTHROPIC_BASE_URL이 없습니다.",
+    ccswitchImportFileReadFailedTitle: "가져오기 파일을 읽지 못했습니다.",
+    ccswitchImportFileReadFailedDescription: (path) => `경로: ${path}`,
   },
   showcase: {
     authIntro: "프로필 추가 시작",
@@ -829,6 +907,10 @@ const EN_TEXT: UiText = {
     auth: "Manage saved profile tokens",
     authAddArgProfile: "Profile id to save, such as work or backup",
     authAdd: "Create or replace a saved profile using the official setup-token flow",
+    authAddFlagProvider:
+      "Save a baseUrl+token provider profile instead of running the OAuth setup-token flow",
+    authAddFlagFrom:
+      "Path to a ccswitch-style JSON config file. When set, import without interactive prompts",
     authList: "List local saved profiles and token presence",
     authRemoveArgProfile: "Profile id to delete",
     authRemove: "Delete a saved profile and its local token file",
@@ -945,6 +1027,12 @@ const EN_TEXT: UiText = {
     isolateContinuitySkipHint:
       "Start this isolate as a separate conversation. Later session activity also stays isolate-local.",
     isolateContinuityCancelled: "Session continuity import cancelled.",
+    providerBaseUrl: (profileId) => `Enter the provider baseUrl for "${profileId}"`,
+    providerBaseUrlRequired: "baseUrl is required.",
+    providerBaseUrlCancelled: "baseUrl entry cancelled.",
+    confirmModelMappings: (summary) =>
+      `Fill in these env mappings from the probed models?\n${summary}`,
+    confirmModelMappingsCancelled: "Model mapping suggestion cancelled.",
   },
   authAdd: {
     introTitle: "Add Profile",
@@ -970,6 +1058,26 @@ const EN_TEXT: UiText = {
     successConfigGet: (profileId) => `cco config get -p ${profileId}`,
     successConfigGetDescription: "Inspect the saved profile settings and current scrub mode.",
     successEditProfiles: "Edit profiles.json directly later to adjust the stored env policy.",
+    providerIntroTitle: "Add Provider Profile",
+    providerIntroLine1:
+      "This flow prepares a provider profile that authenticates with baseUrl + token instead of OAuth setup-token.",
+    providerIntroLine2: "claude setup-token is not run for this flow.",
+    providerNextBaseUrl: "enter baseUrl",
+    providerNextBaseUrlDescription: "Captures the baseUrl for an Anthropic-compatible proxy or service.",
+    providerNextToken: (profileId) => `paste token for ${profileId}`,
+    providerNextTokenDescription: "The token is captured with hidden input. No spawn-based verification is run.",
+    providerFromFileNotice: (path) => `Importing provider config from "${path}".`,
+    providerProbeSuccess: (count) => `/v1/models probe succeeded: found ${count} model(s).`,
+    providerProbeAuthWarn:
+      "Warning: the /v1/models probe returned an auth failure. Double-check the token. Continuing to save with baseUrl+token only.",
+    providerProbeUnavailableWarn:
+      "Warning: the /v1/models probe failed (endpoint may be unimplemented or timed out). Continuing to save with baseUrl+token only.",
+    providerMappingsApplied: (keys) => `Applied auto-mapping: ${keys}`,
+    providerMappingsSkipped: "Auto-mapping suggestions were not applied.",
+    providerDroppedKeysSummary: (keys) => `Keys not imported (names only): ${keys}`,
+    providerNotice: (notice) => `Note: ${notice}`,
+    providerSuccessTitle: "Provider Profile Ready",
+    providerSuccessBaseUrl: (baseUrl) => `baseUrl: ${baseUrl}`,
   },
   config: {
     getTitle: "Profile Config",
@@ -1030,6 +1138,10 @@ const EN_TEXT: UiText = {
     shellScrubInherit: "no override (use saved profile/default)",
     shellScrubCompat: "0 (compat for this launch)",
     shellScrubSafe: "1 (keep safe for this launch)",
+    providerProfilesLabel: "provider-profiles",
+    providerProfilesSummary: (count) => `${count} (baseUrl+token, ccswitch-compatible)`,
+    providerAuthEnvConflictNote:
+      "If you use ccswitch-style tools, a leftover ANTHROPIC_AUTH_TOKEN in the parent shell is expected. Profile launches never read that value; auth is injected only into the isolated child process env.",
   },
   permissionMode: {
     safeMode: "safe mode",
@@ -1215,6 +1327,15 @@ const EN_TEXT: UiText = {
     unexpectedError: "Unexpected error.",
     unknownShowcaseTopic: (topic) =>
       `Unknown showcase topic "${topic}". Use one of: all, auth, help, profiles, errors, doctor, flows, ink.`,
+    ccswitchImportInvalidTitle: "Invalid import file format.",
+    ccswitchImportInvalidDescription: "The file must be a ccswitch-style JSON object.",
+    ccswitchImportMissingEnvTitle: "The import file is missing an \"env\" object.",
+    ccswitchImportMissingTokenTitle:
+      "The import file is missing env.ANTHROPIC_AUTH_TOKEN.",
+    ccswitchImportMissingBaseUrlTitle:
+      "The import file is missing env.ANTHROPIC_BASE_URL.",
+    ccswitchImportFileReadFailedTitle: "Could not read the import file.",
+    ccswitchImportFileReadFailedDescription: (path) => `Path: ${path}`,
   },
   showcase: {
     authIntro: "Auth Add Intro",

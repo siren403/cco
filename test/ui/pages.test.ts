@@ -45,6 +45,7 @@ test("doctor page shows runtime snapshot and suggested action", () => {
     claudeBinary: "claude",
     ccoHome: "/tmp/.cco",
     profiles: 1,
+    providerProfiles: 0,
     hostConfigDir: "/tmp/.claude",
     conflicts: [],
     launchMode: "링크된 host setup + 분리 Claude home + 프로필 인증",
@@ -56,6 +57,64 @@ test("doctor page shows runtime snapshot and suggested action", () => {
   expect(output).toContain("[준비됨]");
   expect(output).toContain("shell-scrub");
   expect(output).toContain("상속 없음");
+});
+
+test("doctor page shows the provider profile count without any token value", () => {
+  const output = renderDoctorPage(
+    {
+      claudeBinary: "claude",
+      ccoHome: "/tmp/.cco",
+      profiles: 3,
+      providerProfiles: 2,
+      hostConfigDir: "/tmp/.claude",
+      conflicts: [],
+      launchMode: "linked host setup + isolated Claude home + profile auth",
+      shellSubprocessEnvScrub: undefined,
+    },
+    { locale: "en" },
+  );
+
+  expect(output).toContain("provider-profiles");
+  expect(output).toContain("2");
+  expect(output).not.toContain("sk-");
+  expect(output).not.toContain("ANTHROPIC_AUTH_TOKEN=");
+});
+
+test("doctor page explains the expected parent-shell auth env conflict for provider profiles", () => {
+  const output = renderDoctorPage(
+    {
+      claudeBinary: "claude",
+      ccoHome: "/tmp/.cco",
+      profiles: 1,
+      providerProfiles: 1,
+      hostConfigDir: "/tmp/.claude",
+      conflicts: ["ANTHROPIC_AUTH_TOKEN"],
+      launchMode: "linked host setup + isolated Claude home + profile auth",
+      shellSubprocessEnvScrub: undefined,
+    },
+    { locale: "en" },
+  );
+
+  expect(output).toContain("leftover ANTHROPIC_AUTH_TOKEN");
+  expect(output).not.toContain("sk-");
+});
+
+test("doctor page omits the ccswitch conflict note when there are no provider profiles", () => {
+  const output = renderDoctorPage(
+    {
+      claudeBinary: "claude",
+      ccoHome: "/tmp/.cco",
+      profiles: 1,
+      providerProfiles: 0,
+      hostConfigDir: "/tmp/.claude",
+      conflicts: ["ANTHROPIC_AUTH_TOKEN"],
+      launchMode: "linked host setup + isolated Claude home + profile auth",
+      shellSubprocessEnvScrub: undefined,
+    },
+    { locale: "en" },
+  );
+
+  expect(output).not.toContain("leftover ANTHROPIC_AUTH_TOKEN");
 });
 
 test("root help wraps within narrow terminal widths", () => {

@@ -1,6 +1,13 @@
 export type ProfileKind = "host" | "overlay";
 export type SubprocessEnvScrubMode = "0" | "1";
 export type IsolateProfileState = "ready" | "stale" | "broken";
+export type ProfileAuthKind = "oauth" | "provider";
+
+export interface OverlayProviderConfig {
+  readonly baseUrl: string;
+  readonly model?: string;
+  readonly env?: Readonly<Record<string, string>>;
+}
 
 export interface OverlayProfileEnv {
   readonly CLAUDE_CODE_SUBPROCESS_ENV_SCRUB?: SubprocessEnvScrubMode;
@@ -41,12 +48,14 @@ export interface OverlayProfile {
   readonly id: string;
   readonly label: string;
   readonly kind: "overlay";
-  readonly tokenRef: string;
+  readonly tokenRef?: string;
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly lastUsedAt?: string;
   readonly env?: OverlayProfileEnv;
   readonly isolate?: IsolateProfileMetadata;
+  readonly authKind?: ProfileAuthKind;
+  readonly provider?: OverlayProviderConfig;
 }
 
 export type Profile = HostProfile | OverlayProfile;
@@ -69,4 +78,24 @@ export function describeSubprocessEnvScrubMode(
   mode: SubprocessEnvScrubMode,
 ): string {
   return mode === "0" ? "compat mode" : "safe mode";
+}
+
+export function resolveProfileAuthKind(
+  profile: Pick<OverlayProfile, "authKind">,
+): ProfileAuthKind {
+  return profile.authKind === "provider" ? "provider" : "oauth";
+}
+
+const ALLOWED_PROVIDER_ENV_KEYS: ReadonlySet<string> = new Set([
+  "ANTHROPIC_BASE_URL",
+  "ANTHROPIC_MODEL",
+  "ANTHROPIC_SMALL_FAST_MODEL",
+]);
+
+const ALLOWED_PROVIDER_ENV_PATTERN = /^ANTHROPIC_DEFAULT_[A-Z]+_MODEL(_NAME)?$/;
+
+export function isAllowedProviderEnvKey(key: string): boolean {
+  return (
+    ALLOWED_PROVIDER_ENV_KEYS.has(key) || ALLOWED_PROVIDER_ENV_PATTERN.test(key)
+  );
 }

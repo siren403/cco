@@ -117,6 +117,7 @@ function buildSections(options: RenderOptions): readonly ShowcaseSection[] {
           claudeBinary: "C:\\Program Files\\Claude\\claude.exe",
           ccoHome: "C:\\Users\\you\\.cco",
           profiles: 2,
+          providerProfiles: 1,
           hostConfigDir: "C:\\Users\\you\\.claude",
           conflicts: [],
           launchMode: text.doctor.launchMode,

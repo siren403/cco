@@ -6,6 +6,7 @@ export interface DoctorPageData {
   readonly claudeBinary: string;
   readonly ccoHome: string;
   readonly profiles: number;
+  readonly providerProfiles: number;
   readonly hostConfigDir: string;
   readonly conflicts: readonly string[];
   readonly launchMode: string;
@@ -53,6 +54,10 @@ export function buildDoctorPageModel(
       { label: "claude-binary", value: data.claudeBinary },
       { label: "cco-home", value: data.ccoHome },
       { label: "profiles", value: String(data.profiles) },
+      {
+        label: text.doctor.providerProfilesLabel,
+        value: text.doctor.providerProfilesSummary(data.providerProfiles),
+      },
       { label: "host-config-dir", value: data.hostConfigDir },
       {
         label: text.doctor.shellScrubLabel,
@@ -95,6 +100,7 @@ export function buildDoctorPageModel(
           text.doctor.cleanup1,
           text.doctor.cleanup2,
           text.doctor.cleanup3,
+          ...(data.providerProfiles > 0 ? [text.doctor.providerAuthEnvConflictNote] : []),
         ],
   };
 }

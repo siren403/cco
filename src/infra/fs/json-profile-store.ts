@@ -1,11 +1,14 @@
 import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import type {
-  OverlayProfile,
-  OverlayProfileEnv,
-  IsolateProfileMetadata,
-  IsolateSessionContinuityMetadata,
-  IsolateProfileSource,
+import {
+  isAllowedProviderEnvKey,
+  type OverlayProfile,
+  type OverlayProfileEnv,
+  type OverlayProviderConfig,
+  type IsolateProfileMetadata,
+  type IsolateSessionContinuityMetadata,
+  type IsolateProfileSource,
+  type ProfileAuthKind,
 } from "../../core/model/profile.ts";
 import type { ProfileStore } from "../../core/ports/profile-store.ts";
 
@@ -96,22 +99,22 @@ function normalizeProfile(value: unknown): OverlayProfile | null {
   }
 
   const profile = value as Partial<OverlayProfile>;
+  const authKind: ProfileAuthKind = profile.authKind === "provider" ? "provider" : "oauth";
+
   if (
     typeof profile.id !== "string" ||
     typeof profile.label !== "string" ||
     profile.kind !== "overlay" ||
-    typeof profile.tokenRef !== "string" ||
     typeof profile.createdAt !== "string" ||
     typeof profile.updatedAt !== "string"
   ) {
     return null;
   }
 
-  return {
+  const base = {
     id: profile.id,
     label: profile.label,
-    kind: "overlay",
-    tokenRef: profile.tokenRef,
+    kind: "overlay" as const,
     createdAt: profile.createdAt,
     updatedAt: profile.updatedAt,
     lastUsedAt:
@@ -119,6 +122,61 @@ function normalizeProfile(value: unknown): OverlayProfile | null {
     env: normalizeProfileEnv(profile.env),
     isolate: normalizeIsolateProfile(profile.isolate),
   };
+
+  if (authKind === "provider") {
+    const provider = normalizeProviderConfig(profile.provider);
+    if (!provider) {
+      return null;
+    }
+
+    return {
+      ...base,
+      authKind: "provider",
+      provider,
+    };
+  }
+
+  if (typeof profile.tokenRef !== "string") {
+    return null;
+  }
+
+  return {
+    ...base,
+    authKind: profile.authKind === "oauth" ? "oauth" : undefined,
+    tokenRef: profile.tokenRef,
+  };
+}
+
+function normalizeProviderConfig(value: unknown): OverlayProviderConfig | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const provider = value as Partial<OverlayProviderConfig>;
+  if (typeof provider.baseUrl !== "string") {
+    return undefined;
+  }
+
+  return {
+    baseUrl: provider.baseUrl,
+    model: typeof provider.model === "string" ? provider.model : undefined,
+    env: normalizeProviderEnv(provider.env),
+  };
+}
+
+function normalizeProviderEnv(
+  value: unknown,
+): Readonly<Record<string, string>> | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    (entry): entry is [string, string] =>
+      typeof entry[1] === "string" && isAllowedProviderEnvKey(entry[0]),
+  );
+
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
 function normalizeProfileEnv(value: unknown): OverlayProfileEnv | undefined {

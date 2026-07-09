@@ -14,8 +14,10 @@ import {
   type EnsureIsolateHomeReadyResult,
 } from "../core/services/isolate-bootstrap.ts";
 import {
+  resolveProfileAuthKind,
   resolveSubprocessEnvScrubMode,
   type OverlayProfile,
+  type OverlayProviderConfig,
   type Profile,
   type SubprocessEnvScrubMode,
 } from "../core/model/profile.ts";
@@ -24,6 +26,8 @@ import {
   findLatestClaudeProjectSession,
   importClaudeProjectSession,
 } from "../core/services/isolate-session-continuity.ts";
+import { buildProviderEnvOverrides } from "../core/services/provider-env.ts";
+import { resolveProviderModelArgs } from "../core/services/provider-model-args.ts";
 import { getStaticUiText } from "../i18n/index.ts";
 import { resolveHostClaudeConfigDir } from "../infra/fs/path-utils.ts";
 import { spawnClaudeInteractive } from "../infra/bun/spawn-claude.ts";
@@ -72,21 +76,27 @@ export async function launchClaudeForProfile(
     context.process.stderr.write(`${isolateLaunch.continuityWarning}\n`);
   }
 
+  const isolateArgs = resolveIsolateLaunchArgs(
+    options.claudeArgs,
+    isolateLaunch?.continuityImport?.sessionId,
+  );
+  const isolateHomeOverride = isolateLaunch?.claudeHomeDir
+    ? { CLAUDE_CONFIG_DIR: isolateLaunch.claudeHomeDir }
+    : undefined;
+  const providerConfig = resolveProviderConfig(profile);
+
   const plan = buildLaunchPlan({
     profile,
     binary: context.runtime.resolveClaudeBinary(),
     cwd: context.process.cwd(),
     parentEnv: context.process.env,
-    token: token ?? undefined,
-    explicitArgs: resolveIsolateLaunchArgs(
-      options.claudeArgs,
-      isolateLaunch?.continuityImport?.sessionId,
-    ),
-    envOverrides: isolateLaunch?.claudeHomeDir
-      ? {
-          CLAUDE_CONFIG_DIR: isolateLaunch.claudeHomeDir,
-        }
-      : undefined,
+    token: providerConfig ? undefined : token ?? undefined,
+    explicitArgs: providerConfig
+      ? resolveProviderModelArgs(isolateArgs ?? [], providerConfig.model)
+      : isolateArgs,
+    envOverrides: providerConfig
+      ? { ...buildProviderEnvOverrides(providerConfig, token!), ...isolateHomeOverride }
+      : isolateHomeOverride,
     subprocessEnvScrubOverride,
   });
 
@@ -132,6 +142,14 @@ async function resolveToken(
   }
 
   return token;
+}
+
+function resolveProviderConfig(profile: Profile): OverlayProviderConfig | undefined {
+  if (profile.kind !== "overlay" || resolveProfileAuthKind(profile) !== "provider") {
+    return undefined;
+  }
+
+  return profile.provider;
 }
 
 async function resolveIsolateLaunch(

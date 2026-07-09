@@ -1,30 +1,52 @@
 import React from "react";
+import { readFile } from "node:fs/promises";
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
 import {
   describeSubprocessEnvScrubMode,
   type OverlayProfile,
+  type OverlayProviderConfig,
 } from "../core/model/profile.ts";
 import { buildLaunchPlan } from "../core/services/build-launch-plan.ts";
 import { HOST_PROFILE } from "../core/model/profile.ts";
+import { parseCcswitchConfig } from "../core/services/ccswitch-import.ts";
 import { assertProfileIdUsable } from "../core/services/profile-id.ts";
+import {
+  filterSuggestionsToAbsentTiers,
+  probeProviderModels,
+  suggestTierMappings,
+} from "../core/services/provider-model-discovery.ts";
 import { getStaticUiText } from "../i18n/index.ts";
 import { spawnClaudeCapture, spawnClaudeInteractive } from "../infra/bun/spawn-claude.ts";
 import {
   AuthAddIntroInkScreen,
+  AuthAddProviderIntroInkScreen,
+  AuthAddProviderSuccessInkScreen,
   AuthAddSuccessInkScreen,
 } from "../ui/ink/auth-add-ink-screen.ts";
 import { renderInkHost } from "../ui/ink/render-ink.ts";
+import { promptToConfirmModelMappings } from "../ui/prompts/confirm-model-mappings.ts";
 import { promptForProfileEnvMode } from "../ui/prompts/profile-env-mode.ts";
+import { promptForBaseUrl } from "../ui/prompts/provider-base-url.ts";
 import { promptForToken } from "../ui/prompts/token-entry.ts";
 
 const text = getStaticUiText();
 
-export const authAddCommand = buildCommand<{}, [profileId: string], AppContext>({
-  async func(this: AppContext, _flags, profileId) {
+interface AuthAddFlags {
+  readonly provider?: boolean;
+  readonly from?: string;
+}
+
+export const authAddCommand = buildCommand<AuthAddFlags, [profileId: string], AppContext>({
+  async func(this: AppContext, flags, profileId) {
     assertProfileIdUsable(profileId);
     const existingProfile = await this.runtime.profileStore.get(profileId);
+
+    if (flags.provider === true) {
+      await runProviderAdd(this, profileId, existingProfile, flags.from);
+      return;
+    }
 
     await renderInkHost(
       React.createElement(AuthAddIntroInkScreen, {
@@ -94,6 +116,20 @@ export const authAddCommand = buildCommand<{}, [profileId: string], AppContext>(
     );
   },
   parameters: {
+    flags: {
+      provider: {
+        kind: "boolean",
+        optional: true,
+        brief: text.commandBriefs.authAddFlagProvider,
+      },
+      from: {
+        kind: "parsed",
+        parse: String,
+        optional: true,
+        brief: text.commandBriefs.authAddFlagFrom,
+        placeholder: "path",
+      },
+    },
     positional: {
       kind: "tuple",
       parameters: [
@@ -109,6 +145,149 @@ export const authAddCommand = buildCommand<{}, [profileId: string], AppContext>(
     brief: text.commandBriefs.authAdd,
   },
 });
+
+async function runProviderAdd(
+  context: AppContext,
+  profileId: string,
+  existingProfile: OverlayProfile | null,
+  fromPath: string | undefined,
+): Promise<void> {
+  await renderInkHost(
+    React.createElement(AuthAddProviderIntroInkScreen, {
+      profileId,
+      fromPath,
+      locale: context.runtime.locale,
+    }),
+    {
+      stdin: context.process.stdin,
+      stdout: context.process.stdout,
+      stderr: context.process.stderr,
+    },
+  );
+
+  context.process.stdout.write("\n");
+
+  let token: string;
+  let provider: OverlayProviderConfig;
+  let droppedKeys: readonly string[] = [];
+  let notices: readonly string[] = [];
+
+  if (fromPath) {
+    const raw = await readCcswitchFile(fromPath);
+    const imported = parseCcswitchConfig(raw);
+    token = imported.token;
+    provider = imported.provider;
+    droppedKeys = imported.droppedKeys;
+    notices = imported.notices;
+  } else {
+    const baseUrl = await promptForBaseUrl(profileId);
+    token = await promptForToken(profileId);
+    provider = { baseUrl };
+  }
+
+  const subprocessEnvScrub = await promptForProfileEnvMode(profileId, existingProfile);
+
+  provider = await applyDiscoveredModelMappings(context, provider, token);
+
+  const now = context.runtime.now().toISOString();
+  const profile: OverlayProfile = {
+    id: profileId,
+    label: profileId,
+    kind: "overlay",
+    authKind: "provider",
+    provider,
+    createdAt: existingProfile?.createdAt ?? now,
+    updatedAt: now,
+    lastUsedAt: existingProfile?.lastUsedAt,
+    env: {
+      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: subprocessEnvScrub,
+    },
+  };
+
+  await context.runtime.profileStore.put(profile);
+  await context.runtime.tokenStore.put(profileId, token);
+
+  await renderInkHost(
+    React.createElement(AuthAddProviderSuccessInkScreen, {
+      profileId,
+      modeLabel: describeSubprocessEnvScrubMode(subprocessEnvScrub),
+      baseUrl: provider.baseUrl,
+      profilesFile: context.runtime.paths.profilesFile,
+      droppedKeys,
+      notices,
+      locale: context.runtime.locale,
+    }),
+    {
+      stdin: context.process.stdin,
+      stdout: context.process.stdout,
+      stderr: context.process.stderr,
+    },
+  );
+}
+
+async function readCcswitchFile(fromPath: string): Promise<unknown> {
+  let raw: string;
+  try {
+    raw = await readFile(fromPath, "utf8");
+  } catch {
+    throw new DomainError(
+      "CCSWITCH_IMPORT_FILE_READ_FAILED",
+      `Could not read the import file at "${fromPath}".`,
+      {},
+    );
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new DomainError(
+      "CCSWITCH_IMPORT_FILE_READ_FAILED",
+      `Could not parse the import file at "${fromPath}" as JSON.`,
+      {},
+    );
+  }
+}
+
+async function applyDiscoveredModelMappings(
+  context: AppContext,
+  provider: OverlayProviderConfig,
+  token: string,
+): Promise<OverlayProviderConfig> {
+  const probe = await probeProviderModels(provider.baseUrl, token);
+
+  if (!probe.ok) {
+    const warnLine =
+      probe.reason === "auth"
+        ? text.authAdd.providerProbeAuthWarn
+        : text.authAdd.providerProbeUnavailableWarn;
+    context.process.stderr.write(`${warnLine}\n`);
+    return provider;
+  }
+
+  context.process.stdout.write(`${text.authAdd.providerProbeSuccess(probe.modelIds.length)}\n`);
+
+  const suggestions = suggestTierMappings(probe.modelIds);
+  const missing = filterSuggestionsToAbsentTiers(suggestions, provider.env);
+
+  if (Object.keys(missing).length === 0) {
+    return provider;
+  }
+
+  const confirmed = await promptToConfirmModelMappings(missing);
+  if (!confirmed) {
+    context.process.stdout.write(`${text.authAdd.providerMappingsSkipped}\n`);
+    return provider;
+  }
+
+  context.process.stdout.write(
+    `${text.authAdd.providerMappingsApplied(Object.keys(missing).join(", "))}\n`,
+  );
+
+  return {
+    ...provider,
+    env: { ...(provider.env ?? {}), ...missing },
+  };
+}
 
 async function verifyToken(
   context: AppContext,

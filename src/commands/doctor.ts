@@ -1,6 +1,7 @@
 import React from "react";
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
+import { resolveProfileAuthKind } from "../core/model/profile.ts";
 import { resolveShellSubprocessEnvScrubMode } from "../core/services/permission-mode.ts";
 import { getStaticUiText } from "../i18n/index.ts";
 import { findConflictingAuthEnv } from "../infra/bun/env.ts";
@@ -12,6 +13,9 @@ const text = getStaticUiText();
 export const doctorCommand = buildCommand<{}, [], AppContext>({
   async func(this: AppContext) {
     const profiles = await this.runtime.profileStore.list();
+    const providerProfiles = profiles.filter(
+      (profile) => resolveProfileAuthKind(profile) === "provider",
+    ).length;
     const conflicts = findConflictingAuthEnv(this.process.env);
     const claudeBinary = this.runtime.resolveClaudeBinary();
     const hostConfigDir =
@@ -25,6 +29,7 @@ export const doctorCommand = buildCommand<{}, [], AppContext>({
           claudeBinary,
           ccoHome: this.runtime.paths.root,
           profiles: profiles.length,
+          providerProfiles,
           hostConfigDir,
           conflicts,
           launchMode: text.doctor.launchMode,

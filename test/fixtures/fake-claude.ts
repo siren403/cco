@@ -9,6 +9,8 @@ if (logPath) {
       CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR ?? null,
       ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? null,
       ANTHROPIC_AUTH_TOKEN: process.env.ANTHROPIC_AUTH_TOKEN ?? null,
+      ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL ?? null,
+      ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL ?? null,
       CLAUDE_CODE_SUBPROCESS_ENV_SCRUB:
         process.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB ?? null,
     },

@@ -5,7 +5,11 @@ import { render } from "ink";
 import { buildCommand } from "@stricli/core";
 import type { AppContext } from "../context.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
-import type { OverlayProfile, Profile } from "../core/model/profile.ts";
+import {
+  resolveProfileAuthKind,
+  type OverlayProfile,
+  type Profile,
+} from "../core/model/profile.ts";
 import {
   inspectIsolateHome,
   removeIsolateHome,
@@ -138,6 +142,10 @@ async function loadControlPanelModel(context: AppContext): Promise<ControlPanelM
       claudeBinary: context.runtime.resolveClaudeBinary(),
       ccoHome: context.runtime.paths.root,
       profiles: profiles.length,
+      providerProfiles: profiles.filter(
+        (profile) =>
+          profile.kind === "overlay" && resolveProfileAuthKind(profile) === "provider",
+      ).length,
       hostConfigDir:
         context.process.env.CLAUDE_CONFIG_DIR ?? text.doctor.defaultHostConfig,
       conflicts: findConflictingAuthEnv(context.process.env),

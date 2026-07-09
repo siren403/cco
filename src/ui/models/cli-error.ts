@@ -294,6 +294,39 @@ export function buildCliErrorModel(error: unknown, locale: AppLocale): CliErrorM
             },
           ],
         };
+      case "CCSWITCH_IMPORT_INVALID":
+        return {
+          title: text.errors.ccswitchImportInvalidTitle,
+          tone: "warn",
+          summary: text.errors.ccswitchImportInvalidDescription,
+          commands: [
+            {
+              command: `cco auth add --provider --from <path> ${profileId ?? "work"}`,
+              description: text.errors.ccswitchImportInvalidDescription,
+            },
+          ],
+        };
+      case "CCSWITCH_IMPORT_MISSING_ENV":
+        return {
+          title: text.errors.ccswitchImportMissingEnvTitle,
+          tone: "warn",
+        };
+      case "CCSWITCH_IMPORT_MISSING_TOKEN":
+        return {
+          title: text.errors.ccswitchImportMissingTokenTitle,
+          tone: "warn",
+        };
+      case "CCSWITCH_IMPORT_MISSING_BASE_URL":
+        return {
+          title: text.errors.ccswitchImportMissingBaseUrlTitle,
+          tone: "warn",
+        };
+      case "CCSWITCH_IMPORT_FILE_READ_FAILED":
+        return {
+          title: text.errors.ccswitchImportFileReadFailedTitle,
+          tone: "warn",
+          summary: error.message,
+        };
       default:
         return {
           title: error.message,
