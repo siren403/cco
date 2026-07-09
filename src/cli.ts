@@ -40,6 +40,7 @@ if (isRootHelpRequest(argv)) {
         requestedProfileId: invocation.profileId,
         claudeArgs: invocation.claudeArgs,
         isolate: invocation.isolate,
+        envCompat: invocation.envCompat,
       });
     } else {
       await runWithStricliInkInterception(

@@ -7,7 +7,9 @@ export interface UiText {
   readonly commandBriefs: {
     readonly runArgProfile: string;
     readonly run: string;
+    readonly runFlagEnvCompat: string;
     readonly host: string;
+    readonly hostFlagEnvCompat: string;
     readonly auth: string;
     readonly authAddArgProfile: string;
     readonly authAdd: string;
@@ -80,12 +82,6 @@ export interface UiText {
     readonly removeCancelled: string;
     readonly confirmIsolateRemove: (profileId: string) => string;
     readonly isolateRemoveCancelled: string;
-    readonly profileEnvPolicy: (profileId: string) => string;
-    readonly profileEnvSafeLabel: string;
-    readonly profileEnvSafeHint: string;
-    readonly profileEnvCompatLabel: string;
-    readonly profileEnvCompatHint: string;
-    readonly profileEnvCancelled: string;
     readonly permissionOverride: (profileId: string) => string;
     readonly permissionOverrideCompatLabel: string;
     readonly permissionOverrideCompatHint: string;
@@ -116,14 +112,13 @@ export interface UiText {
     readonly introLine1: string;
     readonly introLine2: string;
     readonly nextTitle: string;
-    readonly nextPickMode: string;
-    readonly nextPickModeDescription: string;
     readonly nextSetupToken: string;
     readonly nextSetupTokenDescription: string;
     readonly nextPasteToken: (profileId: string) => string;
     readonly nextPasteTokenDescription: string;
     readonly successTitle: string;
     readonly successRuntimePolicy: (modeLabel: string) => string;
+    readonly successEnvProtectionNote: string;
     readonly successLaunch: (profileId: string) => string;
     readonly successLaunchDescription: string;
     readonly successContinue: (profileId: string) => string;
@@ -418,7 +413,11 @@ const KO_TEXT: UiText = {
   commandBriefs: {
     runArgProfile: "실행에 사용할 저장된 프로필 ID. 생략하면 선택 UI를 표시합니다",
     run: "호스트 로그인 또는 선택한 저장 프로필로 Claude를 실행합니다",
+    runFlagEnvCompat:
+      "이번 실행만 하위 프로세스 인증 env 보호를 끕니다(compat mode, 저장된 프로필 설정은 바뀌지 않음)",
     host: "현재 호스트 Claude Code 로그인으로 Claude를 실행합니다",
+    hostFlagEnvCompat:
+      "이번 실행만 하위 프로세스 인증 env 보호를 끕니다(compat mode)",
     auth: "저장된 프로필 토큰을 관리합니다",
     authAddArgProfile: "저장할 프로필 ID. 예: work, backup",
     authAdd: "공식 setup-token 흐름으로 저장 프로필을 생성하거나 교체합니다",
@@ -508,12 +507,6 @@ const KO_TEXT: UiText = {
     confirmIsolateRemove: (profileId) =>
       `"${profileId}"의 격리 실행 환경만 제거할까요? 호스트 Claude 설정과 저장된 토큰은 유지됩니다.`,
     isolateRemoveCancelled: "격리 실행 환경 제거를 취소했습니다.",
-    profileEnvPolicy: (profileId) => `"${profileId}"의 하위 프로세스 인증 env 정책`,
-    profileEnvSafeLabel: "권장: Claude 하위 프로세스에서 인증 env를 제거",
-    profileEnvSafeHint: "더 안전합니다. Bash/hooks/MCP 하위 프로세스가 프로필 토큰을 읽을 수 없습니다.",
-    profileEnvCompatLabel: "호환성: 하위 프로세스에서도 인증 env 유지",
-    profileEnvCompatHint: "bypassPermissions 같은 동작이 필요한 신뢰된 로컬 환경에서만 사용하세요.",
-    profileEnvCancelled: "프로필 설정을 취소했습니다.",
     permissionOverride: (profileId) =>
       `"${profileId}"는 현재 safe mode입니다. bypassPermissions 계열 요청을 어떻게 처리할까요?`,
     permissionOverrideCompatLabel: "이번 실행만 compat mode로 진행",
@@ -555,14 +548,14 @@ const KO_TEXT: UiText = {
     introLine1: "이 흐름은 host-facing setup을 링크한 분리 Claude home 실행을 준비합니다.",
     introLine2: "검증된 setup-token만 cco 로컬 홈 아래에 저장됩니다.",
     nextTitle: "다음 단계",
-    nextPickMode: "safe mode 또는 compat mode 선택",
-    nextPickModeDescription: "Claude 하위 프로세스가 프로필 인증 env를 볼 수 있는지 결정합니다.",
     nextSetupToken: "claude setup-token",
     nextSetupTokenDescription: "현재 터미널/브라우저 컨텍스트에서 공식 Claude 토큰 발급 흐름을 실행합니다.",
     nextPasteToken: (profileId) => `${profileId}용 토큰 붙여넣기`,
     nextPasteTokenDescription: "숨김 입력으로 토큰을 받고, 저장 전에 검증합니다.",
     successTitle: "프로필 준비 완료",
     successRuntimePolicy: (modeLabel) => `저장된 실행 정책: ${modeLabel}`,
+    successEnvProtectionNote:
+      "하위 프로세스 인증 env 보호가 기본으로 켜져 있습니다. bypassPermissions 실행은 해당 실행에서만 자동으로 compat mode로 전환됩니다. 이번 실행만 다르게 하려면 --env-compat을 사용하세요.",
     successLaunch: (profileId) => `cco ${profileId}`,
     successLaunchDescription:
       "링크된 host setup과 분리 Claude home에서 이 프로필 인증으로 Claude를 실행합니다.",
@@ -903,7 +896,11 @@ const EN_TEXT: UiText = {
   commandBriefs: {
     runArgProfile: "Saved profile id to use, or omit for profile picker",
     run: "Launch Claude with the host login or a selected saved profile",
+    runFlagEnvCompat:
+      "Turn off subprocess auth env protection for this launch only (compat mode; does not change the saved profile)",
     host: "Launch Claude with the host Claude Code login",
+    hostFlagEnvCompat:
+      "Turn off subprocess auth env protection for this launch only (compat mode)",
     auth: "Manage saved profile tokens",
     authAddArgProfile: "Profile id to save, such as work or backup",
     authAdd: "Create or replace a saved profile using the official setup-token flow",
@@ -992,12 +989,6 @@ const EN_TEXT: UiText = {
     confirmIsolateRemove: (profileId) =>
       `Remove only the isolate home for "${profileId}"? Host Claude config and saved token stay untouched.`,
     isolateRemoveCancelled: "Isolate removal cancelled.",
-    profileEnvPolicy: (profileId) => `Subprocess auth env policy for "${profileId}"`,
-    profileEnvSafeLabel: "Recommended: scrub auth env in Claude child subprocesses",
-    profileEnvSafeHint: "Safer. Bash/hooks/MCP subprocesses cannot read the profile token.",
-    profileEnvCompatLabel: "Compatibility: keep auth env visible to child subprocesses",
-    profileEnvCompatHint: "Use only for trusted local workflows that need bypassPermissions-like behavior.",
-    profileEnvCancelled: "Profile configuration cancelled.",
     permissionOverride: (profileId) =>
       `"${profileId}" is still in safe mode. How should this bypass-permission request be handled?`,
     permissionOverrideCompatLabel: "Use compat mode for this launch only",
@@ -1039,14 +1030,14 @@ const EN_TEXT: UiText = {
     introLine1: "This flow prepares the linked-host isolated-home launch path for a saved profile.",
     introLine2: "Only a verified setup-token for this local alias will be stored under cco's local home.",
     nextTitle: "What Happens Next",
-    nextPickMode: "pick safe or compatibility mode",
-    nextPickModeDescription: "Controls whether Claude child subprocesses can read the profile auth env.",
     nextSetupToken: "claude setup-token",
     nextSetupTokenDescription: "Runs the official Claude token flow in the current terminal/browser context.",
     nextPasteToken: (profileId) => `paste token for ${profileId}`,
     nextPasteTokenDescription: "The token is captured with hidden input and verified before it is saved.",
     successTitle: "Profile Ready",
     successRuntimePolicy: (modeLabel) => `Saved runtime policy: ${modeLabel}.`,
+    successEnvProtectionNote:
+      "Subprocess auth env protection is ON by default. Bypass-permissions launches auto-switch to compat mode for that run only. Use --env-compat for a one-shot override.",
     successLaunch: (profileId) => `cco ${profileId}`,
     successLaunchDescription:
       "Launch Claude with linked host-facing setup, a separate Claude home, and this profile's auth.",

@@ -226,6 +226,68 @@ test("non-interactive safe profile auto-uses compat for bypassPermissions", asyn
   expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
 });
 
+test("--env-compat is a one-shot override that is stripped before Claude sees the args", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
+
+  const result = await runCli(["work", "--env-compat", "-c"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.args).toEqual(["-c"]);
+  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
+
+  // The one-shot override must never be written back to the stored profile.
+  const profiles = JSON.parse(
+    await readFile(join(sandbox.ccoHome, "profiles.json"), "utf8"),
+  ) as {
+    profiles: Array<{ env?: { CLAUDE_CODE_SUBPROCESS_ENV_SCRUB?: string } }>;
+  };
+  expect(profiles.profiles[0]?.env?.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("1");
+});
+
+test("without --env-compat a safe profile launches with subprocess env protection on", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
+
+  const result = await runCli(["work", "-c"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("1");
+});
+
+test("--env-compat combined with bypassPermissions still resolves to compat mode", async () => {
+  const sandbox = await createSandbox();
+  await seedOverlayProfile(sandbox.ccoHome, "work", "overlay-token", "1");
+
+  const result = await runCli(
+    ["work", "--env-compat", "--dangerously-skip-permissions"],
+    sandbox,
+    {},
+  );
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.args).toEqual(["--dangerously-skip-permissions"]);
+  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
+});
+
+test("host launch honors --env-compat as a one-shot override too", async () => {
+  const sandbox = await createSandbox();
+
+  const result = await runCli(["host", "--env-compat", "--resume", "abc123"], sandbox, {});
+
+  expect(result.exitCode).toBe(0);
+
+  const log = await readFakeClaudeLog(sandbox.logPath);
+  expect(log.args).toEqual(["--resume", "abc123"]);
+  expect(log.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
+});
+
 test("host launch omits profile token injection and still preserves host config env", async () => {
   const sandbox = await createSandbox();
 

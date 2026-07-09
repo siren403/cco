@@ -7,6 +7,7 @@ test("plain profile invocation is treated as direct Claude launch", () => {
     profileId: "work",
     claudeArgs: [],
     isolate: true,
+    envCompat: false,
   });
 
   expect(resolveInvocation(["work", "-c"])).toEqual({
@@ -14,6 +15,7 @@ test("plain profile invocation is treated as direct Claude launch", () => {
     profileId: "work",
     claudeArgs: ["-c"],
     isolate: true,
+    envCompat: false,
   });
 
 });
@@ -24,6 +26,43 @@ test("host invocation passes trailing args through to Claude", () => {
     profileId: "host",
     claudeArgs: ["--resume", "abc"],
     isolate: false,
+    envCompat: false,
+  });
+});
+
+test("--env-compat is extracted as a cco flag and not passed through to Claude", () => {
+  expect(resolveInvocation(["work", "--env-compat"])).toEqual({
+    mode: "direct-launch",
+    profileId: "work",
+    claudeArgs: [],
+    isolate: true,
+    envCompat: true,
+  });
+
+  expect(resolveInvocation(["work", "--env-compat", "-c"])).toEqual({
+    mode: "direct-launch",
+    profileId: "work",
+    claudeArgs: ["-c"],
+    isolate: true,
+    envCompat: true,
+  });
+
+  expect(resolveInvocation(["host", "--resume", "abc", "--env-compat"])).toEqual({
+    mode: "direct-launch",
+    profileId: "host",
+    claudeArgs: ["--resume", "abc"],
+    isolate: false,
+    envCompat: true,
+  });
+});
+
+test("--env-compat after an explicit -- passthrough boundary is left for Claude", () => {
+  expect(resolveInvocation(["work", "--", "--env-compat"])).toEqual({
+    mode: "direct-launch",
+    profileId: "work",
+    claudeArgs: ["--env-compat"],
+    isolate: true,
+    envCompat: false,
   });
 });
 

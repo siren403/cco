@@ -6,6 +6,7 @@ export interface DirectLaunchInvocation {
   readonly profileId: string;
   readonly claudeArgs: readonly string[];
   readonly isolate: boolean;
+  readonly envCompat: boolean;
 }
 
 export interface StricliInvocation {
@@ -17,6 +18,7 @@ export type Invocation = DirectLaunchInvocation | StricliInvocation;
 const ROOT_HELP_FLAGS = new Set(["--help", "-h", "help"]);
 const ROOT_VERSION_FLAGS = new Set(["--version", "-v", "version"]);
 const REMOVED_LAUNCH_FLAGS = new Set(["--isolate", "--teams"]);
+const ENV_COMPAT_FLAG = "--env-compat";
 const REMOVED_COMMANDS = new Set(["teams"]);
 const STRICT_CLI_COMMANDS = new Set([
   "auth",
@@ -72,12 +74,14 @@ export function resolveInvocation(argv: readonly string[]): Invocation {
     profileId: launchParse.profileId,
     claudeArgs: launchParse.claudeArgs,
     isolate: launchParse.profileId !== "host",
+    envCompat: launchParse.envCompat,
   };
 }
 
 interface ParsedLaunchInvocation {
   readonly profileId: string;
   readonly claudeArgs: readonly string[];
+  readonly envCompat: boolean;
 }
 
 function parseLaunchInvocation(
@@ -104,30 +108,47 @@ function parseLaunchInvocation(
       return null;
     }
 
+    const parsed = parseClaudeArgs(argv.slice(index + 1), token);
     return {
       profileId: token,
-      claudeArgs: parseClaudeArgs(argv.slice(index + 1), token),
+      claudeArgs: parsed.claudeArgs,
+      envCompat: parsed.envCompat,
     };
   }
 
   return null;
 }
 
+interface ParsedClaudeArgs {
+  readonly claudeArgs: readonly string[];
+  readonly envCompat: boolean;
+}
+
 function parseClaudeArgs(
   argv: readonly string[],
   profileId: string,
-): readonly string[] {
+): ParsedClaudeArgs {
   if (argv[0] === "--") {
-    return argv.slice(1);
+    return { claudeArgs: argv.slice(1), envCompat: false };
   }
+
+  const claudeArgs: string[] = [];
+  let envCompat = false;
 
   for (const token of argv) {
     if (REMOVED_LAUNCH_FLAGS.has(token)) {
       throw removedLaunchFlagError(token, profileId);
     }
+
+    if (token === ENV_COMPAT_FLAG) {
+      envCompat = true;
+      continue;
+    }
+
+    claudeArgs.push(token);
   }
 
-  return argv;
+  return { claudeArgs, envCompat };
 }
 
 function removedLaunchFlagError(

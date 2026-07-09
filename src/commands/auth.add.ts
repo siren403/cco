@@ -5,6 +5,7 @@ import type { AppContext } from "../context.ts";
 import { DomainError } from "../core/errors/domain-error.ts";
 import {
   describeSubprocessEnvScrubMode,
+  resolveSubprocessEnvScrubMode,
   type OverlayProfile,
   type OverlayProviderConfig,
 } from "../core/model/profile.ts";
@@ -27,7 +28,6 @@ import {
 } from "../ui/ink/auth-add-ink-screen.ts";
 import { renderInkHost } from "../ui/ink/render-ink.ts";
 import { promptToConfirmModelMappings } from "../ui/prompts/confirm-model-mappings.ts";
-import { promptForProfileEnvMode } from "../ui/prompts/profile-env-mode.ts";
 import { promptForBaseUrl } from "../ui/prompts/provider-base-url.ts";
 import { promptForToken } from "../ui/prompts/token-entry.ts";
 
@@ -62,8 +62,6 @@ export const authAddCommand = buildCommand<AuthAddFlags, [profileId: string], Ap
 
     this.process.stdout.write("\n");
 
-    const subprocessEnvScrub = await promptForProfileEnvMode(profileId, existingProfile);
-
     const setupPlan = buildLaunchPlan({
       profile: HOST_PROFILE,
       binary: this.runtime.resolveClaudeBinary(),
@@ -85,6 +83,7 @@ export const authAddCommand = buildCommand<AuthAddFlags, [profileId: string], Ap
     await verifyToken(this, profileId, token);
 
     const now = this.runtime.now().toISOString();
+    const subprocessEnvScrub = resolveSubprocessEnvScrubMode(existingProfile ?? undefined);
     const profile: OverlayProfile = {
       id: profileId,
       label: profileId,
@@ -93,9 +92,7 @@ export const authAddCommand = buildCommand<AuthAddFlags, [profileId: string], Ap
       createdAt: existingProfile?.createdAt ?? now,
       updatedAt: now,
       lastUsedAt: existingProfile?.lastUsedAt,
-      env: {
-        CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: subprocessEnvScrub,
-      },
+      env: existingProfile?.env,
     };
 
     await this.runtime.profileStore.put(profile);
@@ -185,11 +182,10 @@ async function runProviderAdd(
     provider = { baseUrl };
   }
 
-  const subprocessEnvScrub = await promptForProfileEnvMode(profileId, existingProfile);
-
   provider = await applyDiscoveredModelMappings(context, provider, token);
 
   const now = context.runtime.now().toISOString();
+  const subprocessEnvScrub = resolveSubprocessEnvScrubMode(existingProfile ?? undefined);
   const profile: OverlayProfile = {
     id: profileId,
     label: profileId,
@@ -199,9 +195,7 @@ async function runProviderAdd(
     createdAt: existingProfile?.createdAt ?? now,
     updatedAt: now,
     lastUsedAt: existingProfile?.lastUsedAt,
-    env: {
-      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: subprocessEnvScrub,
-    },
+    env: existingProfile?.env,
   };
 
   await context.runtime.profileStore.put(profile);

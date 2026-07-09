@@ -27,10 +27,6 @@ export function renderAuthAddIntro(
         body: renderCommandList(
           [
             {
-              command: text.authAdd.nextPickMode,
-              description: text.authAdd.nextPickModeDescription,
-            },
-            {
               command: text.authAdd.nextSetupToken,
               description: text.authAdd.nextSetupTokenDescription,
             },
@@ -61,6 +57,8 @@ export function renderAuthAddSuccess(
       badge: { label: profileId, tone: "ok" },
       body: [
         text.authAdd.successRuntimePolicy(modeLabel),
+        "",
+        text.authAdd.successEnvProtectionNote,
         "",
         renderCommandList(
           [

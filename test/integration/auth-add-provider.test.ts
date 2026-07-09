@@ -19,10 +19,12 @@ test("auth add --provider --from saves a profile without tokenRef and never spaw
     },
   });
 
+  // No env-mode prompt exists anymore, so the flow completes without any
+  // stdin input at all.
   const result = await runInteractiveCli(
     ["auth", "add", "testprov", "--provider", "--from", fromPath],
     sandbox,
-    "\r",
+    "",
   );
 
   expect(result.exitCode).toBe(0);
@@ -30,6 +32,8 @@ test("auth add --provider --from saves a profile without tokenRef and never spaw
   expect(result.stdout).not.toContain("sk-should-never-be-imported");
   expect(result.stderr).not.toContain("sk-fake-provider-token");
   expect(result.stdout).toContain("ANTHROPIC_API_KEY");
+  expect(result.stdout).not.toContain("Subprocess auth env policy");
+  expect(result.stdout).not.toContain("keep auth env visible");
 
   const profiles = JSON.parse(
     await readFile(join(sandbox.ccoHome, "profiles.json"), "utf8"),
@@ -39,6 +43,7 @@ test("auth add --provider --from saves a profile without tokenRef and never spaw
       authKind?: string;
       tokenRef?: string;
       provider?: { baseUrl: string };
+      env?: { CLAUDE_CODE_SUBPROCESS_ENV_SCRUB?: string };
     }>;
   };
   const saved = profiles.profiles.find((profile) => profile.id === "testprov");
@@ -46,6 +51,7 @@ test("auth add --provider --from saves a profile without tokenRef and never spaw
   expect(saved?.authKind).toBe("provider");
   expect(saved?.tokenRef).toBeUndefined();
   expect(saved?.provider?.baseUrl).toBe("http://127.0.0.1:1");
+  expect(saved?.env).toBeUndefined();
   expect(JSON.stringify(profiles)).not.toContain("sk-fake-provider-token");
 
   const storedToken = await readFile(
@@ -69,7 +75,7 @@ test("auth add --provider --from probe warning proceeds with baseUrl+token only"
   const result = await runInteractiveCli(
     ["auth", "add", "testprov", "--provider", "--from", fromPath],
     sandbox,
-    "\r",
+    "",
   );
 
   expect(result.exitCode).toBe(0);
@@ -110,10 +116,7 @@ async function runMappingConfirmTest(): Promise<void> {
     const result = await runInteractiveCliWithSteps(
       ["auth", "add", "testprov", "--provider", "--from", fromPath],
       sandbox,
-      [
-        { keystroke: "\r" },
-        { keystroke: "\r", waitForStdout: "Fill in these env mappings" },
-      ],
+      [{ keystroke: "\r", waitForStdout: "Fill in these env mappings" }],
     );
 
     expect(result.exitCode).toBe(0);
@@ -168,7 +171,7 @@ async function runFilePinnedTierTest(): Promise<void> {
     const result = await runInteractiveCli(
       ["auth", "add", "testprov", "--provider", "--from", fromPath],
       sandbox,
-      "\r",
+      "",
     );
 
     expect(result.exitCode).toBe(0);
@@ -176,11 +179,15 @@ async function runFilePinnedTierTest(): Promise<void> {
     const profiles = JSON.parse(
       await readFile(join(sandbox.ccoHome, "profiles.json"), "utf8"),
     ) as {
-      profiles: Array<{ provider?: { env?: Record<string, string> } }>;
+      profiles: Array<{
+        provider?: { env?: Record<string, string> };
+        env?: { CLAUDE_CODE_SUBPROCESS_ENV_SCRUB?: string };
+      }>;
     };
     expect(profiles.profiles[0]?.provider?.env?.ANTHROPIC_DEFAULT_OPUS_MODEL).toBe(
       "file-pinned-opus-model",
     );
+    expect(profiles.profiles[0]?.env).toBeUndefined();
   } finally {
     server.stop(true);
   }
@@ -202,6 +209,54 @@ test("auth add --provider --from rejects a ccswitch file missing the token witho
 
   expect(result.exitCode).not.toBe(0);
   expect(result.stderr).toContain("ANTHROPIC_AUTH_TOKEN");
+});
+
+test("auth add --provider --from re-adding an existing profile preserves its stored env policy", async () => {
+  const sandbox = await createSandbox();
+  await writeFile(
+    join(sandbox.ccoHome, "profiles.json"),
+    JSON.stringify(
+      {
+        profiles: [
+          {
+            id: "testprov",
+            label: "testprov",
+            kind: "overlay",
+            authKind: "provider",
+            createdAt: "2026-04-14T00:00:00.000Z",
+            updatedAt: "2026-04-14T00:00:00.000Z",
+            provider: { baseUrl: "http://127.0.0.1:1" },
+            env: { CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "0" },
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+
+  const fromPath = await writeCcswitchFile(sandbox.root, {
+    env: {
+      ANTHROPIC_AUTH_TOKEN: "sk-fake-provider-token",
+      ANTHROPIC_BASE_URL: "http://127.0.0.1:1",
+    },
+  });
+
+  const result = await runInteractiveCli(
+    ["auth", "add", "testprov", "--provider", "--from", fromPath],
+    sandbox,
+    "",
+  );
+
+  expect(result.exitCode).toBe(0);
+
+  const profiles = JSON.parse(
+    await readFile(join(sandbox.ccoHome, "profiles.json"), "utf8"),
+  ) as {
+    profiles: Array<{ env?: { CLAUDE_CODE_SUBPROCESS_ENV_SCRUB?: string } }>;
+  };
+  expect(profiles.profiles[0]?.env?.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
 });
 
 interface Sandbox {

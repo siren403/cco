@@ -5,13 +5,25 @@ import { launchClaudeForProfile } from "./launch-shared.ts";
 
 const text = getStaticUiText();
 
-export const runCommand = buildCommand<{}, [profileId?: string], AppContext>({
-  async func(this: AppContext, _flags, profileId) {
+interface RunFlags {
+  readonly "env-compat"?: boolean;
+}
+
+export const runCommand = buildCommand<RunFlags, [profileId?: string], AppContext>({
+  async func(this: AppContext, flags, profileId) {
     await launchClaudeForProfile(this, {
       requestedProfileId: profileId,
+      envCompat: flags["env-compat"],
     });
   },
   parameters: {
+    flags: {
+      "env-compat": {
+        kind: "boolean",
+        optional: true,
+        brief: text.commandBriefs.runFlagEnvCompat,
+      },
+    },
     positional: {
       kind: "tuple",
       parameters: [

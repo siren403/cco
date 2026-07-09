@@ -38,10 +38,6 @@ export function AuthAddIntroInkScreen(props: {
       ...InkCommandList({
         entries: [
           {
-            command: text.authAdd.nextPickMode,
-            description: text.authAdd.nextPickModeDescription,
-          },
-          {
             command: text.authAdd.nextSetupToken,
             description: text.authAdd.nextSetupTokenDescription,
           },
@@ -86,6 +82,8 @@ export function AuthAddSuccessInkScreen(props: {
           },
         ],
       }),
+      h(Text, null, ""),
+      h(Text, { dimColor: true }, text.authAdd.successEnvProtectionNote),
       h(Text, null, ""),
       ...InkCommandList({
         entries: [
@@ -150,10 +148,6 @@ export function AuthAddProviderIntroInkScreen(props: {
         : InkCommandList({
             entries: [
               {
-                command: text.authAdd.nextPickMode,
-                description: text.authAdd.nextPickModeDescription,
-              },
-              {
                 command: text.authAdd.providerNextBaseUrl,
                 description: text.authAdd.providerNextBaseUrlDescription,
               },
@@ -212,6 +206,8 @@ export function AuthAddProviderSuccessInkScreen(props: {
           },
         ],
       }),
+      h(Text, null, ""),
+      h(Text, { dimColor: true }, text.authAdd.successEnvProtectionNote),
       h(Text, null, ""),
       ...InkCommandList({
         entries: [

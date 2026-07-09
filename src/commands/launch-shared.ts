@@ -40,6 +40,7 @@ export interface LaunchProfileOptions {
   readonly claudeArgs?: readonly string[];
   readonly isolate?: boolean;
   readonly isolateBootstrap?: IsolateBootstrapOptions;
+  readonly envCompat?: boolean;
 }
 
 export async function launchClaudeForProfile(
@@ -62,11 +63,9 @@ export async function launchClaudeForProfile(
       )
     : undefined;
   const token = await resolveToken(context, profile);
-  const subprocessEnvScrubOverride = await maybeResolvePermissionModeOverride(
-    context,
-    profile,
-    options.claudeArgs,
-  );
+  const subprocessEnvScrubOverride = options.envCompat === true
+    ? "0"
+    : await maybeResolvePermissionModeOverride(context, profile, options.claudeArgs);
 
   if (!useIsolate && profile.kind === "overlay") {
     await maybeBridgeIsolateSessionBackToHost(context, profile, options.claudeArgs);
