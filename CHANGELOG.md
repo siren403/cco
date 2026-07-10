@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.0 - 2026-07-10
+
+### Added
+
+- Added provider profiles: `cco auth add <name> --provider [--from <ccswitch.json>]` runs Claude against an external Anthropic-compatible endpoint (`ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN`) while keeping the same isolate home and host-linked harness (skills, hooks, MCP) as OAuth profiles.
+- Added ccswitch config import: token goes to the token store, whitelisted model env keys go to the profile, dropped keys are reported by name only, and `skipDangerousModePermissionPrompt` is never auto-translated.
+- Added `/v1/models` discovery during provider setup: the probe doubles as connectivity verification and suggests `ANTHROPIC_DEFAULT_*_MODEL` tier mappings behind an explicit confirm; probe failures warn and never block saving.
+- Added `--env-compat`, a one-shot launch flag that keeps subprocess auth env for a single run without persisting to the profile.
+
+### Changed
+
+- Removed the subprocess auth env policy prompt from `cco auth add`; new profiles always default to the safe scrub mode, bypass-permissions launches keep auto-switching to compat for that run, and explicitly stored profile values are still honored.
+- Provider profiles persist without a `tokenRef` field so older cco versions safely ignore them instead of misusing the provider token as an OAuth token.
+
 ## 0.3.0 - 2026-04-23
 
 ### Added
