@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.1 - 2026-07-29
+
+### Fixed
+
+- Distinguished invalid setup tokens from Claude API request, billing, permission, rate-limit, timeout, and service errors during `cco auth add`, while preserving the concise server message without dumping the raw JSON result.
+
 ## 0.4.0 - 2026-07-10
 
 ### Added

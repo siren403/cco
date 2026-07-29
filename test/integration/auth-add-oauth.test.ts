@@ -85,6 +85,23 @@ test("auth add (oauth) re-adding an existing profile preserves its stored env po
   expect(profiles.profiles[0]?.env?.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBe("0");
 });
 
+test("auth add reports Claude API limits separately from invalid tokens", async () => {
+  const sandbox = await createSandbox();
+
+  const result = await runInteractiveCliWithSteps(
+    ["auth", "add", "limited"],
+    sandbox,
+    [{ keystroke: "fake-api-error-429\r", waitForStdout: "Paste the verified setup token" }],
+  );
+
+  const output = `${result.stdout}\n${result.stderr}`;
+  expect(result.exitCode).toBe(1);
+  expect(output).toContain("You have reached a Claude usage or rate limit.");
+  expect(output).toContain("HTTP 429: You've hit your limit · resets 9pm (Asia/Seoul)");
+  expect(output).not.toContain("Token verification failed.");
+  expect(output).not.toContain('"api_error_status"');
+});
+
 interface Sandbox {
   readonly root: string;
   readonly ccoHome: string;

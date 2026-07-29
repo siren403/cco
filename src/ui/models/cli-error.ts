@@ -99,6 +99,20 @@ export function buildCliErrorModel(error: unknown, locale: AppLocale): CliErrorM
             },
           ],
         };
+      case "TOKEN_VERIFY_API_ERROR": {
+        const status = error.details.apiStatus ?? 0;
+        return {
+          title: text.errors.tokenVerifyApiErrorTitle(status),
+          tone: "warn",
+          summary: `HTTP ${status}: ${error.message}`,
+          commands: [
+            {
+              command: `cco auth add ${profileId ?? "work"}`,
+              description: text.errors.tokenVerifyApiRetryDescription(status),
+            },
+          ],
+        };
+      }
       case "HOST_CONFIG_NOT_SUPPORTED":
         return {
           title: text.errors.hostConfigNotSupportedTitle,

@@ -283,6 +283,26 @@ async function applyDiscoveredModelMappings(
   };
 }
 
+function parseClaudeApiError(
+  ...outputs: readonly string[]
+): { readonly status: number; readonly message?: string } | undefined {
+  for (const output of outputs) {
+    try {
+      const value = JSON.parse(output) as Record<string, unknown>;
+      if (typeof value.api_error_status === "number") {
+        return {
+          status: value.api_error_status,
+          message: typeof value.result === "string" ? value.result : undefined,
+        };
+      }
+    } catch {
+      // Not Claude's JSON result envelope; keep the existing generic error path.
+    }
+  }
+
+  return undefined;
+}
+
 async function verifyToken(
   context: AppContext,
   profileId: string,
@@ -306,6 +326,15 @@ async function verifyToken(
 
   const result = await spawnClaudeCapture(verifyPlan);
   if (result.exitCode !== 0) {
+    const apiError = parseClaudeApiError(result.stdout, result.stderr);
+    if (apiError) {
+      throw new DomainError(
+        "TOKEN_VERIFY_API_ERROR",
+        apiError.message ?? `Claude API returned HTTP ${apiError.status}.`,
+        { apiStatus: apiError.status, profileId },
+      );
+    }
+
     throw new DomainError(
       "TOKEN_VERIFY_FAILED",
       `Token verification failed.\n${result.stderr.trim() || result.stdout.trim()}`,

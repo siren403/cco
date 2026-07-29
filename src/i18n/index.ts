@@ -328,6 +328,8 @@ export interface UiText {
     readonly setupTokenRetryDescription: string;
     readonly tokenVerifyFailedTitle: string;
     readonly tokenVerifyRetryDescription: string;
+    readonly tokenVerifyApiErrorTitle: (status: number) => string;
+    readonly tokenVerifyApiRetryDescription: (status: number) => string;
     readonly hostConfigNotSupportedTitle: string;
     readonly hostConfigNotSupportedDescription: string;
     readonly invalidConfigAssignmentTitle: string;
@@ -783,6 +785,44 @@ const KO_TEXT: UiText = {
     setupTokenRetryDescription: "이 로컬 별칭에 대해 setup-token 흐름을 다시 시도하세요.",
     tokenVerifyFailedTitle: "토큰 검증에 실패했습니다.",
     tokenVerifyRetryDescription: "새 setup-token을 받아 다시 검증하세요.",
+    tokenVerifyApiErrorTitle: (status) => {
+      switch (status) {
+        case 400:
+          return "토큰 검증 요청이 올바르지 않습니다.";
+        case 401:
+          return "토큰이 유효하지 않거나 만료되었습니다.";
+        case 402:
+          return "결제 또는 구독 상태를 확인해야 합니다.";
+        case 403:
+          return "토큰에 필요한 권한이 없습니다.";
+        case 404:
+          return "검증에 필요한 Claude 리소스를 찾지 못했습니다.";
+        case 409:
+          return "Claude 요청 상태가 충돌했습니다.";
+        case 413:
+          return "토큰 검증 요청 크기 제한을 초과했습니다.";
+        case 429:
+          return "Claude 사용량 또는 요청 한도에 도달했습니다.";
+        case 500:
+          return "Anthropic 내부 오류가 발생했습니다.";
+        case 504:
+          return "Claude 응답 시간이 초과되었습니다.";
+        case 529:
+          return "Claude 서비스가 일시적으로 과부하 상태입니다.";
+        default:
+          return status >= 500
+            ? "Claude 서비스를 일시적으로 사용할 수 없습니다."
+            : "토큰 검증 API 요청에 실패했습니다.";
+      }
+    },
+    tokenVerifyApiRetryDescription: (status) => {
+      if (status === 401) return "새 setup-token을 받아 다시 검증하세요.";
+      if (status === 402) return "결제 또는 구독 상태를 확인한 뒤 다시 실행하세요.";
+      if (status === 403) return "계정과 조직의 Claude 접근 권한을 확인하세요.";
+      if (status === 429) return "안내된 사용 한도 초기화 이후 다시 실행하세요.";
+      if (status >= 500) return "잠시 후 다시 실행하세요.";
+      return "Claude Code를 업데이트하거나 `cco doctor`로 환경을 확인한 뒤 다시 실행하세요.";
+    },
     hostConfigNotSupportedTitle:
       "host 프로필에는 편집 가능한 프로필 설정이 없습니다.",
     hostConfigNotSupportedDescription:
@@ -1266,6 +1306,44 @@ const EN_TEXT: UiText = {
     setupTokenRetryDescription: "Retry the setup-token flow for this local alias.",
     tokenVerifyFailedTitle: "Token verification failed.",
     tokenVerifyRetryDescription: "Capture a fresh setup-token and verify it again.",
+    tokenVerifyApiErrorTitle: (status) => {
+      switch (status) {
+        case 400:
+          return "The token verification request was invalid.";
+        case 401:
+          return "The token is invalid or expired.";
+        case 402:
+          return "Your billing or subscription status needs attention.";
+        case 403:
+          return "The token does not have the required permission.";
+        case 404:
+          return "The Claude resource required for verification was not found.";
+        case 409:
+          return "The Claude request conflicted with the current state.";
+        case 413:
+          return "The token verification request was too large.";
+        case 429:
+          return "You have reached a Claude usage or rate limit.";
+        case 500:
+          return "Anthropic encountered an internal error.";
+        case 504:
+          return "The Claude request timed out.";
+        case 529:
+          return "Claude is temporarily overloaded.";
+        default:
+          return status >= 500
+            ? "Claude is temporarily unavailable."
+            : "The token verification API request failed.";
+      }
+    },
+    tokenVerifyApiRetryDescription: (status) => {
+      if (status === 401) return "Capture a fresh setup-token and verify it again.";
+      if (status === 402) return "Check billing or subscription status, then retry.";
+      if (status === 403) return "Check the account and organization's Claude access.";
+      if (status === 429) return "Retry after the usage limit resets.";
+      if (status >= 500) return "Retry in a moment.";
+      return "Update Claude Code or run `cco doctor` before retrying.";
+    },
     hostConfigNotSupportedTitle:
       "The host profile does not have editable profile config.",
     hostConfigNotSupportedDescription:

@@ -1,4 +1,5 @@
 export interface DomainErrorDetails {
+  readonly apiStatus?: number;
   readonly command?: string;
   readonly exitCode?: number;
   readonly flag?: string;
