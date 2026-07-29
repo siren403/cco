@@ -791,6 +791,7 @@ async function runCli(
     cwd: resolve(import.meta.dir, "..", ".."),
     env: {
       ...process.env,
+      CCO_LOCALE: "ko",
       ...extraEnv,
       CCO_HOME: sandbox.ccoHome,
       CCO_CLAUDE_BIN: sandbox.launcherPath,

@@ -27,6 +27,19 @@ if (args[0] === "setup-token") {
 }
 
 if (args.includes("-p") && args.includes("--output-format") && args.includes("json")) {
+  const errorStatus = Number(
+    /^fake-api-error-(\d+)$/.exec(process.env.CLAUDE_CODE_OAUTH_TOKEN ?? "")?.[1],
+  );
+  if (Number.isInteger(errorStatus)) {
+    console.log(
+      JSON.stringify({
+        api_error_status: errorStatus,
+        result: errorStatus === 429 ? "You've hit your limit · resets 9pm (Asia/Seoul)" : "API error",
+      }),
+    );
+    process.exit(1);
+  }
+
   console.log(JSON.stringify({ session_id: "fake-session-id" }));
   process.exit(0);
 }
